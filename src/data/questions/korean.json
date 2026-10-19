@@ -1,0 +1,8 @@
+[
+  { "id": "ko-e1", "subject": "korean", "difficulty": "easy", "type": "choice", "question": "'바다'와 뜻이 반대인 낱말은 아닌 것은? (물과 관련된 낱말)", "choices": ["파도", "육지", "산", "하늘"], "answer": "파도", "explanation": "파도는 바다에서 일어나는 물결이에요. 나머지는 바다와 관련 없는 낱말이에요." },
+  { "id": "ko-e2", "subject": "korean", "difficulty": "easy", "type": "ox", "question": "'먹다'는 움직임을 나타내는 낱말이다.", "answer": "O", "explanation": "'먹다'는 동작을 나타내는 낱말(동사)이에요." },
+  { "id": "ko-n1", "subject": "korean", "difficulty": "normal", "type": "choice", "question": "맞춤법이 맞는 것은?", "choices": ["왠일이야", "웬일이야", "왠일이니", "웬이리야"], "answer": "웬일이야", "explanation": "'어찌 된 일'의 뜻일 때는 '웬일'이 맞아요." },
+  { "id": "ko-n2", "subject": "korean", "difficulty": "normal", "type": "ox", "question": "'눈코 뜰 새 없다'는 매우 바쁘다는 뜻이다.", "answer": "O", "explanation": "눈코 뜰 새 없이 바쁘다는 뜻의 관용 표현이에요." },
+  { "id": "ko-h1", "subject": "korean", "difficulty": "hard", "type": "choice", "question": "'발이 넓다'의 뜻은?", "choices": ["발 크기가 크다", "아는 사람이 많다", "걸음이 빠르다", "키가 크다"], "answer": "아는 사람이 많다", "explanation": "'발이 넓다'는 사귀어 아는 사람이 많다는 관용 표현이에요." },
+  { "id": "ko-h2", "subject": "korean", "difficulty": "hard", "type": "ox", "question": "'가는 말이 고와야 오는 말이 곱다'는 말조심을 가르치는 속담이다.", "answer": "O", "explanation": "내가 남에게 좋게 해야 남도 나에게 좋게 한다는 뜻이에요." }
+]

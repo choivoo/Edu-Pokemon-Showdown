@@ -1,0 +1,8 @@
+[
+  { "id": "en-e1", "subject": "english", "difficulty": "easy", "type": "choice", "question": "'apple'의 뜻은?", "choices": ["사과", "바나나", "포도", "딸기"], "answer": "사과", "explanation": "apple = 사과" },
+  { "id": "en-e2", "subject": "english", "difficulty": "easy", "type": "ox", "question": "'dog'는 '고양이'라는 뜻이다.", "answer": "X", "explanation": "dog = 강아지, cat = 고양이" },
+  { "id": "en-n1", "subject": "english", "difficulty": "normal", "type": "choice", "question": "빈칸에 알맞은 것은? I ___ a student.", "choices": ["am", "is", "are", "be"], "answer": "am", "explanation": "주어 I 다음에는 am을 써요." },
+  { "id": "en-n2", "subject": "english", "difficulty": "normal", "type": "choice", "question": "'Thursday'는 무슨 요일?", "choices": ["월요일", "수요일", "목요일", "금요일"], "answer": "목요일", "explanation": "Thursday = 목요일" },
+  { "id": "en-h1", "subject": "english", "difficulty": "hard", "type": "choice", "question": "'He ___ to school every day.' 알맞은 것은?", "choices": ["go", "goes", "going", "gone"], "answer": "goes", "explanation": "3인칭 단수 현재형에는 -es를 붙여요." },
+  { "id": "en-h2", "subject": "english", "difficulty": "hard", "type": "ox", "question": "'child'의 복수형은 'childs'이다.", "answer": "X", "explanation": "child의 복수형은 불규칙 변화로 children 이에요." }
+]

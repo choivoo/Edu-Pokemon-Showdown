@@ -1,0 +1,8 @@
+[
+  { "id": "sc-e1", "subject": "science", "difficulty": "easy", "type": "choice", "question": "물이 얼면 무엇이 될까요?", "choices": ["수증기", "얼음", "구름", "비"], "answer": "얼음", "explanation": "물은 0℃ 이하에서 얼음이 돼요." },
+  { "id": "sc-e2", "subject": "science", "difficulty": "easy", "type": "ox", "question": "해는 동쪽에서 뜬다.", "answer": "O", "explanation": "해는 동쪽에서 떠서 서쪽으로 져요." },
+  { "id": "sc-n1", "subject": "science", "difficulty": "normal", "type": "choice", "question": "식물이 빛을 이용해 양분을 만드는 작용은?", "choices": ["호흡", "광합성", "증산 작용", "소화"], "answer": "광합성", "explanation": "식물은 빛, 물, 이산화탄소로 광합성을 해요." },
+  { "id": "sc-n2", "subject": "science", "difficulty": "normal", "type": "number", "question": "태양계에서 태양 다음으로 가까운 행성은 수성이다. 태양에서 세 번째 행성은 몇 번째 행성일까요? (숫자만)", "answer": "3", "explanation": "수성, 금성, 지구 순이므로 지구는 3번째예요." },
+  { "id": "sc-h1", "subject": "science", "difficulty": "hard", "type": "choice", "question": "물의 끓는점(1기압)은?", "choices": ["50℃", "80℃", "100℃", "120℃"], "answer": "100℃", "explanation": "1기압에서 물은 100℃에서 끓어요." },
+  { "id": "sc-h2", "subject": "science", "difficulty": "hard", "type": "ox", "question": "소리는 진공에서도 전달된다.", "answer": "X", "explanation": "소리는 공기 같은 물질이 있어야 전달돼요." }
+]

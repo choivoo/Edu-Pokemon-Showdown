@@ -1,0 +1,380 @@
+[
+  {
+    "id": "normal-easy",
+    "name": "몸통박치기",
+    "type": "normal",
+    "difficulty": "easy",
+    "power": 40
+  },
+  {
+    "id": "normal-normal",
+    "name": "하이퍼보이스",
+    "type": "normal",
+    "difficulty": "normal",
+    "power": 70
+  },
+  {
+    "id": "normal-hard",
+    "name": "파괴광선",
+    "type": "normal",
+    "difficulty": "hard",
+    "power": 100
+  },
+  {
+    "id": "fire-easy",
+    "name": "불꽃세례",
+    "type": "fire",
+    "difficulty": "easy",
+    "power": 40
+  },
+  {
+    "id": "fire-normal",
+    "name": "화염방사",
+    "type": "fire",
+    "difficulty": "normal",
+    "power": 70
+  },
+  {
+    "id": "fire-hard",
+    "name": "불대문자",
+    "type": "fire",
+    "difficulty": "hard",
+    "power": 100
+  },
+  {
+    "id": "water-easy",
+    "name": "물대포",
+    "type": "water",
+    "difficulty": "easy",
+    "power": 40
+  },
+  {
+    "id": "water-normal",
+    "name": "파도타기",
+    "type": "water",
+    "difficulty": "normal",
+    "power": 70
+  },
+  {
+    "id": "water-hard",
+    "name": "하이드로펌프",
+    "type": "water",
+    "difficulty": "hard",
+    "power": 100
+  },
+  {
+    "id": "electric-easy",
+    "name": "전기쇼크",
+    "type": "electric",
+    "difficulty": "easy",
+    "power": 40
+  },
+  {
+    "id": "electric-normal",
+    "name": "10만볼트",
+    "type": "electric",
+    "difficulty": "normal",
+    "power": 70
+  },
+  {
+    "id": "electric-hard",
+    "name": "번개",
+    "type": "electric",
+    "difficulty": "hard",
+    "power": 100
+  },
+  {
+    "id": "grass-easy",
+    "name": "덩굴채찍",
+    "type": "grass",
+    "difficulty": "easy",
+    "power": 40
+  },
+  {
+    "id": "grass-normal",
+    "name": "잎날가르기",
+    "type": "grass",
+    "difficulty": "normal",
+    "power": 70
+  },
+  {
+    "id": "grass-hard",
+    "name": "솔라빔",
+    "type": "grass",
+    "difficulty": "hard",
+    "power": 100
+  },
+  {
+    "id": "ice-easy",
+    "name": "얼음뭉치",
+    "type": "ice",
+    "difficulty": "easy",
+    "power": 40
+  },
+  {
+    "id": "ice-normal",
+    "name": "냉동빔",
+    "type": "ice",
+    "difficulty": "normal",
+    "power": 70
+  },
+  {
+    "id": "ice-hard",
+    "name": "눈보라",
+    "type": "ice",
+    "difficulty": "hard",
+    "power": 100
+  },
+  {
+    "id": "fighting-easy",
+    "name": "태권당수",
+    "type": "fighting",
+    "difficulty": "easy",
+    "power": 40
+  },
+  {
+    "id": "fighting-normal",
+    "name": "시저크로스",
+    "type": "fighting",
+    "difficulty": "normal",
+    "power": 70
+  },
+  {
+    "id": "fighting-hard",
+    "name": "인파이트",
+    "type": "fighting",
+    "difficulty": "hard",
+    "power": 100
+  },
+  {
+    "id": "poison-easy",
+    "name": "독침",
+    "type": "poison",
+    "difficulty": "easy",
+    "power": 40
+  },
+  {
+    "id": "poison-normal",
+    "name": "오물폭탄",
+    "type": "poison",
+    "difficulty": "normal",
+    "power": 70
+  },
+  {
+    "id": "poison-hard",
+    "name": "더스트슛",
+    "type": "poison",
+    "difficulty": "hard",
+    "power": 100
+  },
+  {
+    "id": "ground-easy",
+    "name": "진흙뿌리기",
+    "type": "ground",
+    "difficulty": "easy",
+    "power": 40
+  },
+  {
+    "id": "ground-normal",
+    "name": "뼈다귀부메랑",
+    "type": "ground",
+    "difficulty": "normal",
+    "power": 70
+  },
+  {
+    "id": "ground-hard",
+    "name": "지진",
+    "type": "ground",
+    "difficulty": "hard",
+    "power": 100
+  },
+  {
+    "id": "flying-easy",
+    "name": "바람일으키기",
+    "type": "flying",
+    "difficulty": "easy",
+    "power": 40
+  },
+  {
+    "id": "flying-normal",
+    "name": "에어슬래시",
+    "type": "flying",
+    "difficulty": "normal",
+    "power": 70
+  },
+  {
+    "id": "flying-hard",
+    "name": "브레이브버드",
+    "type": "flying",
+    "difficulty": "hard",
+    "power": 100
+  },
+  {
+    "id": "psychic-easy",
+    "name": "염동력",
+    "type": "psychic",
+    "difficulty": "easy",
+    "power": 40
+  },
+  {
+    "id": "psychic-normal",
+    "name": "사이코키네시스",
+    "type": "psychic",
+    "difficulty": "normal",
+    "power": 70
+  },
+  {
+    "id": "psychic-hard",
+    "name": "미래예지",
+    "type": "psychic",
+    "difficulty": "hard",
+    "power": 100
+  },
+  {
+    "id": "bug-easy",
+    "name": "실뿜기",
+    "type": "bug",
+    "difficulty": "easy",
+    "power": 40
+  },
+  {
+    "id": "bug-normal",
+    "name": "벌레의야단법석",
+    "type": "bug",
+    "difficulty": "normal",
+    "power": 70
+  },
+  {
+    "id": "bug-hard",
+    "name": "메가혼",
+    "type": "bug",
+    "difficulty": "hard",
+    "power": 100
+  },
+  {
+    "id": "rock-easy",
+    "name": "돌떨구기",
+    "type": "rock",
+    "difficulty": "easy",
+    "power": 40
+  },
+  {
+    "id": "rock-normal",
+    "name": "락블라스트",
+    "type": "rock",
+    "difficulty": "normal",
+    "power": 70
+  },
+  {
+    "id": "rock-hard",
+    "name": "스톤에지",
+    "type": "rock",
+    "difficulty": "hard",
+    "power": 100
+  },
+  {
+    "id": "ghost-easy",
+    "name": "핥기",
+    "type": "ghost",
+    "difficulty": "easy",
+    "power": 40
+  },
+  {
+    "id": "ghost-normal",
+    "name": "섀도볼",
+    "type": "ghost",
+    "difficulty": "normal",
+    "power": 70
+  },
+  {
+    "id": "ghost-hard",
+    "name": "섀도다이브",
+    "type": "ghost",
+    "difficulty": "hard",
+    "power": 100
+  },
+  {
+    "id": "dragon-easy",
+    "name": "용의숨결",
+    "type": "dragon",
+    "difficulty": "easy",
+    "power": 40
+  },
+  {
+    "id": "dragon-normal",
+    "name": "용의파동",
+    "type": "dragon",
+    "difficulty": "normal",
+    "power": 70
+  },
+  {
+    "id": "dragon-hard",
+    "name": "역린",
+    "type": "dragon",
+    "difficulty": "hard",
+    "power": 100
+  },
+  {
+    "id": "dark-easy",
+    "name": "물기",
+    "type": "dark",
+    "difficulty": "easy",
+    "power": 40
+  },
+  {
+    "id": "dark-normal",
+    "name": "깨물어부수기",
+    "type": "dark",
+    "difficulty": "normal",
+    "power": 70
+  },
+  {
+    "id": "dark-hard",
+    "name": "악의파동",
+    "type": "dark",
+    "difficulty": "hard",
+    "power": 100
+  },
+  {
+    "id": "steel-easy",
+    "name": "메탈클로",
+    "type": "steel",
+    "difficulty": "easy",
+    "power": 40
+  },
+  {
+    "id": "steel-normal",
+    "name": "아이언헤드",
+    "type": "steel",
+    "difficulty": "normal",
+    "power": 70
+  },
+  {
+    "id": "steel-hard",
+    "name": "플래시캐논",
+    "type": "steel",
+    "difficulty": "hard",
+    "power": 100
+  },
+  {
+    "id": "fairy-easy",
+    "name": "요정의바람",
+    "type": "fairy",
+    "difficulty": "easy",
+    "power": 40
+  },
+  {
+    "id": "fairy-normal",
+    "name": "문포스",
+    "type": "fairy",
+    "difficulty": "normal",
+    "power": 70
+  },
+  {
+    "id": "fairy-hard",
+    "name": "매지컬샤인",
+    "type": "fairy",
+    "difficulty": "hard",
+    "power": 100
+  }
+]
