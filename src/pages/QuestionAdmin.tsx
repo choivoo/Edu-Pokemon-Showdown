@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { useGame } from '../store/gameStore'
 import { addCustomQuestions, CSV_HEADER, loadCustomQuestions, parseCsvQuestions, parseJsonQuestions, saveCustomQuestions } from '../lib/customQuestions'
 import { SUBJECT_LABEL } from '../lib/questions'
+import { getBackend } from '../lib/backend'
+import { fetchQuestionSet, shareQuestionSet } from '../lib/classRoom'
 
 const SAMPLE = `[
   {"subject":"math","difficulty":"normal","type":"choice","question":"7 × 8 = ?","choices":["54","56","58","64"],"answer":"56","explanation":"7 × 8 = 56"}
@@ -21,6 +23,25 @@ export default function QuestionAdmin() {
     if (!f) return
     const t = await f.text()
     apply(f.name.toLowerCase().endsWith('.json') ? parseJsonQuestions(t) : parseCsvQuestions(t))
+  }
+  const [shareCode, setShareCode] = useState('')
+  const [importCode, setImportCode] = useState('')
+  const [busy, setBusy] = useState(false)
+  const run = async (fn: () => Promise<void>) => {
+    setBusy(true)
+    try { await fn() } catch (e) { setInfo({ ok: '', errors: [e instanceof Error ? e.message : '실패했어요'] }) } finally { setBusy(false) }
+  }
+  const share = () => run(async () => { setShareCode(await shareQuestionSet(await getBackend(), all)) })
+  const importSet = () => run(async () => {
+    const qs = await fetchQuestionSet(await getBackend(), importCode.trim())
+    setAll(addCustomQuestions(qs.map(q => ({ ...q, id: `${q.id}-${importCode.trim()}` }))))
+    setInfo({ ok: `${qs.length}개 가져옴`, errors: [] })
+  })
+  const download = () => {
+    const url = URL.createObjectURL(new Blob([JSON.stringify(all, null, 2)], { type: 'application/json' }))
+    const a = document.createElement('a')
+    a.href = url; a.download = 'questions.json'; a.click()
+    URL.revokeObjectURL(url)
   }
   const remove = (id: string) => { const n = all.filter(q => q.id !== id); saveCustomQuestions(n); setAll(n) }
 
@@ -46,6 +67,20 @@ export default function QuestionAdmin() {
           {info.errors.map((e, i) => <p key={i} className="text-red-300">⚠ {e}</p>)}
         </div>
       )}
+      <div className="pixel-box space-y-2 p-3 text-[11px]">
+        <p className="text-yellow-300">문제 세트 공유</p>
+        <p className="text-gray-300">선생님이 만든 문제를 학생 기기로 보내요. (클래스 모드에서는 선생님 화면의 문제가 자동으로 학생에게 전달돼요)</p>
+        <div className="flex gap-2">
+          <button disabled={busy || !all.length} onClick={() => void share()} className="pixel-btn pixel-box flex-1 py-1.5">공유 코드 만들기</button>
+          <button disabled={!all.length} onClick={download} className="pixel-btn pixel-box flex-1 py-1.5">JSON 내보내기</button>
+        </div>
+        {shareCode && <p className="text-center text-lg text-green-300">공유 코드 {shareCode}</p>}
+        <div className="flex gap-2">
+          <input value={importCode} onChange={e => setImportCode(e.target.value.replace(/\D/g, '').slice(0, 4))} inputMode="numeric" placeholder="코드 4자리"
+            className="min-w-0 flex-1 rounded border-4 border-black bg-white px-2 py-1 text-black" />
+          <button disabled={busy || importCode.length !== 4} onClick={() => void importSet()} className="pixel-btn pixel-box px-3 py-1.5">가져오기</button>
+        </div>
+      </div>
       <p className="text-xs">등록된 문제 {all.length}개</p>
       <ul className="space-y-1 text-[11px]">
         {all.map(q => (
