@@ -2,13 +2,16 @@ import { create } from 'zustand'
 import type { Species } from '../types'
 import { cook, type IngredientId, getIngredient, DISH_SIZE } from '../lib/cooking'
 import { getSpecies } from '../lib/roster'
-import { addExp, expToNext, MAX_LEVEL, mergeCost, type OwnedMon, type Stone, STONE_SLOTS } from '../lib/stats'
+import { addExp, expToNext, MAX_LEVEL, type OwnedMon } from '../lib/stats'
+import { canPlace, findSpot, mergeCost, occupancy, type Stone, type ShapeId, type StoneKind } from '../lib/stones'
+import { usedStoneIds } from '../lib/party'
 import { AREAS, rollRewards, type Rewards, type Stage, stageId } from '../lib/stages'
 import { defaultSave, loadSave, resetSave, type SaveData, writeSave } from '../lib/storage'
 import { setMuted } from '../lib/sound'
 
-export type Screen = 'title' | 'intro' | 'home' | 'battle' | 'result'
-export type Tab = 'map' | 'camp' | 'team' | 'shop' | 'dex'
+export type Screen = 'title' | 'intro' | 'camp' | 'island' | 'battle' | 'result'
+/** 화면 위에 겹쳐 뜨는 창 (원작처럼 한 화면 안에서 열고 닫는다) */
+export type Panel = 'team' | 'cook' | 'dex' | 'shop' | 'save' | null
 
 export interface BattleResult {
   win: boolean
@@ -24,20 +27,24 @@ export interface BattleResult {
 
 interface GameState {
   screen: Screen
-  tab: Tab
+  panel: Panel
   save: SaveData
   stage: Stage | null
   result: BattleResult | null
   go: (s: Screen) => void
-  setTab: (t: Tab) => void
+  openPanel: (p: Panel) => void
+  importSave: (save: SaveData) => void
+  markExported: () => void
   newGame: (name: string, starter: number) => void
   hardReset: () => void
   toggleMute: () => void
   markStory: (key: string) => void
   cookDish: (sel: IngredientId[]) => OwnedMon | null
   setParty: (ids: string[]) => void
-  equipStone: (monId: string, slot: number, stoneId: string | null) => void
-  mergeStones: (kind: Stone['kind'], star: 1 | 2) => boolean
+  placeStone: (monId: string, stoneId: string, x: number, y: number, rot: number) => boolean
+  autoPlaceStone: (monId: string, stoneId: string) => boolean
+  removeStone: (monId: string, stoneId: string) => void
+  mergeStones: (kind: StoneKind, shape: ShapeId, star: 1 | 2) => boolean
   buyIngredient: (id: IngredientId, qty: number) => boolean
   levelUpCost: (monId: string) => number
   levelUpWithCoins: (monId: string) => boolean
@@ -68,7 +75,7 @@ export const useGame = create<GameState>((set, get) => {
     return save
   }
   const newMon = (save: SaveData, speciesId: number, level: number): { mon: OwnedMon; patch: Partial<SaveData> } => {
-    const mon: OwnedMon = { id: `m${save.uid}`, species: speciesId, level, exp: 0, stones: Array(STONE_SLOTS).fill(null) }
+    const mon: OwnedMon = { id: `m${save.uid}`, species: speciesId, level, exp: 0, stones: [] }
     return {
       mon,
       patch: { owned: [...save.owned, mon], uid: save.uid + 1, dex: save.dex.includes(speciesId) ? save.dex : [...save.dex, speciesId] },
@@ -80,13 +87,19 @@ export const useGame = create<GameState>((set, get) => {
 
   return {
     screen: 'title',
-    tab: 'map',
+    panel: null,
     save: initial,
     stage: null,
     result: null,
 
     go: screen => set({ screen }),
-    setTab: tab => set({ tab }),
+    openPanel: panel => set({ panel }),
+    importSave: save => {
+      writeSave(save)
+      setMuted(save.muted)
+      set({ save, panel: null, screen: 'camp' })
+    },
+    markExported: () => commit({ exportedAt: Date.now(), clearsSinceExport: 0 }),
 
     newGame: (name, starter) => {
       const base = defaultSave()
@@ -96,11 +109,11 @@ export const useGame = create<GameState>((set, get) => {
       const third = newMon({ ...base, ...first.patch, ...second.patch }, 19, 5)
       const save: SaveData = { ...base, ...third.patch, name, started: true, party: [first.mon.id, second.mon.id, third.mon.id], muted: get().save.muted }
       writeSave(save)
-      set({ save, tab: 'map', screen: 'home' })
+      set({ save, panel: null, screen: 'camp' })
     },
     hardReset: () => {
       resetSave()
-      set({ save: { ...defaultSave(), muted: get().save.muted }, screen: 'title', tab: 'map', stage: null, result: null })
+      set({ save: { ...defaultSave(), muted: get().save.muted }, screen: 'title', panel: null, stage: null, result: null })
     },
     toggleMute: () => {
       const muted = !get().save.muted
@@ -128,28 +141,36 @@ export const useGame = create<GameState>((set, get) => {
 
     setParty: ids => commit({ party: ids.slice(0, 3) }),
 
-    equipStone: (monId, slot, stoneId) => {
+    placeStone: (monId, stoneId, x, y, rot) => {
       const s = get().save
-      const owned = s.owned.map(o => {
-        if (o.id === monId) {
-          const stones = [...o.stones]
-          stones[slot] = stoneId
-          return { ...o, stones }
-        }
-        // 다른 포켓몬이 끼고 있던 같은 스톤은 빼앗아 온다
-        return stoneId && o.stones.includes(stoneId) ? { ...o, stones: o.stones.map(x => (x === stoneId ? null : x)) } : o
-      })
-      commit({ owned })
+      const mon = s.owned.find(o => o.id === monId)
+      const stone = s.stones.find(t => t.id === stoneId)
+      if (!mon || !stone || usedStoneIds(s).has(stoneId)) return false
+      if (!canPlace(mon.level, occupancy(mon.stones, s.stones), stone.shape, rot, x, y)) return false
+      commit({ owned: s.owned.map(o => (o.id === monId ? { ...o, stones: [...o.stones, { stone: stoneId, x, y, rot }] } : o)) })
+      return true
+    },
+    autoPlaceStone: (monId, stoneId) => {
+      const s = get().save
+      const mon = s.owned.find(o => o.id === monId)
+      const stone = s.stones.find(t => t.id === stoneId)
+      if (!mon || !stone) return false
+      const spot = findSpot(mon.level, occupancy(mon.stones, s.stones), stone.shape)
+      return spot ? get().placeStone(monId, stoneId, spot.x, spot.y, spot.rot) : false
+    },
+    removeStone: (monId, stoneId) => {
+      const s = get().save
+      commit({ owned: s.owned.map(o => (o.id === monId ? { ...o, stones: o.stones.filter(p => p.stone !== stoneId) } : o)) })
     },
 
-    mergeStones: (kind, star) => {
+    mergeStones: (kind, shape, star) => {
       const s = get().save
-      const equipped = new Set(s.owned.flatMap(o => o.stones))
-      const same = s.stones.filter(x => x.kind === kind && x.star === star && !equipped.has(x.id))
-      const cost = mergeCost(star)
+      const used = usedStoneIds(s)
+      const same = s.stones.filter(x => x.kind === kind && x.shape === shape && x.star === star && !used.has(x.id))
+      const cost = mergeCost({ star, shape })
       if (same.length < 2 || s.coins < cost) return false
       const [a, b] = same
-      const merged: Stone = { id: `s${s.uid}`, kind, star: (star + 1) as 2 | 3 }
+      const merged: Stone = { id: `s${s.uid}`, kind, shape, star: (star + 1) as 2 | 3 }
       commit({ stones: [...s.stones.filter(x => x.id !== a.id && x.id !== b.id), merged], coins: s.coins - cost, uid: s.uid + 1 })
       return true
     },
@@ -217,11 +238,11 @@ export const useGame = create<GameState>((set, get) => {
       let recruited: OwnedMon | null = null
       let dex = s.dex
       if (firstClear && stage.recruit) {
-        recruited = { id: `m${uid++}`, species: stage.recruit, level: Math.max(newcomerLevel(s), stage.level - 3), exp: 0, stones: Array(STONE_SLOTS).fill(null) }
+        recruited = { id: `m${uid++}`, species: stage.recruit, level: Math.max(newcomerLevel(s), stage.level - 3), exp: 0, stones: [] }
         owned = [...owned, recruited]
         if (!dex.includes(stage.recruit)) dex = [...dex, stage.recruit]
       }
-      commit({ coins: s.coins + rewards.coins, ingredients, owned, stones, cleared, endlessBest, uid, dex })
+      commit({ coins: s.coins + rewards.coins, ingredients, owned, stones, cleared, endlessBest, uid, dex, clearsSinceExport: s.clearsSinceExport + 1 })
       set({
         result: { win: true, stage, rewards, firstClear, recruited, levelUps, stone, outroArea: firstClear && stage.boss && stage.area >= 0 ? stage.area : null },
         screen: 'result',

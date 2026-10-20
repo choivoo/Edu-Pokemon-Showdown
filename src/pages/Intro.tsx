@@ -1,11 +1,15 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useGame } from '../store/gameStore'
 import Dialog from '../components/Dialog'
 import { PROLOGUE } from '../lib/stages'
-import { frontSprite } from '../data/sprites'
 import { getSpecies } from '../lib/roster'
+import { frontSprite } from '../data/sprites'
 import TypeBadge from '../components/TypeBadge'
 import { bgm, sfx } from '../lib/sound'
+import { Btn, Panel } from '../ui/kit'
+import { useCanvas } from '../components/useCanvas'
+import { drawIsland } from '../engine/scenes'
+import { H, W } from '../engine/draw'
 
 const STARTERS = [1, 4, 7, 25]
 
@@ -14,47 +18,52 @@ export default function Intro() {
   const [step, setStep] = useState<'name' | 'story' | 'pick'>('name')
   const [name, setName] = useState('')
   const [pick, setPick] = useState(STARTERS[0])
+  const canvas = useRef<HTMLCanvasElement>(null)
+  useCanvas(canvas, (ctx, t) => drawIsland(ctx, t, [true, false, false, false, false, false]))
 
-  if (step === 'name') {
-    return (
-      <div className="flex h-full flex-col gap-4 p-5">
-        <h2 className="font-title text-sm text-yellow-300">모험가 등록</h2>
-        <label className="flex flex-col gap-2 text-xs">
-          이름을 알려 주세요
-          <input value={name} maxLength={8} onChange={e => setName(e.target.value)} placeholder="최대 8글자"
-            className="rounded border-4 border-black bg-white px-3 py-2 text-base text-black" />
-        </label>
-        <div className="mt-auto flex gap-3">
-          <button onClick={() => go('title')} className="pixel-btn pixel-box flex-1 py-3">뒤로</button>
-          <button disabled={!name.trim()} onClick={() => { sfx.select(); bgm.play('story'); setStep('story') }} className="pixel-btn pixel-box flex-1 bg-[#3d6b3d] py-3">다음</button>
-        </div>
-      </div>
-    )
-  }
-  if (step === 'story') {
-    return (
-      <div className="relative h-full" style={{ background: 'linear-gradient(#0b0b2a, #3b2a7a)' }}>
-        <Dialog lines={PROLOGUE} name={name.trim()} onDone={() => setStep('pick')} />
-      </div>
-    )
-  }
   const sp = getSpecies(pick)
   return (
-    <div className="flex h-full flex-col gap-4 p-5">
-      <h2 className="font-title text-sm text-yellow-300">첫 번째 동료</h2>
-      <div className="grid grid-cols-4 gap-2">
-        {STARTERS.map(id => (
-          <button key={id} onClick={() => { sfx.select(); setPick(id) }} className={`pixel-btn rounded border-4 p-1 ${pick === id ? 'border-yellow-300 bg-[#44446a]' : 'border-[#555577] bg-[#2b2b45]'}`}>
-            <img src={frontSprite(id)} alt="" className="sprite mx-auto h-14 w-14" />
-          </button>
-        ))}
-      </div>
-      <div className="pixel-box flex flex-col items-center gap-2 p-4">
-        <img src={frontSprite(pick)} alt="" className="sprite idle h-28 w-28" />
-        <p className="text-base">{sp.name}</p>
-        <div className="flex gap-1">{sp.types.map(t => <TypeBadge key={t} type={t} />)}</div>
-      </div>
-      <button onClick={() => { bgm.play('camp'); newGame(name.trim(), pick) }} className="pixel-btn pixel-box mt-auto bg-[#b03a2e] py-3">{sp.name}와(과) 모험 시작!</button>
+    <div className="absolute inset-0">
+      <canvas ref={canvas} width={W} height={H} className="absolute inset-0 h-full w-full" />
+      {/* 바다 위를 떠가는 배 */}
+      <div className="absolute left-1/2 top-[38%] -translate-x-1/2 text-8xl" style={{ animation: 'bob 2s ease-in-out infinite' }}>⛵</div>
+
+      {step === 'name' && (
+        <Panel title="모험가 등록" w={560}>
+          <div className="space-y-4 py-2 text-center">
+            <p className="text-xl">이름을 알려 주세요!</p>
+            <input value={name} maxLength={8} onChange={e => setName(e.target.value)} placeholder="최대 8글자" autoFocus
+              className="w-full rounded-xl border-4 border-[#e5a500] bg-white px-4 py-3 text-center text-2xl text-[#5a3a00]" />
+            <div className="flex justify-center gap-4">
+              <Btn color="gray" onClick={() => go('title')}>뒤로</Btn>
+              <Btn color="green" disabled={!name.trim()} onClick={() => { bgm.play('story'); setStep('story') }}>다음</Btn>
+            </div>
+          </div>
+        </Panel>
+      )}
+
+      {step === 'story' && <Dialog lines={PROLOGUE} name={name.trim()} onDone={() => setStep('pick')} />}
+
+      {step === 'pick' && (
+        <Panel title="첫 번째 동료를 골라 주세요" w={780}>
+          <div className="flex gap-5">
+            <div className="grid grid-cols-2 gap-3">
+              {STARTERS.map(id => (
+                <button key={id} onClick={() => { sfx.select(); setPick(id) }} className={`rounded-xl border-4 p-1 ${pick === id ? 'border-[#e8524a] bg-white' : 'border-[#e5a500] bg-[#fff3c8]'}`}>
+                  <img src={frontSprite(id)} alt="" className="sprite h-24 w-24" />
+                </button>
+              ))}
+            </div>
+            <div className="pq-inner flex flex-1 flex-col items-center justify-center gap-2 p-4">
+              <img src={frontSprite(pick)} alt="" className="sprite idle h-40 w-40" />
+              <p className="text-2xl">{sp.name}</p>
+              <div className="flex gap-2">{sp.types.map(t => <TypeBadge key={t} type={t} />)}</div>
+              <p className="text-sm">구구, 꼬렛과 함께 3마리 파티로 출발해요!</p>
+              <Btn color="red" onClick={() => { bgm.play('camp'); newGame(name.trim(), pick) }} className="mt-1 w-full text-xl">{sp.name}와(과) 모험 시작!</Btn>
+            </div>
+          </div>
+        </Panel>
+      )}
     </div>
   )
 }

@@ -15,14 +15,16 @@ export const INGREDIENTS: Ingredient[] = [
 ]
 export const getIngredient = (id: IngredientId) => INGREDIENTS.find(i => i.id === id)!
 
-export const DISH_SIZE = 3
+export const DISH_SIZE = 5
 
 export type DishKind = 'special' | 'good' | 'plain'
 
-/** 같은 재료 3개 = 특선, 2개 = 좋은 요리, 모두 다르면 평범한 요리 */
+/** 같은 재료가 4개 이상이면 특선, 3개면 좋은 요리, 그보다 섞이면 평범한 요리 */
 export function dishKind(sel: IngredientId[]): DishKind {
-  const distinct = new Set(sel).size
-  return distinct === 1 ? 'special' : distinct === 2 ? 'good' : 'plain'
+  const count = new Map<IngredientId, number>()
+  for (const s of sel) count.set(s, (count.get(s) ?? 0) + 1)
+  const max = Math.max(0, ...count.values())
+  return max >= 4 ? 'special' : max >= 3 ? 'good' : 'plain'
 }
 export const DISH_LABEL: Record<DishKind, string> = { special: '특선 요리', good: '좋은 요리', plain: '평범한 요리' }
 

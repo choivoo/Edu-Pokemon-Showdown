@@ -1,5 +1,6 @@
 import type { IngredientId } from './cooking'
-import type { OwnedMon, Stone } from './stats'
+import type { OwnedMon } from './stats'
+import type { Stone } from './stones'
 
 export interface SaveData {
   version: 1
@@ -16,14 +17,17 @@ export interface SaveData {
   endlessBest: number
   uid: number
   muted: boolean
+  /** 마지막으로 저장 키를 만든 시각(0이면 아직 없음)과 그 뒤의 클리어 횟수 */
+  exportedAt: number
+  clearsSinceExport: number
 }
 
 const KEY = 'pokemon-quest-fan-edition:v1'
 
 export const defaultSave = (): SaveData => ({
   version: 1, started: false, name: '', coins: 100,
-  ingredients: { ember: 4, dew: 4, leaf: 4, spark: 4, moon: 4, mushroom: 6 },
-  stones: [], owned: [], party: [], cleared: {}, seenStory: [], dex: [], endlessBest: 0, uid: 1, muted: false,
+  ingredients: { ember: 6, dew: 6, leaf: 6, spark: 6, moon: 6, mushroom: 10 },
+  stones: [], owned: [], party: [], cleared: {}, seenStory: [], dex: [], endlessBest: 0, uid: 1, muted: false, exportedAt: 0, clearsSinceExport: 0,
 })
 
 export function loadSave(): SaveData {

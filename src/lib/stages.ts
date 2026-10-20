@@ -1,7 +1,9 @@
 import type { Rng } from '../types'
 import { INGREDIENTS, type IngredientId } from './cooking'
 import { SPECIES } from './roster'
-import { expToNext, STONE_KINDS, type Stone, type StoneKind } from './stats'
+import { computeStats, expToNext, powerRating } from './stats'
+import { SHAPE_WEIGHTS, type Stone, STONE_KINDS, type StoneKind } from './stones'
+import type { Species } from '../types'
 
 export type Theme = 'beach' | 'forest' | 'cave' | 'gorge' | 'volcano' | 'altar'
 export interface DialogLine { speaker: string | null; text: string }
@@ -214,13 +216,18 @@ export function rollRewards(stage: Stage, rng: Rng = Math.random): Rewards {
   const area = stage.area >= 0 ? AREAS[stage.area] : null
   const drops = area ? area.drops : INGREDIENTS.map(i => i.id)
   const ingredients: Rewards['ingredients'] = {}
-  const n = 3 + Math.floor(rng() * 3) + (stage.boss ? 3 : 0)
+  const n = 5 + Math.floor(rng() * 4) + (stage.boss ? 4 : 0)
   for (let i = 0; i < n; i++) {
     const id = pick(drops, rng)
     ingredients[id] = (ingredients[id] ?? 0) + 1
   }
   const stars = area ? area.stars : ([40, 40, 20] as [number, number, number])
   const gotStone = stage.boss || rng() < 0.35
-  const stone = gotStone ? { kind: pick<StoneKind>(STONE_KINDS, rng), star: (weighted(stars, rng) + 1) as 1 | 2 | 3 } : null
+  const shape = SHAPE_WEIGHTS[weighted(SHAPE_WEIGHTS.map(w => w[1]), rng)][0]
+  const stone = gotStone ? { kind: pick<StoneKind>(STONE_KINDS, rng), star: (weighted(stars, rng) + 1) as 1 | 2 | 3, shape } : null
   return { coins: stage.coins, exp: stage.exp, ingredients, stone }
 }
+
+const AVG: Species = { id: 0, name: '', types: ['normal'], stats: { hp: 60, atk: 60, def: 60, spe: 60 }, rarity: 2, basic: '', special: '' }
+/** 스테이지 추천 전투력 (파티 3마리 합계 기준, 원작처럼 숫자로 표시) */
+export const recommendedPower = (stage: Stage) => 3 * powerRating(computeStats(AVG, stage.level))

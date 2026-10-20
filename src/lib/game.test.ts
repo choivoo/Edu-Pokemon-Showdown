@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { attractPool, cook, dishKind, dominantIngredient, getIngredient, INGREDIENTS } from './cooking'
-import { addExp, computeStats, expToNext, MAX_LEVEL, type OwnedMon, type Stone } from './stats'
+import { addExp, computeStats, expToNext, MAX_LEVEL, type OwnedMon } from './stats'
+import { canPlace, cellsOf, findSpot, GRID_H, GRID_W, occupancy, type Stone, unlockedCount } from './stones'
 import { AREAS, buildWaves, getEndlessStage, getStage, rollRewards, STAGES_PER_AREA } from './stages'
 import { getMove, getSpecies, SPECIES } from './roster'
 import { TYPES } from './typeChart'
@@ -17,9 +18,11 @@ function seeded(seed: number) {
 
 describe('cooking', () => {
   it('요리 종류 판정', () => {
-    expect(dishKind(['ember', 'ember', 'ember'])).toBe('special')
-    expect(dishKind(['ember', 'ember', 'dew'])).toBe('good')
-    expect(dishKind(['ember', 'dew', 'leaf'])).toBe('plain')
+    expect(dishKind(['ember', 'ember', 'ember', 'ember', 'ember'])).toBe('special')
+    expect(dishKind(['ember', 'ember', 'ember', 'ember', 'dew'])).toBe('special')
+    expect(dishKind(['ember', 'ember', 'ember', 'dew', 'dew'])).toBe('good')
+    expect(dishKind(['ember', 'ember', 'dew', 'dew', 'leaf'])).toBe('plain')
+    expect(dishKind(['ember', 'dew', 'leaf', 'spark', 'moon'])).toBe('plain')
   })
   it('가장 많은 재료가 타입을 정한다', () => {
     expect(dominantIngredient(['ember', 'ember', 'dew'], () => 0.9)).toBe('ember')
@@ -48,7 +51,7 @@ describe('cooking', () => {
 })
 
 describe('stats / 성장', () => {
-  const mon: OwnedMon = { id: 'm1', species: 25, level: 5, exp: 0, stones: [null, null] }
+  const mon: OwnedMon = { id: 'm1', species: 25, level: 5, exp: 0, stones: [] }
   it('경험치로 여러 레벨이 오른다', () => {
     const r = addExp(mon, expToNext(5) + expToNext(6) + 1)
     expect(r.gained).toBe(2)
@@ -67,11 +70,42 @@ describe('stats / 성장', () => {
   it('파워스톤은 별 개수만큼 효과가 커진다', () => {
     const sp = getSpecies(25)
     const base = computeStats(sp, 30)
-    const s1: Stone = { id: 'a', kind: 'atk', star: 1 }
-    const s3: Stone = { id: 'b', kind: 'atk', star: 3 }
+    const s1: Stone = { id: 'a', kind: 'atk', star: 1, shape: 'dot' }
+    const s3: Stone = { id: 'b', kind: 'atk', star: 3, shape: 'dot' }
     expect(computeStats(sp, 30, [s1]).atk).toBeGreaterThan(base.atk)
     expect(computeStats(sp, 30, [s3]).atk).toBeGreaterThan(computeStats(sp, 30, [s1]).atk)
-    expect(computeStats(sp, 30, [{ id: 'c', kind: 'crit', star: 2 }]).crit).toBeCloseTo(base.crit + 0.08)
+    expect(computeStats(sp, 30, [{ id: 'c', kind: 'crit', star: 2, shape: 'dot' }]).crit).toBeCloseTo(base.crit + 0.05)
+    // 칸이 큰 스톤일수록 효과가 크다
+    expect(computeStats(sp, 30, [{ id: 'd', kind: 'atk', star: 1, shape: 'bar3' }]).atk).toBeGreaterThan(computeStats(sp, 30, [s1]).atk)
+  })
+})
+
+describe('파워스톤 격자', () => {
+  const stones: Stone[] = [{ id: 'a', kind: 'atk', star: 1, shape: 'bar2' }, { id: 'b', kind: 'hp', star: 1, shape: 'ell' }]
+  it('레벨이 오르면 열리는 칸이 늘어나고 12칸을 넘지 않는다', () => {
+    expect(unlockedCount(1)).toBe(4)
+    expect(unlockedCount(6)).toBeGreaterThan(unlockedCount(1))
+    expect(unlockedCount(50)).toBe(GRID_W * GRID_H)
+  })
+  it('회전해도 칸 수가 같고 좌상단으로 정규화된다', () => {
+    for (let r = 0; r < 4; r++) {
+      const cells = cellsOf('ell', r)
+      expect(cells).toHaveLength(3)
+      expect(Math.min(...cells.map(c => c[0]))).toBe(0)
+      expect(Math.min(...cells.map(c => c[1]))).toBe(0)
+    }
+    expect(cellsOf('bar2', 1)).toEqual([[0, 0], [0, 1]])
+  })
+  it('잠긴 칸과 겹친 칸에는 놓을 수 없다', () => {
+    const empty = occupancy([], stones)
+    expect(canPlace(1, empty, 'dot', 0, 3, 2)).toBe(false) // 잠긴 칸
+    expect(canPlace(1, empty, 'dot', 0, 1, 1)).toBe(true)
+    const occ = occupancy([{ stone: 'a', x: 1, y: 1, rot: 0 }], stones)
+    expect(canPlace(1, occ, 'dot', 0, 2, 1)).toBe(false) // bar2 가 (1,1)(2,1) 차지
+    expect(canPlace(1, occ, 'dot', 0, 1, 0)).toBe(true)
+  })
+  it('자동 배치는 들어갈 자리가 없으면 null', () => {
+    expect(findSpot(1, occupancy([], stones), 'bar3')).toBeNull() // 레벨1은 열린 칸이 4개뿐이라 3칸 일자는 들어가지 않는다
   })
 })
 
