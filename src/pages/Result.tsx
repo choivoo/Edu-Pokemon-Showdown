@@ -7,6 +7,7 @@ import { stoneName, SHAPES, STONE_INFO } from '../lib/stones'
 import Dialog from '../components/Dialog'
 import { bgm, sfx } from '../lib/sound'
 import { Btn, Panel, Portrait } from '../ui/kit'
+import Icon, { Coins } from '../ui/Icon'
 
 export default function Result() {
   const { result: r, save, go, startStage, markStory } = useGame()
@@ -48,18 +49,18 @@ export default function Result() {
           </div>
           <div className="pq-inner flex-1 space-y-2 p-4 text-xl">
             {r.win && r.rewards ? (<>
-              <div className="flex justify-between"><span>코인</span><b>+{r.rewards.coins} 🪙</b></div>
+              <div className="flex justify-between"><span>코인</span><b><Coins n={`+${r.rewards.coins}`} /></b></div>
               <div className="flex justify-between"><span>경험치 (파티 전원)</span><b>+{r.rewards.exp}</b></div>
-              <div className="flex justify-between"><span>재료</span><span className="flex flex-wrap justify-end gap-2">{INGREDIENTS.filter(i => r.rewards!.ingredients[i.id]).map(i => <span key={i.id}>{i.emoji}×{r.rewards!.ingredients[i.id]}</span>)}</span></div>
-              {r.stone && <div className="flex justify-between"><span>파워스톤</span><b style={{ color: STONE_INFO[r.stone.kind].color }}>{STONE_INFO[r.stone.kind].emoji} {stoneName(r.stone)} ({SHAPES[r.stone.shape].length}칸)</b></div>}
-              {r.levelUps.map(l => <p key={l.name} className="text-lg text-[#2e8f4a]">⬆ {l.name} Lv{l.from} → Lv{l.to}</p>)}
+              <div className="flex justify-between"><span>재료</span><span className="flex flex-wrap justify-end gap-2">{INGREDIENTS.filter(i => r.rewards!.ingredients[i.id]).map(i => <span key={i.id} className="inline-flex items-center"><Icon n={i.icon} s={28} />×{r.rewards!.ingredients[i.id]}</span>)}</span></div>
+              {r.stone && <div className="flex justify-between"><span>파워스톤</span><b className="flex items-center gap-1" style={{ color: STONE_INFO[r.stone.kind].color }}><Icon n={STONE_INFO[r.stone.kind].icon} s={26} />{stoneName(r.stone)} ({SHAPES[r.stone.shape].length}칸)</b></div>}
+              {r.levelUps.map(l => <p key={l.name} className="flex items-center gap-1 text-lg text-[#2e8f4a]"><Icon n="up" s={22} />{l.name} Lv{l.from} 에서 Lv{l.to}</p>)}
             </>) : <p className="text-center text-lg">아쉽지만 보상은 없어요.</p>}
           </div>
         </div>
         <div className="mt-4 flex justify-end gap-3">
           <Btn color="gray" onClick={camp}>캠프로</Btn>
           <Btn color="blue" onClick={() => startStage(stage)}>{r.win ? '다시' : '재도전'}</Btn>
-          {next && <Btn color="green" onClick={next}>다음 ▶</Btn>}
+          {next && <Btn color="green" onClick={next} className="flex items-center gap-2">다음<Icon n="next" s={22} /></Btn>}
         </div>
       </Panel>
       {story && r.outroArea != null && <Dialog lines={AREAS[r.outroArea].outro} name={save.name} onDone={() => { markStory(`outro-${r.outroArea}`); setStory(false) }} />}

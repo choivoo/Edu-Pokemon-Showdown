@@ -1,6 +1,7 @@
 import type { CSSProperties, ReactNode } from 'react'
 import { frontSprite } from '../data/sprites'
 import { sfx } from '../lib/sound'
+import Icon from './Icon'
 
 type Color = 'yellow' | 'green' | 'red' | 'blue' | 'gray'
 
@@ -16,14 +17,14 @@ export function Btn({ color = 'yellow', children, onClick, disabled, className =
   )
 }
 
-/** 화면 위에 뜨는 노란 창. 바깥을 누르거나 ✕ 로 닫는다. */
+/** 화면 위에 뜨는 노란 창. 바깥을 누르거나 X 버튼으로 닫는다. */
 export function Panel({ title, onClose, children, w = 760, h, z = 40 }: { title: string; onClose?: () => void; children: ReactNode; w?: number; h?: number; z?: number }) {
   return (
     <div className="absolute inset-0 flex items-center justify-center bg-black/55" style={{ zIndex: z }} onClick={onClose}>
       <div className="pq-panel pop-in flex flex-col overflow-hidden" style={{ width: w, height: h, maxHeight: 510 }} onClick={e => e.stopPropagation()}>
         <div className="pq-title flex items-center justify-between px-5 py-2 text-xl">
           <span>{title}</span>
-          {onClose && <button onClick={() => { sfx.select(); onClose() }} className="text-2xl leading-none">✕</button>}
+          {onClose && <button onClick={() => { sfx.select(); onClose() }} className="flex h-8 w-8 items-center justify-center"><Icon n="x" s={28} /></button>}
         </div>
         <div className="scroll-thin relative min-h-0 flex-1 overflow-y-auto p-4">{children}</div>
       </div>

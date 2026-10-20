@@ -26,7 +26,7 @@ const KEY = 'pokemon-quest-fan-edition:v1'
 
 export const defaultSave = (): SaveData => ({
   version: 1, started: false, name: '', coins: 100,
-  ingredients: { ember: 6, dew: 6, leaf: 6, spark: 6, moon: 6, mushroom: 10 },
+  ingredients: { mushroomRed: 6, berryBlue: 6, nutYellow: 6, fossil: 6, rootRed: 6, rockBlue: 0, honey: 0, mushroomGray: 0, rainbow: 0, shell: 0 },
   stones: [], owned: [], party: [], cleared: {}, seenStory: [], dex: [], endlessBest: 0, uid: 1, muted: false, exportedAt: 0, clearsSinceExport: 0,
 })
 

@@ -7,6 +7,7 @@ import { partyMons, statsOf } from '../lib/party'
 import { bgm, sfx } from '../lib/sound'
 import { TYPE_COLOR } from '../lib/typeChart'
 import { Btn, Portrait } from '../ui/kit'
+import Icon from '../ui/Icon'
 
 interface Hud {
   wave: number
@@ -48,7 +49,7 @@ export default function Battle() {
     const b = createBattle(allies, waves)
     battle.current = b
     setHud(snapshot(b))
-    bgm.play('battle')
+    bgm.play(stage.boss ? 'boss' : 'battle')
 
     const ctx = canvas.current!.getContext('2d')!
     const theme = stage.area >= 0 ? AREAS[stage.area].theme : (['beach', 'forest', 'cave', 'gorge', 'volcano', 'altar'] as const)[stage.index % 6]
@@ -94,15 +95,15 @@ export default function Battle() {
 
       {/* 좌상단: 일시정지 + 카운터 */}
       <div className="absolute left-3 top-3 flex items-center gap-2">
-        <button onClick={() => { paused.current = !paused.current; setUiPaused(paused.current) }} className="pq-btn pq-red h-12 w-12 text-2xl">{uiPaused ? '▶' : 'Ⅱ'}</button>
-        <span className="hud-bar rounded-lg px-3 py-1 text-lg">⚔️ {hud?.kills ?? 0}</span>
-        <span className="hud-bar rounded-lg px-3 py-1 text-lg">⏱ {fmt(hud?.time ?? 0)}</span>
-        <span className="hud-bar max-w-[260px] truncate rounded-lg px-3 py-1 text-base text-yellow-200">{stage.name}</span>
+        <button onClick={() => { paused.current = !paused.current; setUiPaused(paused.current) }} className="pq-btn pq-red flex h-12 w-12 items-center justify-center"><Icon n={uiPaused ? 'play' : 'pause'} s={30} /></button>
+        <span className="hud-bar flex items-center gap-1 px-3 py-1 text-lg"><Icon n="sword" s={22} />{hud?.kills ?? 0}</span>
+        <span className="hud-bar flex items-center gap-1 px-3 py-1 text-lg"><Icon n="clock" s={22} />{fmt(hud?.time ?? 0)}</span>
+        <span className="hud-bar max-w-[260px] truncate px-3 py-1 text-base text-yellow-200">{stage.name}</span>
       </div>
       {/* 우상단: 웨이브 진행 */}
       <div className="absolute right-3 top-3 flex items-center gap-1.5">
         {Array.from({ length: hud?.waves ?? 0 }, (_, i) => (
-          <span key={i} className={`h-7 w-7 rounded border-2 border-black/50 ${i + 1 < (hud?.wave ?? 0) || hud?.phase === 'won' ? 'bg-yellow-300' : i + 1 === hud?.wave ? 'bg-orange-400 blink' : 'bg-black/40'}`} />
+          <span key={i} className={`h-7 w-7 border-4 border-[#2b2838] ${i + 1 < (hud?.wave ?? 0) || hud?.phase === 'won' ? 'bg-yellow-300' : i + 1 === hud?.wave ? 'bg-orange-400 blink' : 'bg-black/40'}`} />
         ))}
       </div>
 
@@ -122,11 +123,11 @@ export default function Battle() {
           const ready = a.cd <= 0 && a.alive && hud.phase === 'fight'
           const hpr = a.hp / a.maxHp
           return (
-            <div key={a.uid} className={`pointer-events-auto flex h-[92px] min-w-0 flex-1 items-center gap-1.5 rounded-2xl border-4 border-black/35 px-1.5 ${a.alive ? '' : 'grayscale'}`} style={{ background: SLOT_COLORS[a.slot % 3] }}>
+            <div key={a.uid} className={`pointer-events-auto flex h-[92px] min-w-0 flex-1 items-center gap-1.5 border-4 border-[#2b2838] px-1.5 ${a.alive ? '' : 'grayscale'}`} style={{ background: SLOT_COLORS[a.slot % 3] }}>
               <Portrait id={a.id} size={54} />
               <div className="min-w-0 flex-1 text-white" style={{ textShadow: '0 1px 0 #0008' }}>
                 <div className="truncate text-sm font-bold">{a.name} <span className="text-xs">Lv{a.level}</span></div>
-                <div className="mt-1 h-3 overflow-hidden rounded border-2 border-black/50 bg-black/40"><div className="h-full" style={{ width: `${hpr * 100}%`, background: hpr > 0.5 ? '#46d2ff' : hpr > 0.2 ? '#f5d02e' : '#ff5a4a' }} /></div>
+                <div className="mt-1 h-3 overflow-hidden border-2 border-[#2b2838] bg-black/40"><div className="h-full" style={{ width: `${hpr * 100}%`, background: hpr > 0.5 ? '#46d2ff' : hpr > 0.2 ? '#f5d02e' : '#ff5a4a' }} /></div>
                 <div className="mt-0.5 text-xs">{Math.ceil(a.hp)}/{a.maxHp}</div>
               </div>
               <button
@@ -135,7 +136,7 @@ export default function Battle() {
                 className={`pq-btn relative h-[68px] w-[68px] shrink-0 overflow-hidden px-0.5 text-sm ${ready ? 'blink' : ''}`}
                 style={{ background: ready ? TYPE_COLOR[a.type as keyof typeof TYPE_COLOR] : '#556' }}
               >
-                <span className="block text-2xl leading-none">★</span>
+                <span className="flex justify-center"><Icon n="star" s={28} /></span>
                 <span className="block text-xs leading-tight">{!a.alive ? '기절' : ready ? a.move : a.cd > 0 ? `${Math.ceil(a.cd)}초` : '…'}</span>
                 {a.alive && !ready && <span className="absolute inset-x-0 bottom-0 bg-yellow-300" style={{ height: 6, width: `${(1 - a.cd / a.max) * 100}%` }} />}
               </button>

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { attractPool, cook, dishKind, dominantIngredient, getIngredient, INGREDIENTS } from './cooking'
+import { ALL_RECIPES, attractPool, cook, gradeOf, INGREDIENTS, type IngredientId, recipeFor, tally } from './cooking'
 import { addExp, computeStats, expToNext, MAX_LEVEL, type OwnedMon } from './stats'
 import { canPlace, cellsOf, findSpot, GRID_H, GRID_W, occupancy, type Stone, unlockedCount } from './stones'
 import { AREAS, buildWaves, getEndlessStage, getStage, rollRewards, STAGES_PER_AREA } from './stages'
@@ -17,36 +17,59 @@ function seeded(seed: number) {
 }
 
 describe('cooking', () => {
-  it('요리 종류 판정', () => {
-    expect(dishKind(['ember', 'ember', 'ember', 'ember', 'ember'])).toBe('special')
-    expect(dishKind(['ember', 'ember', 'ember', 'ember', 'dew'])).toBe('special')
-    expect(dishKind(['ember', 'ember', 'ember', 'dew', 'dew'])).toBe('good')
-    expect(dishKind(['ember', 'ember', 'dew', 'dew', 'leaf'])).toBe('plain')
-    expect(dishKind(['ember', 'dew', 'leaf', 'spark', 'moon'])).toBe('plain')
+  const ids = (...a: IngredientId[]) => a
+  it('재료 성질을 센다 (무지개는 모든 색·식감·종류에 +1)', () => {
+    const t = tally(ids('mushroomRed', 'rainbow'))
+    expect(t.color.red).toBe(2)
+    expect(t.color.blue).toBe(1)
+    expect(t.texture.soft).toBe(2)
+    expect(t.kind.mushroom).toBe(2)
+    expect(t.kind.mystic).toBe(1)
   })
-  it('가장 많은 재료가 타입을 정한다', () => {
-    expect(dominantIngredient(['ember', 'ember', 'dew'], () => 0.9)).toBe('ember')
-    expect(dominantIngredient(['ember', 'dew', 'leaf'], () => 0)).toBe('ember')
-    expect(dominantIngredient(['ember', 'dew', 'leaf'], () => 0.99)).toBe('leaf')
+  it('레시피 판정: 한 색을 듬뿍 넣으면 그 색 요리', () => {
+    expect(recipeFor(ids('mushroomRed', 'mushroomRed', 'rootRed', 'rootRed', 'rootRed')).no).toBe(2)
+    expect(recipeFor(ids('berryBlue', 'berryBlue', 'rockBlue', 'rockBlue', 'berryBlue')).no).toBe(3)
+    expect(recipeFor(ids('nutYellow', 'nutYellow', 'honey', 'honey', 'nutYellow')).no).toBe(4)
+    expect(recipeFor(ids('fossil', 'fossil', 'mushroomGray', 'fossil', 'fossil')).no).toBe(5)
   })
-  it('찾아오는 포켓몬은 재료의 타입에 속하고 전설은 나오지 않는다', () => {
+  it('여러 레시피가 맞으면 번호가 낮은 것, 아무것도 안 맞으면 1번', () => {
+    // 블리열매 3 + 화석 2: 7번(달콤 많이+회색 조금)·9번(부드럽 많이+광물 조금)에 해당 → 7번
+    expect(recipeFor(ids('berryBlue', 'berryBlue', 'berryBlue', 'fossil', 'fossil')).no).toBe(7)
+    expect(recipeFor(ids('mushroomRed', 'berryBlue', 'nutYellow', 'fossil', 'rockBlue')).no).toBe(1)
+  })
+  it('신비로운 재료를 듬뿍 넣으면 전설의 수프', () => {
+    expect(recipeFor(ids('shell', 'shell', 'rainbow', 'rainbow', 'shell')).no).toBe(18)
+  })
+  it('요리 등급은 재료 희귀도의 합', () => {
+    expect(gradeOf(ids('fossil', 'fossil', 'fossil', 'fossil', 'fossil'))).toBe('basic')
+    expect(gradeOf(ids('fossil', 'honey', 'fossil', 'fossil', 'fossil'))).toBe('good')
+    expect(gradeOf(ids('honey', 'honey', 'honey', 'fossil', 'fossil'))).toBe('great')
+    expect(gradeOf(ids('rainbow', 'rainbow', 'honey', 'fossil', 'fossil'))).toBe('special')
+  })
+  it('찾아오는 포켓몬은 레시피의 타입에 속하고 전설은 나오지 않는다', () => {
     const rng = seeded(1)
-    for (const ing of INGREDIENTS) {
-      for (let i = 0; i < 100; i++) {
-        const sp = cook([ing.id, ing.id, ing.id], rng)
-        expect(sp.rarity).toBeLessThanOrEqual(3)
-        expect(sp.types.some(t => getIngredient(ing.id).types.includes(t))).toBe(true)
+    for (const recipe of ALL_RECIPES.filter(r => r.no !== 18)) {
+      for (let i = 0; i < 60; i++) {
+        const sp = attractPool(recipe)
+        expect(sp.length).toBeGreaterThan(0)
+        for (const s of sp) expect(s.types.some(t => recipe.types.includes(t))).toBe(true)
       }
     }
+    for (let i = 0; i < 300; i++) expect(cook(ids('rainbow', 'rainbow', 'honey', 'fossil', 'fossil'), rng).rarity).toBeLessThanOrEqual(3)
   })
-  it('특선 요리는 평범한 요리보다 희귀한 포켓몬이 더 자주 온다', () => {
+  it('등급이 높을수록 희귀한 포켓몬이 더 자주 온다', () => {
     const rng = seeded(9)
-    const rare = (sel: Parameters<typeof cook>[0]) => Array.from({ length: 600 }, () => cook(sel, rng)).filter(s => s.rarity >= 3).length
-    expect(rare(['mushroom', 'mushroom', 'mushroom'])).toBeGreaterThan(rare(['mushroom', 'ember', 'leaf']))
+    const rare = (sel: IngredientId[]) => Array.from({ length: 800 }, () => cook(sel, rng)).filter(s => s.rarity >= 3).length
+    expect(rare(ids('rainbow', 'rainbow', 'honey', 'fossil', 'fossil'))).toBeGreaterThan(rare(ids('fossil', 'fossil', 'fossil', 'fossil', 'fossil')))
   })
   it('모든 타입의 포켓몬을 요리로 만날 수 있다', () => {
-    const reachable = new Set(INGREDIENTS.flatMap(i => attractPool(i.id).flatMap(s => s.types)))
+    const reachable = new Set(ALL_RECIPES.flatMap(r => attractPool(r).flatMap(s => s.types)))
     for (const t of TYPES) expect(reachable.has(t)).toBe(true)
+  })
+  it('레시피는 18가지이며 번호가 겹치지 않는다', () => {
+    expect(ALL_RECIPES).toHaveLength(18)
+    expect(new Set(ALL_RECIPES.map(r => r.no)).size).toBe(18)
+    expect(INGREDIENTS).toHaveLength(10)
   })
 })
 
@@ -160,7 +183,8 @@ describe('데이터 정합성', () => {
   })
   it('새 저장 데이터는 재료를 갖고 시작한다', () => {
     const s = defaultSave()
-    expect(Object.values(s.ingredients).every(n => n > 0)).toBe(true)
+    expect(Object.values(s.ingredients).reduce((a, n) => a + n, 0)).toBeGreaterThanOrEqual(25)
+    expect(Object.values(s.ingredients).every(n => n >= 0)).toBe(true)
     expect(s.started).toBe(false)
   })
 })

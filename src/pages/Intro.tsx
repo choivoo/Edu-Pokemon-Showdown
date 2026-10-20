@@ -8,7 +8,7 @@ import TypeBadge from '../components/TypeBadge'
 import { bgm, sfx } from '../lib/sound'
 import { Btn, Panel } from '../ui/kit'
 import { useCanvas } from '../components/useCanvas'
-import { drawIsland } from '../engine/scenes'
+import { drawVoyage } from '../art/scenes'
 import { H, W } from '../engine/draw'
 
 const STARTERS = [1, 4, 7, 25]
@@ -19,21 +19,19 @@ export default function Intro() {
   const [name, setName] = useState('')
   const [pick, setPick] = useState(STARTERS[0])
   const canvas = useRef<HTMLCanvasElement>(null)
-  useCanvas(canvas, (ctx, t) => drawIsland(ctx, t, [true, false, false, false, false, false]))
+  useCanvas(canvas, (ctx, t) => drawVoyage(ctx, t))
 
   const sp = getSpecies(pick)
   return (
     <div className="absolute inset-0">
       <canvas ref={canvas} width={W} height={H} className="absolute inset-0 h-full w-full" />
-      {/* 바다 위를 떠가는 배 */}
-      <div className="absolute left-1/2 top-[38%] -translate-x-1/2 text-8xl" style={{ animation: 'bob 2s ease-in-out infinite' }}>⛵</div>
 
       {step === 'name' && (
         <Panel title="모험가 등록" w={560}>
           <div className="space-y-4 py-2 text-center">
             <p className="text-xl">이름을 알려 주세요!</p>
             <input value={name} maxLength={8} onChange={e => setName(e.target.value)} placeholder="최대 8글자" autoFocus
-              className="w-full rounded-xl border-4 border-[#e5a500] bg-white px-4 py-3 text-center text-2xl text-[#5a3a00]" />
+              className="w-full border-4 border-[#c98a00] bg-white px-4 py-3 text-center text-2xl text-[#5a3a00]" />
             <div className="flex justify-center gap-4">
               <Btn color="gray" onClick={() => go('title')}>뒤로</Btn>
               <Btn color="green" disabled={!name.trim()} onClick={() => { bgm.play('story'); setStep('story') }}>다음</Btn>

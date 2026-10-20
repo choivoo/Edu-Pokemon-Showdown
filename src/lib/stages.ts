@@ -1,5 +1,5 @@
 import type { Rng } from '../types'
-import { INGREDIENTS, type IngredientId } from './cooking'
+import { type IngredientId } from './cooking'
 import { SPECIES } from './roster'
 import { computeStats, expToNext, powerRating } from './stats'
 import { SHAPE_WEIGHTS, type Stone, STONE_KINDS, type StoneKind } from './stones'
@@ -10,7 +10,8 @@ export interface DialogLine { speaker: string | null; text: string }
 
 export interface Area {
   name: string
-  emoji: string
+  /** 도트 아이콘 이름 */
+  icon: string
   theme: Theme
   levelBase: number
   pool: number[]
@@ -29,8 +30,8 @@ const N = null
 
 export const AREAS: Area[] = [
   {
-    name: '푸른물결 해변', emoji: '🏖️', theme: 'beach', levelBase: 4, pool: [19, 54, 129, 60, 74, 16], boss: 130,
-    bossName: '성난 갸라도스', shard: '파도의 조각', drops: ['dew', 'mushroom'], stars: [90, 10, 0],
+    name: '푸른물결 해변', icon: 'areaBeach', theme: 'beach', levelBase: 4, pool: [19, 54, 129, 60, 74, 16], boss: 130,
+    bossName: '성난 갸라도스', shard: '파도의 조각', drops: ['berryBlue', 'rockBlue', 'fossil', 'mushroomRed'], stars: [90, 10, 0],
     intro: [
       { speaker: N, text: '짭짤한 바람과 거센 파도 소리. 별모래섬의 첫 번째 지역, 푸른물결 해변이다.' },
       { speaker: MIRA, text: '첫 번째 조각은 "파도의 조각"이야. 해변의 우두머리 갸라도스가 품고 있을 거야.' },
@@ -43,8 +44,8 @@ export const AREAS: Area[] = [
     ],
   },
   {
-    name: '속삭이는 숲', emoji: '🌲', theme: 'forest', levelBase: 10, pool: [13, 43, 41, 1, 16, 19, 54], boss: 3,
-    bossName: '숲의 파수꾼 이상해꽃', shard: '숲의 조각', drops: ['leaf', 'mushroom'], stars: [75, 22, 3],
+    name: '속삭이는 숲', icon: 'areaForest', theme: 'forest', levelBase: 10, pool: [13, 43, 41, 1, 16, 19, 54], boss: 3,
+    bossName: '숲의 파수꾼 이상해꽃', shard: '숲의 조각', drops: ['rootRed', 'nutYellow', 'mushroomRed', 'honey'], stars: [75, 22, 3],
     intro: [
       { speaker: N, text: '나뭇잎이 서로 속삭이는 숲. 하지만 오늘은 어딘가 시끄럽다.' },
       { speaker: MIRA, text: '두 번째 조각은 숲의 파수꾼, 이상해꽃이 품고 있어. 꽃향기에 정신을 뺏기지 않게 조심해!' },
@@ -56,8 +57,8 @@ export const AREAS: Area[] = [
     ],
   },
   {
-    name: '달그림자 동굴', emoji: '🕳️', theme: 'cave', levelBase: 16, pool: [92, 74, 104, 50, 41, 63, 261], boss: 94,
-    bossName: '그림자 속의 팬텀', shard: '달그림자 조각', drops: ['moon', 'mushroom'], stars: [60, 32, 8],
+    name: '달그림자 동굴', icon: 'areaCave', theme: 'cave', levelBase: 16, pool: [92, 74, 104, 50, 41, 63, 261], boss: 94,
+    bossName: '그림자 속의 팬텀', shard: '달그림자 조각', drops: ['fossil', 'mushroomGray', 'rockBlue', 'nutYellow'], stars: [60, 32, 8],
     intro: [
       { speaker: N, text: '햇빛이 닿지 않는 깊은 동굴. 벽에 박힌 광석이 희미하게 빛난다.' },
       { speaker: MIRA, text: '여긴 낮에도 밤처럼 어두워. 세 번째 조각은 그림자 속의 팬텀이 숨기고 있을 거야.' },
@@ -69,8 +70,8 @@ export const AREAS: Area[] = [
     ],
   },
   {
-    name: '번개 협곡', emoji: '⛰️', theme: 'gorge', levelBase: 22, pool: [25, 81, 66, 198, 50, 74, 35], boss: 135,
-    bossName: '천둥의 쥬피썬더', shard: '번개 조각', drops: ['spark', 'mushroom'], stars: [50, 38, 12],
+    name: '번개 협곡', icon: 'areaGorge', theme: 'gorge', levelBase: 22, pool: [25, 81, 66, 198, 50, 74, 35], boss: 135,
+    bossName: '천둥의 쥬피썬더', shard: '번개 조각', drops: ['nutYellow', 'honey', 'fossil', 'mushroomGray'], stars: [50, 38, 12],
     intro: [
       { speaker: N, text: '구름 사이로 번개가 끊임없이 내리치는 협곡. 머리카락이 곤두선다.' },
       { speaker: MIRA, text: '네 번째 조각은 번개 조각이야. 쥬피썬더가 전기를 잔뜩 모으고 있어. 땅 타입 동료가 있다면 든든할 거야!' },
@@ -82,8 +83,8 @@ export const AREAS: Area[] = [
     ],
   },
   {
-    name: '불꽃 화산', emoji: '🌋', theme: 'volcano', levelBase: 28, pool: [4, 58, 37, 66, 95, 74, 215], boss: 6,
-    bossName: '불꽃의 군주 리자몽', shard: '불꽃 조각', drops: ['ember', 'mushroom'], stars: [40, 42, 18],
+    name: '불꽃 화산', icon: 'areaVolcano', theme: 'volcano', levelBase: 28, pool: [4, 58, 37, 66, 95, 74, 215], boss: 6,
+    bossName: '불꽃의 군주 리자몽', shard: '불꽃 조각', drops: ['mushroomRed', 'rootRed', 'fossil', 'mushroomGray'], stars: [40, 42, 18],
     intro: [
       { speaker: N, text: '용암이 흐르는 뜨거운 화산. 발바닥이 후끈거린다.' },
       { speaker: MIRA, text: '다섯 번째 조각은 불꽃 조각! 리자몽이 화산 꼭대기를 지키고 있어. 물 타입으로 열기를 식혀 줘!' },
@@ -95,8 +96,8 @@ export const AREAS: Area[] = [
     ],
   },
   {
-    name: '별빛 제단', emoji: '🌌', theme: 'altar', levelBase: 32, pool: [215, 198, 94, 65, 131, 147, 143, 135], boss: 149,
-    bossName: '별을 삼킨 망나뇽', shard: '별빛 조각', drops: ['ember', 'dew', 'leaf', 'spark', 'moon', 'mushroom'], stars: [30, 45, 25],
+    name: '별빛 제단', icon: 'areaAltar', theme: 'altar', levelBase: 32, pool: [215, 198, 94, 65, 131, 147, 143, 135], boss: 149,
+    bossName: '별을 삼킨 망나뇽', shard: '별빛 조각', drops: ['mushroomRed', 'berryBlue', 'nutYellow', 'fossil', 'rootRed', 'rockBlue', 'honey', 'mushroomGray'], stars: [30, 45, 25],
     intro: [
       { speaker: N, text: '별빛이 쏟아지는 섬의 중심, 별빛 제단. 그 위에 거대한 그림자가 똬리를 틀고 있다.' },
       { speaker: MIRA, text: '저건… 마지막 조각을 삼켜 버린 망나뇽이야! 조각의 힘이 너무 강해서 스스로도 멈추지 못하는 거야.' },
@@ -214,13 +215,16 @@ function weighted(w: number[], rng: Rng): number {
 /** 클리어 보상: 코인/경험치/재료/파워스톤 */
 export function rollRewards(stage: Stage, rng: Rng = Math.random): Rewards {
   const area = stage.area >= 0 ? AREAS[stage.area] : null
-  const drops = area ? area.drops : INGREDIENTS.map(i => i.id)
+  const drops: IngredientId[] = area ? area.drops : ['mushroomRed', 'berryBlue', 'nutYellow', 'fossil', 'rootRed', 'rockBlue', 'honey', 'mushroomGray']
   const ingredients: Rewards['ingredients'] = {}
   const n = 5 + Math.floor(rng() * 4) + (stage.boss ? 4 : 0)
   for (let i = 0; i < n; i++) {
     const id = pick(drops, rng)
     ingredients[id] = (ingredients[id] ?? 0) + 1
   }
+  // 마지막 지역과 끝없는 별길에서는 무지개 재료가, 끝없는 별길 보스층에서는 신비의 조개껍질이 가끔 나온다
+  if ((stage.area === AREAS.length - 1 || stage.area < 0) && rng() < (stage.boss ? 0.9 : 0.35)) ingredients.rainbow = 1
+  if (stage.area < 0 && stage.boss) ingredients.shell = 1
   const stars = area ? area.stars : ([40, 40, 20] as [number, number, number])
   const gotStone = stage.boss || rng() < 0.35
   const shape = SHAPE_WEIGHTS[weighted(SHAPE_WEIGHTS.map(w => w[1]), rng)][0]

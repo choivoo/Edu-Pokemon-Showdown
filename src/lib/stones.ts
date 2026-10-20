@@ -8,12 +8,12 @@ export interface Placement { stone: string; x: number; y: number; rot: number }
 export const GRID_W = 4
 export const GRID_H = 3
 
-export const STONE_INFO: Record<StoneKind, { name: string; emoji: string; desc: string; color: string; per: number }> = {
-  hp: { name: '체력석', emoji: '❤️', desc: '체력', color: '#e0505a', per: 0.06 },
-  atk: { name: '공격석', emoji: '🗡️', desc: '공격', color: '#f08a30', per: 0.05 },
-  def: { name: '방어석', emoji: '🛡️', desc: '방어', color: '#4a8fe0', per: 0.05 },
-  spd: { name: '속도석', emoji: '👟', desc: '속도', color: '#43b97a', per: 0.05 },
-  crit: { name: '급소석', emoji: '🎯', desc: '급소 확률', color: '#b061d8', per: 0.025 },
+export const STONE_INFO: Record<StoneKind, { name: string; icon: string; desc: string; color: string; per: number }> = {
+  hp: { name: '체력석', icon: 'heart', desc: '체력', color: '#e0505a', per: 0.06 },
+  atk: { name: '공격석', icon: 'sword', desc: '공격', color: '#f08a30', per: 0.05 },
+  def: { name: '방어석', icon: 'shield', desc: '방어', color: '#4a8fe0', per: 0.05 },
+  spd: { name: '속도석', icon: 'boots', desc: '속도', color: '#43b97a', per: 0.05 },
+  crit: { name: '급소석', icon: 'target', desc: '급소 확률', color: '#b061d8', per: 0.025 },
 }
 export const STONE_KINDS = Object.keys(STONE_INFO) as StoneKind[]
 
@@ -66,6 +66,6 @@ export function findSpot(level: number, occ: Map<string, number>, shape: ShapeId
 }
 
 export const stoneCells = (s: Stone) => SHAPES[s.shape].length
-export const stoneName = (s: Stone) => `${STONE_INFO[s.kind].name} ${'★'.repeat(s.star)}`
+export const stoneName = (s: Stone) => `${STONE_INFO[s.kind].name} ${s.star}성`
 /** 같은 종류·모양·별 2개를 합성하면 별 +1 (최대 3). 비용은 별 × 칸 수 × 40 코인 */
 export const mergeCost = (s: Pick<Stone, 'star' | 'shape'>) => s.star * SHAPES[s.shape].length * 40

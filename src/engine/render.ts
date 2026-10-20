@@ -2,7 +2,9 @@ import type { Battle, FxEvent, Unit } from './battle'
 import { backSprite, frontSprite } from '../data/sprites'
 import { TYPE_COLOR } from '../lib/typeChart'
 import type { Theme } from '../lib/stages'
-import { drawGround, H, rect, W } from './draw'
+import { drawBattleWorld, flush } from '../art/world'
+import { iconCanvas } from '../art/icons'
+import { H, rect, W } from './draw'
 
 export { H, W }
 
@@ -75,7 +77,7 @@ export function consumeEvents(b: Battle, v: Visual, now: number, hooks: { hit: (
       if (u) v.floats.push({ x: u.x, y: u.y - 90, text: `+${e.amount}`, color: '#6dff8a', t0: now, big: false })
     } else if (e.k === 'wave') {
       const boss = b.waves[e.index].some(x => x.boss)
-      v.banner = { text: boss ? '⚠ BOSS 출현!' : `WAVE ${e.index + 1} / ${b.waves.length}`, t0: now }
+      v.banner = { text: boss ? 'BOSS 출현!' : `WAVE ${e.index + 1} / ${b.waves.length}`, t0: now }
       hooks.wave(boss)
     }
   }
@@ -135,7 +137,7 @@ function drawUnit(ctx: CanvasRenderingContext2D, b: Battle, u: Unit, t: number) 
   const label = u.name
   ctx.strokeText(label, u.x, by - 6); ctx.fillText(label, u.x, by - 6)
   if (ally && u.spCd <= 0 && b.phase === 'fight' && Math.floor(t * 4) % 2 === 0) {
-    ctx.font = '18px monospace'; ctx.fillStyle = '#ffe14d'; ctx.strokeText('★', u.x, by - 22); ctx.fillText('★', u.x, by - 22)
+    ctx.drawImage(iconCanvas('star'), Math.floor(u.x - 12), Math.floor(by - 44), 24, 24)
   }
 }
 
@@ -151,28 +153,30 @@ export function drawBattle(ctx: CanvasRenderingContext2D, b: Battle, v: Visual, 
 
   ctx.save()
   if (v.shake > 0) ctx.translate(Math.round((Math.random() - 0.5) * v.shake), Math.round((Math.random() - 0.5) * v.shake))
-  drawGround(ctx, theme, v.scroll, now)
+  drawBattleWorld(theme, v.scroll, now)
+  flush(ctx)
 
   for (const u of [...b.units].sort((a, c) => a.y - c.y)) drawUnit(ctx, b, u, now)
 
   for (const s of v.slashes) {
     const k = (now - s.t0) / 0.25
     ctx.globalAlpha = 1 - k
-    ctx.strokeStyle = '#fff'; ctx.lineWidth = 5
-    ctx.beginPath(); ctx.moveTo(s.x - 22 + k * 8, s.y - 22); ctx.lineTo(s.x + 22 - k * 8, s.y + 22); ctx.stroke()
-    ctx.strokeStyle = s.color; ctx.lineWidth = 3
-    ctx.beginPath(); ctx.moveTo(s.x - 22 + k * 8, s.y + 22); ctx.lineTo(s.x + 22 - k * 8, s.y - 22); ctx.stroke()
+    for (let i = -3; i <= 3; i++) {
+      rect(ctx, Math.round((s.x + i * 6) / 3) * 3, Math.round((s.y + i * 6) / 3) * 3, 6, 6, '#fff')
+      rect(ctx, Math.round((s.x + i * 6) / 3) * 3, Math.round((s.y - i * 6) / 3) * 3, 6, 6, s.color)
+    }
   }
   ctx.globalAlpha = 1
 
   for (const p of v.projs) {
     const k = Math.min(1, (now - p.t0) / p.dur)
-    const x = p.x0 + (p.x1 - p.x0) * k, y = p.y0 + (p.y1 - p.y0) * k - Math.sin(k * Math.PI) * 18
-    const s = p.big ? 18 : 10
+    const x = Math.round((p.x0 + (p.x1 - p.x0) * k) / 3) * 3, y = Math.round((p.y0 + (p.y1 - p.y0) * k - Math.sin(k * Math.PI) * 18) / 3) * 3
+    const s = p.big ? 18 : 9
     rect(ctx, x - s / 2, y - s / 2, s, s, p.color)
-    rect(ctx, x - s / 4, y - s / 4, s / 2, s / 2, '#fff')
+    rect(ctx, x - s / 2, y - s / 2, s, 3, '#fff8')
+    rect(ctx, x - s / 6, y - s / 6, s / 3, s / 3, '#fff')
   }
-  for (const q of v.parts) { ctx.globalAlpha = Math.max(0, q.life / q.max); rect(ctx, q.x, q.y, q.size, q.size, q.color) }
+  for (const q of v.parts) { ctx.globalAlpha = Math.max(0, q.life / q.max); rect(ctx, Math.round(q.x / 3) * 3, Math.round(q.y / 3) * 3, 3 * Math.ceil(q.size / 3), 3 * Math.ceil(q.size / 3), q.color) }
   ctx.globalAlpha = 1
 
   ctx.textAlign = 'center'

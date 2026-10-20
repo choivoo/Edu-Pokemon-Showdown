@@ -8,6 +8,7 @@ import { Bar, Btn, PARTY_COLORS, Panel, Portrait } from '../../ui/kit'
 import TypeBadge from '../../components/TypeBadge'
 import { sfx } from '../../lib/sound'
 import { powerRating } from '../../lib/stats'
+import Icon, { Stars } from '../../ui/Icon'
 
 const CELL = 62
 
@@ -88,7 +89,7 @@ export default function TeamPanel() {
               <span key={k as string} className="rounded-lg px-1 py-0.5 text-white" style={{ background: c as string }}>{k}<br /><b className="text-base">{v}</b></span>
             ))}
           </div>
-          <p className="text-sm">⚔️ {powerRating(stats)} · {getMove(sp.basic).name}(자동) · ★{getMove(sp.special).name}</p>
+          <p className="flex items-center gap-1 text-sm"><Icon n="sword" s={18} />{powerRating(stats)} · {getMove(sp.basic).name}(자동) · <Icon n="star" s={16} />{getMove(sp.special).name}</p>
 
           <div className="flex gap-3">
             <div className="pq-dark relative p-2" style={{ width: GRID_W * CELL + 16 }} onMouseLeave={() => setHover(null)}>
@@ -106,7 +107,7 @@ export default function TeamPanel() {
                       className="flex items-center justify-center border-2 border-black/40 text-lg font-bold text-white"
                       style={{ width: CELL, height: CELL, background: st ? STONE_INFO[st.kind].color : g !== undefined ? (g ? '#58cf7c' : '#e0505a') : isOpen ? '#566' : '#2a2d38', opacity: isOpen ? 1 : 0.7 }}
                     >
-                      {st ? '★'.repeat(st.star) : isOpen ? '' : '🔒'}
+                      {st ? <Stars n={st.star} s={14} /> : isOpen ? null : <Icon n="lock" s={26} />}
                     </button>
                   )
                 })}
@@ -115,9 +116,9 @@ export default function TeamPanel() {
             <div className="flex flex-1 flex-col gap-2 text-sm">
               {hold && holdStone ? (
                 <div className="pq-inner p-2 text-center">
-                  <p className="font-bold">{STONE_INFO[holdStone.kind].emoji} {stoneName(holdStone)}</p>
+                  <p className="flex items-center justify-center gap-1 font-bold"><Icon n={STONE_INFO[holdStone.kind].icon} s={22} />{stoneName(holdStone)}</p>
                   <ShapePreview stone={holdStone} />
-                  <Btn color="blue" onClick={() => setHold({ ...hold, rot: hold.rot + 1 })} className="mt-1 w-full px-1 py-1 text-base">↻ 회전</Btn>
+                  <Btn color="blue" onClick={() => setHold({ ...hold, rot: hold.rot + 1 })} className="mt-1 flex w-full items-center justify-center gap-1 px-1 py-1 text-base"><Icon n="rotate" s={20} />회전</Btn>
                   <Btn color="gray" onClick={() => setHold(null)} className="mt-1 w-full px-1 py-1 text-base">내려놓기</Btn>
                 </div>
               ) : <p className="pq-inner p-2 text-xs leading-snug">오른쪽 <b>파워스톤</b> 탭에서 스톤을 골라 격자에 놓으세요. 놓인 스톤을 누르면 다시 집어요. 레벨이 오르면 칸이 열려요.</p>}
@@ -132,7 +133,7 @@ export default function TeamPanel() {
             {[0, 1, 2].map(i => {
               const m = save.owned.find(o => o.id === save.party[i])
               return (
-                <button key={i} onClick={() => m && setSelId(m.id)} className={`flex h-[70px] flex-1 items-center gap-2 rounded-xl border-4 px-2 ${m && m.id === mon.id ? 'border-white' : 'border-black/30'}`} style={{ background: PARTY_COLORS[i] }}>
+                <button key={i} onClick={() => m && setSelId(m.id)} className={`flex h-[70px] flex-1 items-center gap-2 border-4 px-2 ${m && m.id === mon.id ? 'border-white' : 'border-[#2b2838]'}`} style={{ background: PARTY_COLORS[i] }}>
                   {m ? (<><Portrait id={m.species} size={52} /><span className="text-left text-sm leading-tight text-white" style={{ textShadow: '0 1px 0 #0008' }}>{getSpecies(m.species).name}<br /><b>Lv{m.level}</b></span></>) : <span className="w-full text-center text-sm text-white/80">빈 자리</span>}
                 </button>
               )
@@ -158,7 +159,7 @@ export default function TeamPanel() {
                 {freeStones.map(s => (
                   <button key={s.id} onClick={() => { sfx.select(); setHold({ id: s.id, rot: 0 }); setMsg('') }} className={`flex w-full items-center gap-3 rounded-lg border-4 px-2 py-1 text-left ${hold?.id === s.id ? 'border-[#e8524a] bg-white' : 'border-[#e5a500]'}`}>
                     <span className="flex w-16 justify-center"><ShapePreview stone={s} /></span>
-                    <span className="flex-1 text-lg">{STONE_INFO[s.kind].emoji} {stoneName(s)}</span>
+                    <span className="flex flex-1 items-center gap-1 text-lg"><Icon n={STONE_INFO[s.kind].icon} s={26} />{STONE_INFO[s.kind].name} <Stars n={s.star} s={14} /></span>
                     <span className="text-sm">{STONE_INFO[s.kind].desc} +{Math.round(STONE_INFO[s.kind].per * s.star * SHAPES[s.shape].length * 100)}%</span>
                   </button>
                 ))}
@@ -167,7 +168,7 @@ export default function TeamPanel() {
           </div>
           <div className="flex gap-2">
             <Btn color={inParty ? 'gray' : 'green'} onClick={toggleParty} className="flex-1 py-1.5 text-base">{inParty ? '파티에서 빼기' : '파티에 넣기'}</Btn>
-            <Btn color="blue" disabled={!lvCost || save.coins < lvCost} onClick={() => { if (levelUpWithCoins(mon.id)) sfx.levelup() }} className="flex-1 py-1.5 text-base">{lvCost ? `🪙${lvCost} 레벨업` : '최고 레벨'}</Btn>
+            <Btn color="blue" disabled={!lvCost || save.coins < lvCost} onClick={() => { if (levelUpWithCoins(mon.id)) sfx.levelup() }} className="flex-1 py-1.5 text-base">{lvCost ? <span className="flex items-center justify-center gap-1"><Icon n="coin" s={20} />{lvCost} 레벨업</span> : '최고 레벨'}</Btn>
             <Btn color="red" disabled={inParty || save.owned.length <= 1} onClick={() => { if (release(mon.id)) setSelId(save.party[0]) }} className="flex-1 py-1.5 text-base">보내주기</Btn>
           </div>
         </div>
