@@ -2,18 +2,25 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useGame } from '../store/gameStore'
 import { type Backend, firebaseConfigured, getBackend } from '../lib/backend'
 import {
-  closeRoom, createRoom, publishQuestion, publishResult, type RoomState, startGame, subscribeRoom,
+  closeRoom, createRoom, publishQuestion, publishResult, type RoomState, startGame, subscribeAnswers, subscribeRoom,
 } from '../lib/classRoom'
 import { assignPairs, isDecided, ranking, resolveRound, roundDifficulty } from '../lib/classBattle'
 import { checkAnswer, pickQuestion, SUBJECT_LABEL, SUBJECTS, TIME_LIMIT } from '../lib/questions'
+import type { Answer } from '../lib/classBattle'
 import type { Question, Subject } from '../types'
 import { Board } from './ClassPlay'
 import { frontSprite } from '../data/sprites'
+
+const SAVE_KEY = 'edu-pokemon-showdown:teacher'
+interface Saved { code: string; q: Question | null; limitSec: number; used: string[] }
+const loadSaved = (): Saved | null => { try { return JSON.parse(localStorage.getItem(SAVE_KEY) ?? 'null') } catch { return null } }
+const writeSaved = (v: Saved | null) => { try { v ? localStorage.setItem(SAVE_KEY, JSON.stringify(v)) : localStorage.removeItem(SAVE_KEY) } catch { /* 무시 */ } }
 
 export default function TeacherDashboard() {
   const go = useGame(s => s.go)
   const [be, setBe] = useState<Backend | null>(null)
   const [code, setCode] = useState('')
+  const [answers, setAnswers] = useState<Record<string, Record<string, Answer>>>({})
   const [room, setRoom] = useState<RoomState | null>(null)
   const [subject, setSubject] = useState<Subject | 'mix'>('math')
   const [rounds, setRounds] = useState(8)
@@ -25,10 +32,31 @@ export default function TeacherDashboard() {
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const resolving = useRef(false)
 
-  useEffect(() => { void getBackend().then(setBe) }, [])
+  const answersRef = useRef(answers)
+  const resolveRef = useRef<() => Promise<void>>(async () => {})
+  useEffect(() => { answersRef.current = answers }, [answers])
+  useEffect(() => { getBackend().then(setBe).catch(e => setErr(e instanceof Error ? e.message : '연결 실패')) }, [])
+  // 새로고침 복구: 진행 중이던 방과 문제를 되살린다 (방이 이미 닫혔으면 버린다)
+  useEffect(() => {
+    if (!be) return
+    const saved = loadSaved()
+    if (!saved) return
+    void be.get(`rooms/${saved.code}`).then(v => {
+      if (!v || (v as RoomState).hostUid !== be.uid) { writeSaved(null); return }
+      used.current = saved.used
+      if (saved.q) {
+        qRef.current = { q: saved.q, limitSec: saved.limitSec }
+        timer.current = setTimeout(() => void resolveRef.current(), 3000 + saved.limitSec * 1000)
+      }
+      setCode(saved.code)
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [be])
   useEffect(() => {
     if (!be || !code) return
-    return subscribeRoom(be, code, r => { roomRef.current = r; setRoom(r) })
+    const a = subscribeRoom(be, code, r => { roomRef.current = r; setRoom(r) })
+    const b = subscribeAnswers(be, code, setAnswers)
+    return () => { a(); b() }
   }, [be, code])
   useEffect(() => () => { if (timer.current) clearTimeout(timer.current) }, [])
 
@@ -40,26 +68,29 @@ export default function TeacherDashboard() {
     if (timer.current) clearTimeout(timer.current)
     try {
       const round = r.current.round
-      const res = resolveRound(cq.q, cq.limitSec * 1000, r.fighters ?? {}, r.answers?.[round] ?? {}, checkAnswer)
+      const res = resolveRound(cq.q, cq.limitSec * 1000, r.fighters ?? {}, answersRef.current[round] ?? {}, checkAnswer)
       const last = round + 1 >= r.totalRounds || isDecided(res.fighters)
       await publishResult(be, r.code, res.fighters, {
         round, answer: cq.q.answer, explanation: cq.q.explanation, events: res.events, verdicts: res.verdicts,
       }, last)
       qRef.current = null
+      writeSaved({ code: r.code, q: null, limitSec: 0, used: used.current })
     } finally { resolving.current = false }
   }, [be])
+
+  useEffect(() => { resolveRef.current = resolve }, [resolve])
 
   // 모든 학생이 답하면 자동으로 판정
   useEffect(() => {
     if (!room?.current || !room.fighters) return
     const humans = Object.entries(room.fighters).filter(([, f]) => !f.bot).length
-    const n = Object.keys(room.answers?.[room.current.round] ?? {}).length
+    const n = Object.keys(answers[room.current.round] ?? {}).length
     if (humans > 0 && n >= humans) { const t = setTimeout(() => void resolve(), 700); return () => clearTimeout(t) }
-  }, [room, resolve])
+  }, [room, answers, resolve])
 
   const create = async () => {
     if (!be) return
-    try { setErr(''); setCode(await createRoom(be, subject, rounds)) } catch (e) { setErr(String(e)) }
+    try { setErr(''); const c = await createRoom(be, subject, rounds); used.current = []; writeSaved({ code: c, q: null, limitSec: 0, used: [] }); setCode(c) } catch (e) { setErr(String(e)) }
   }
   const start = async () => {
     if (!be || !room?.fighters) return
@@ -73,6 +104,7 @@ export default function TeacherDashboard() {
     used.current.push(q.id)
     const limitSec = TIME_LIMIT[q.difficulty]
     qRef.current = { q, limitSec }
+    writeSaved({ code: room.code, q, limitSec, used: used.current })
     await publishQuestion(be, room.code, round, q, limitSec)
     timer.current = setTimeout(() => void resolve(), (limitSec + 2) * 1000)
   }
@@ -81,6 +113,7 @@ export default function TeacherDashboard() {
   }
   const close = async () => {
     if (be && code) await closeRoom(be, code)
+    writeSaved(null)
     setCode(''); setRoom(null)
   }
 
@@ -144,7 +177,7 @@ export default function TeacherDashboard() {
               <div className="pixel-box space-y-1 p-3 text-sm">
                 {room.current && qRef.current ? (
                   <>
-                    <p className="text-xs text-yellow-300">라운드 {room.current.round + 1}/{room.totalRounds} · {qRef.current.q.difficulty} · 제출 {Object.keys(room.answers?.[room.current.round] ?? {}).length}/{players.length}</p>
+                    <p className="text-xs text-yellow-300">라운드 {room.current.round + 1}/{room.totalRounds} · {qRef.current.q.difficulty} · 제출 {Object.keys(answers[room.current.round] ?? {}).length}/{players.length}</p>
                     <p>{qRef.current.q.question}</p>
                     <p className="text-xs text-green-300">정답: {qRef.current.q.answer}</p>
                     <button onClick={() => void resolve()} className="pixel-btn mt-1 rounded border-2 border-white px-2 py-1 text-xs">지금 마감</button>

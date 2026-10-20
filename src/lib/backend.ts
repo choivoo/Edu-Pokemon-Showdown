@@ -2,6 +2,8 @@
 // 없으면 같은 브라우저의 탭끼리 동작하는 로컬 데모 백엔드(localStorage)를 쓴다.
 export interface Backend {
   kind: 'firebase' | 'local'
+  /** 이 사용자의 고유 ID (Firebase: 익명 인증 uid, 로컬: 탭별 ID) */
+  uid: string
   get<T = unknown>(path: string): Promise<T | null>
   set(path: string, value: unknown): Promise<void>
   /** 해당 경로 아래 키들을 병합 갱신 (키에 / 가 있으면 하위 경로 갱신) */
@@ -44,6 +46,14 @@ function setAt(tree: Record<string, unknown>, path: string, value: unknown) {
   else cur[last] = value
 }
 
+function localUid(): string {
+  try {
+    let p = sessionStorage.getItem('edu-pokemon-showdown:pid')
+    if (!p) { p = 'p' + Math.random().toString(36).slice(2, 9); sessionStorage.setItem('edu-pokemon-showdown:pid', p) }
+    return p
+  } catch { return 'p' + Math.random().toString(36).slice(2, 9) }
+}
+
 function createLocal(): Backend {
   const listeners = new Set<() => void>()
   const notify = () => listeners.forEach(l => l())
@@ -56,6 +66,7 @@ function createLocal(): Backend {
   }
   return {
     kind: 'local',
+    uid: localUid(),
     get: async path => getAt(readTree(), path) as never,
     set: async (path, value) => mutate(t => setAt(t, path, value)),
     update: async (path, patch) => mutate(t => { for (const [k, v] of Object.entries(patch)) setAt(t, `${path}/${k}`, v) }),
@@ -76,7 +87,7 @@ function createLocal(): Backend {
 
 // ---------- Firebase 백엔드 (설정이 있을 때만 동적 로드) ----------
 async function createFirebase(): Promise<Backend> {
-  const [{ initializeApp }, db] = await Promise.all([import('firebase/app'), import('firebase/database')])
+  const [{ initializeApp }, db, authMod] = await Promise.all([import('firebase/app'), import('firebase/database'), import('firebase/auth')])
   const app = initializeApp({
     apiKey: env.VITE_FIREBASE_API_KEY,
     authDomain: env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -84,9 +95,17 @@ async function createFirebase(): Promise<Backend> {
     projectId: env.VITE_FIREBASE_PROJECT_ID,
     appId: env.VITE_FIREBASE_APP_ID,
   })
+  // 보안 규칙(database.rules.json)이 로그인한 사용자만 허용하므로 익명 로그인 필요
+  const auth = authMod.getAuth(app)
+  try {
+    await authMod.signInAnonymously(auth)
+  } catch {
+    throw new Error('Firebase 익명 로그인에 실패했어요. 콘솔 Authentication에서 "익명" 로그인을 켜주세요.')
+  }
   const d = db.getDatabase(app)
   return {
     kind: 'firebase',
+    uid: auth.currentUser!.uid,
     get: async path => (await db.get(db.ref(d, path))).val(),
     set: (path, value) => db.set(db.ref(d, path), value),
     update: (path, patch) => db.update(db.ref(d, path), patch),

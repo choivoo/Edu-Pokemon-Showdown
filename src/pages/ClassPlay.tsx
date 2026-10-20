@@ -1,32 +1,33 @@
 import { useEffect, useRef, useState } from 'react'
 import { useGame } from '../store/gameStore'
-import { getBackend } from '../lib/backend'
+import { type Backend, getBackend } from '../lib/backend'
 import { type RoomState, submitAnswer, subscribeRoom } from '../lib/classRoom'
 import { ranking } from '../lib/classBattle'
 import QuestionPanel from '../components/QuestionPanel'
 import HpBar from '../components/HpBar'
 import { backSprite, frontSprite } from '../data/sprites'
-import { CLASS_KEY, getPid } from './ClassJoin'
+import { CLASS_KEY } from './ClassJoin'
 import { sfx } from '../lib/sound'
 import type { Question } from '../types'
 
 export default function ClassPlay() {
   const go = useGame(s => s.go)
-  const pid = getPid()
+  const [be, setBe] = useState<Backend | null>(null)
+  const [loadErr, setLoadErr] = useState('')
+  const pid = be?.uid ?? ''
   const [room, setRoom] = useState<RoomState | null | undefined>(undefined)
   const [submitted, setSubmitted] = useState<number>(-1)
   const [code] = useState(() => { try { return sessionStorage.getItem(CLASS_KEY) ?? '' } catch { return '' } })
-  const beRef = useRef<Awaited<ReturnType<typeof getBackend>> | null>(null)
   const lastRound = useRef(-2)
 
   useEffect(() => {
     let off = () => {}
     let dead = false
-    void getBackend().then(be => {
+    getBackend().then(b => {
       if (dead) return
-      beRef.current = be
-      off = subscribeRoom(be, code, r => setRoom(r))
-    })
+      setBe(b)
+      off = subscribeRoom(b, code, r => setRoom(r))
+    }).catch(e => setLoadErr(e instanceof Error ? e.message : '연결 실패'))
     return () => { dead = true; off() }
   }, [code])
 
@@ -37,7 +38,8 @@ export default function ClassPlay() {
     }
   }, [room?.lastResult, pid])
 
-  if (room === undefined) return <Center>연결 중…</Center>
+  if (loadErr) return <Center>{loadErr}<button onClick={() => go('title')} className="mt-3 underline">나가기</button></Center>
+  if (room === undefined || !be) return <Center>연결 중…</Center>
   if (room === null) return <Center>방이 닫혔어요. <button onClick={() => go('title')} className="mt-3 underline">나가기</button></Center>
   const me = room.fighters?.[pid]
   const foe = me?.opponent ? room.fighters?.[me.opponent] : undefined
@@ -99,7 +101,7 @@ export default function ClassPlay() {
           onCancel={() => {}}
           onSubmit={(input, ratio) => {
             setSubmitted(cur.round)
-            void submitAnswer(beRef.current!, room.code, cur.round, pid, { answer: input ?? '', ms: Math.round((1 - ratio) * cur.limitSec * 1000) })
+            void submitAnswer(be, room.code, cur.round, pid, { answer: input ?? '', ms: Math.round((1 - ratio) * cur.limitSec * 1000) })
           }}
         />
       )}

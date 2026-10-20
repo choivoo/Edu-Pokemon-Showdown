@@ -6,15 +6,6 @@ import { makeFighter } from '../lib/classBattle'
 import { POKEMON } from '../lib/pokedex'
 import { frontSprite } from '../data/sprites'
 
-const PID_KEY = 'edu-pokemon-showdown:pid'
-export const getPid = (): string => {
-  try {
-    let p = sessionStorage.getItem(PID_KEY)
-    if (!p) { p = 'p' + Math.random().toString(36).slice(2, 9); sessionStorage.setItem(PID_KEY, p) }
-    return p
-  } catch { return 'p' + Math.random().toString(36).slice(2, 9) }
-}
-
 export const CLASS_KEY = 'edu-pokemon-showdown:class-code'
 
 export default function ClassJoin() {
@@ -29,7 +20,7 @@ export default function ClassJoin() {
     setBusy(true); setErr('')
     try {
       const be = await getBackend()
-      await joinRoom(be, code.trim(), getPid(), makeFighter(name.trim(), progress.avatar, pokemon))
+      await joinRoom(be, code.trim(), be.uid, makeFighter(name.trim(), progress.avatar, pokemon))
       setProfile(name.trim(), progress.avatar)
       try { sessionStorage.setItem(CLASS_KEY, code.trim()) } catch { /* 무시 */ }
       go('classPlay')
