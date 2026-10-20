@@ -31,7 +31,7 @@ export default function Profile() {
       </div>
       <div className="mt-auto flex gap-3">
         <button onClick={() => go('title')} className="pixel-btn pixel-box flex-1 py-3">뒤로</button>
-        <button disabled={!ok} onClick={() => { setProfile(name.trim(), avatar); go('team') }} className="pixel-btn pixel-box flex-1 bg-[#3d6b3d] py-3">다음</button>
+        <button disabled={!ok} onClick={() => { setProfile(name.trim(), avatar); go('title') }} className="pixel-btn pixel-box flex-1 bg-[#3d6b3d] py-3">저장</button>
       </div>
     </div>
   )

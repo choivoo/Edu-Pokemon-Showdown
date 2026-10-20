@@ -1,11 +1,14 @@
+import { useState } from 'react'
 import { ULT_COMBO, useGame } from '../store/gameStore'
 import BattleScene, { Typewriter } from '../components/BattleScene'
 import MoveButton from '../components/MoveButton'
 import QuestionPanel from '../components/QuestionPanel'
 import { TIME_LIMIT } from '../lib/questions'
+import { frontSprite } from '../data/sprites'
 
 export default function Battle() {
-  const { battle: b, selectMove, submitAnswer, cancelQuestion, useUltimate } = useGame()
+  const { battle: b, selectMove, submitAnswer, cancelQuestion, useUltimate, switchTo } = useGame()
+  const [showSwitch, setShowSwitch] = useState(false)
   if (!b) return null
   const me = b.player[b.pi]
   const canAct = b.phase === 'choose'
@@ -29,7 +32,9 @@ export default function Battle() {
               <span key={i} className={`h-3 w-6 border-2 border-black ${i < gauge ? 'bg-orange-400' : 'bg-gray-700'}`} />
             ))}
           </div>
-          <span className="ml-auto text-gray-400">정답 {b.correct}/{b.total}</span>
+          {b.mode === 'survival' && <span className="text-green-300">격파 {b.defeated}</span>}
+          <button disabled={!canAct || b.player.filter(m => m.hp > 0).length < 2} onClick={() => setShowSwitch(true)} className="pixel-btn ml-auto rounded border-2 border-white px-2 py-0.5">교체</button>
+          <span className="text-gray-400">정답 {b.correct}/{b.total}</span>
         </div>
         <div className="grid flex-1 grid-cols-2 gap-2">
           {me.moves.map(m => <MoveButton key={m.id} move={m} disabled={!canAct} onClick={() => selectMove(m)} />)}
@@ -40,6 +45,22 @@ export default function Battle() {
           </button>
         )}
       </div>
+      {showSwitch && canAct && (
+        <div className="pixel-box slide-up absolute inset-x-0 bottom-0 z-20 rounded-t-lg p-3">
+          <div className="mb-2 flex justify-between text-[11px]">
+            <span className="text-yellow-300">교체할 포켓몬 (턴 소모)</span>
+            <button onClick={() => setShowSwitch(false)} className="underline">닫기</button>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            {b.player.map((m, i) => (
+              <button key={m.id} disabled={m.hp <= 0 || i === b.pi} onClick={() => { setShowSwitch(false); switchTo(i) }} className="pixel-btn rounded border-4 border-black bg-[#44446a] p-1 text-center text-[11px]">
+                <img src={frontSprite(m.id)} alt="" className="sprite mx-auto h-12 w-12" />
+                {m.name}<br />HP {m.hp}/{m.maxHp}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       {b.phase === 'question' && b.question && b.pendingMove && (
         <QuestionPanel
           key={b.question.id + b.total}

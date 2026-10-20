@@ -8,9 +8,10 @@ interface Props {
   moveName: string
   onSubmit: (input: string | null, timeLeftRatio: number) => void
   onCancel: () => void
+  noCancel?: boolean
 }
 
-export default function QuestionPanel({ question, timeLimit, moveName, onSubmit, onCancel }: Props) {
+export default function QuestionPanel({ question, timeLimit, moveName, onSubmit, onCancel, noCancel }: Props) {
   const [left, setLeft] = useState(timeLimit)
   const [text, setText] = useState('')
   const done = useRef(false)
@@ -42,7 +43,7 @@ export default function QuestionPanel({ question, timeLimit, moveName, onSubmit,
     <div className="pixel-box absolute inset-x-0 bottom-0 z-20 slide-up rounded-t-lg p-3">
       <div className="mb-2 flex items-center justify-between text-[11px]">
         <span className="text-yellow-300">{moveName} 발동 조건!</span>
-        <button onClick={() => { if (!done.current) { done.current = true; onCancel() } }} className="text-gray-300 underline">취소</button>
+        {!noCancel && <button onClick={() => { if (!done.current) { done.current = true; onCancel() } }} className="text-gray-300 underline">취소</button>}
       </div>
       <div className="mb-2 h-3 border-2 border-black bg-gray-700">
         <div className="h-full" style={{ width: `${ratio * 100}%`, background: barColor, transition: 'width 0.1s linear' }} />

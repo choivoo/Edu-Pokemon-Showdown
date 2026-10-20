@@ -1,3 +1,5 @@
+import { STARTERS } from './progression'
+
 export interface Progress {
   nickname: string
   avatar: number
@@ -6,12 +8,13 @@ export interface Progress {
   wins: number
   losses: number
   bestSurvival: number
+  unlocked: number[]
 }
 
 const KEY = 'edu-pokemon-showdown:v1'
 
 export const defaultProgress = (): Progress => ({
-  nickname: '', avatar: 0, coins: 0, exp: 0, wins: 0, losses: 0, bestSurvival: 0,
+  nickname: '', avatar: 0, coins: 0, exp: 0, wins: 0, losses: 0, bestSurvival: 0, unlocked: [...STARTERS],
 })
 
 export function loadProgress(): Progress {

@@ -33,7 +33,7 @@ export default function BattleScene({ battle: b }: { battle: BattleState }) {
     <div className="relative h-full overflow-hidden" style={{ background: 'linear-gradient(#8fd3ff 0%, #d7f0ff 45%, #8bd06a 45%, #5fa84a 100%)' }}>
       {/* 상대 */}
       <div className="absolute left-3 top-3">
-        <HpBar name={foe.name} level={foe.level} hp={foe.hp} maxHp={foe.maxHp} />
+        <HpBar name={foe.name} level={foe.level} hp={foe.hp} maxHp={foe.maxHp} status={foe.status} />
         {dots(b.enemy)}
       </div>
       <img
@@ -48,7 +48,7 @@ export default function BattleScene({ battle: b }: { battle: BattleState }) {
         style={{ width: 128, height: 128 }}
       />
       <div className="absolute bottom-3 right-3">
-        <HpBar name={me.name} level={me.level} hp={me.hp} maxHp={me.maxHp} showNumbers />
+        <HpBar name={me.name} level={me.level} hp={me.hp} maxHp={me.maxHp} showNumbers status={me.status} />
         {dots(b.player)}
       </div>
     </div>

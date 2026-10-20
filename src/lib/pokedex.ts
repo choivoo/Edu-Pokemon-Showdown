@@ -2,6 +2,7 @@ import type { Move, PokemonData } from '../types'
 import pokemonJson from '../data/pokemon.json'
 import movesJson from '../data/moves.json'
 import { calcMaxHp, calcStat } from './damage'
+import type { Status } from './status'
 
 export const POKEMON = pokemonJson as PokemonData[]
 const MOVES = movesJson as Move[]
@@ -29,14 +30,17 @@ export interface BattleMon {
   def: number
   spe: number
   moves: Move[]
+  status: Status | null
 }
 
-export function createBattleMon(id: number, level = 50): BattleMon {
+/** bonus: 트레이너 레벨에 따른 스탯 배율 (기본 1) */
+export function createBattleMon(id: number, level = 50, bonus = 1): BattleMon {
   const p = getPokemon(id)
-  const maxHp = calcMaxHp(p.stats.hp, level)
+  const maxHp = Math.floor(calcMaxHp(p.stats.hp, level) * bonus)
+  const st = (v: number) => Math.floor(calcStat(v, level) * bonus)
   return {
     id: p.id, name: p.name, types: p.types, level, maxHp, hp: maxHp,
-    atk: calcStat(p.stats.atk, level), def: calcStat(p.stats.def, level), spe: calcStat(p.stats.spe, level),
-    moves: p.moves.map(getMove),
+    atk: st(p.stats.atk), def: st(p.stats.def), spe: st(p.stats.spe),
+    moves: p.moves.map(getMove), status: null,
   }
 }

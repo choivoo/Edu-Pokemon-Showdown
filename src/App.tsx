@@ -5,6 +5,9 @@ import TeamSelect from './pages/TeamSelect'
 import Battle from './pages/Battle'
 import Result from './pages/Result'
 import TeacherDashboard from './pages/TeacherDashboard'
+import QuestionAdmin from './pages/QuestionAdmin'
+import ClassJoin from './pages/ClassJoin'
+import ClassPlay from './pages/ClassPlay'
 
 export default function App() {
   const screen = useGame(s => s.screen)
@@ -16,6 +19,9 @@ export default function App() {
       {screen === 'battle' && <Battle />}
       {screen === 'result' && <Result />}
       {screen === 'teacher' && <TeacherDashboard />}
+      {screen === 'admin' && <QuestionAdmin />}
+      {screen === 'classJoin' && <ClassJoin />}
+      {screen === 'classPlay' && <ClassPlay />}
     </div>
   )
 }
