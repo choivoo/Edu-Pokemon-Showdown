@@ -1,0 +1,57 @@
+@import "tailwindcss";
+
+@theme {
+  --font-pixel: "Galmuri11", "Galmuri9", "Press Start 2P", monospace;
+  --font-title: "Press Start 2P", "Galmuri11", monospace;
+}
+
+html, body, #root { height: 100%; }
+body {
+  margin: 0;
+  background: #1b1b2f;
+  color: #f4f4f4;
+  font-family: var(--font-pixel);
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  user-select: none;
+}
+
+.pixel-box {
+  background: #2b2b45;
+  border: 4px solid #f4f4f4;
+  box-shadow: 0 0 0 4px #000, 4px 4px 0 4px #000;
+}
+.pixel-btn { transition: transform 0.05s; }
+.pixel-btn:active:not(:disabled) { transform: translate(2px, 2px); }
+.pixel-btn:disabled { opacity: 0.45; }
+
+.sprite { image-rendering: pixelated; }
+
+.hp-fill { transition: width 0.7s ease-out, background-color 0.4s; }
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-8px); }
+  40% { transform: translateX(8px); }
+  60% { transform: translateX(-6px); }
+  80% { transform: translateX(6px); }
+}
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  25%, 75% { opacity: 0; }
+  50% { opacity: 1; }
+}
+@keyframes lunge-up { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(20px, -16px); } }
+@keyframes lunge-down { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-20px, 16px); } }
+@keyframes faint { to { transform: translateY(40px); opacity: 0; } }
+@keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+
+.anim-hit { animation: shake 0.4s, blink 0.5s; }
+.anim-attack-player { animation: lunge-up 0.35s; }
+.anim-attack-enemy { animation: lunge-down 0.35s; }
+.anim-faint { animation: faint 0.6s forwards; }
+.idle { animation: bob 1.6s ease-in-out infinite; }
+.cursor::after { content: "▼"; margin-left: 4px; animation: blink 1s steps(2) infinite; }
+
+@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+.slide-up { animation: slideUp 0.25s ease-out; }
