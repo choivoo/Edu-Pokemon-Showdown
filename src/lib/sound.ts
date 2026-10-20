@@ -59,6 +59,46 @@ export const sfx = {
   win: () => play(() => [523, 659, 784, 1047].forEach((f, i) => beep(f, i * 0.14, 0.2))),
   lose: () => play(() => [392, 330, 262, 196].forEach((f, i) => beep(f, i * 0.2, 0.3, 'triangle'))),
   tick: () => play(() => beep(900, 0, 0.03, 'square', 0.04)),
+  coin: () => play(() => { beep(988, 0, 0.07); beep(1319, 0.07, 0.16) }),
+  special: () => play(() => { beep(440, 0, 0.08); beep(660, 0.06, 0.08); beep(880, 0.12, 0.2, 'square', 0.09, 1320) }),
+  cook: () => play(() => [392, 523, 659, 784, 1047].forEach((f, i) => beep(f, i * 0.09, 0.14, 'triangle', 0.09))),
+  levelup: () => play(() => [523, 659, 784, 659, 784, 1047].forEach((f, i) => beep(f, i * 0.08, 0.14))),
+  step: () => play(() => beep(130 + Math.random() * 30, 0, 0.05, 'triangle', 0.05)),
+}
+
+// ---- 간단한 8비트 배경음악 (음원 파일 없이 오실레이터로 생성) ----
+type Song = { bpm: number; lead: number[]; bass: number[]; wave: OscillatorType }
+const N = (n: number) => 440 * Math.pow(2, (n - 69) / 12) // MIDI 번호 → Hz
+const SONGS: Record<string, Song> = {
+  camp: { bpm: 96, wave: 'triangle', lead: [72, 0, 76, 0, 79, 0, 76, 0, 77, 0, 74, 0, 72, 0, 0, 0, 74, 0, 77, 0, 81, 0, 77, 0, 76, 0, 72, 0, 67, 0, 0, 0], bass: [48, 0, 55, 0, 53, 0, 55, 0, 52, 0, 55, 0, 50, 0, 55, 0] },
+  battle: { bpm: 150, wave: 'square', lead: [69, 72, 76, 72, 69, 72, 76, 81, 67, 71, 74, 71, 67, 71, 74, 79, 65, 69, 72, 69, 65, 69, 72, 77, 67, 71, 74, 79, 76, 74, 71, 67], bass: [45, 45, 45, 45, 43, 43, 43, 43, 41, 41, 41, 41, 43, 43, 43, 43] },
+  story: { bpm: 72, wave: 'triangle', lead: [64, 0, 0, 0, 67, 0, 0, 0, 71, 0, 0, 0, 69, 0, 0, 0], bass: [40, 0, 0, 0, 43, 0, 0, 0] },
+}
+let bgmTimer: ReturnType<typeof setInterval> | null = null
+let bgmName = ''
+
+export const bgm = {
+  play(name: keyof typeof SONGS) {
+    if (bgmName === name && bgmTimer) return
+    bgm.stop()
+    bgmName = name
+    const song = SONGS[name]
+    const stepMs = (60000 / song.bpm) / 2
+    let i = 0
+    bgmTimer = setInterval(() => {
+      if (muted) return
+      const l = song.lead[i % song.lead.length]
+      const b = song.bass[Math.floor(i / 2) % song.bass.length]
+      if (l) beep(N(l), 0, (stepMs / 1000) * 0.9, song.wave, 0.025)
+      if (i % 2 === 0 && b) beep(N(b), 0, (stepMs / 1000) * 1.8, 'triangle', 0.04)
+      i++
+    }, stepMs)
+  },
+  stop() {
+    if (bgmTimer) clearInterval(bgmTimer)
+    bgmTimer = null
+    bgmName = ''
+  },
 }
 
 export function setMuted(m: boolean) { muted = m }

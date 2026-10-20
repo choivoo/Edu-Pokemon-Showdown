@@ -1,292 +1,135 @@
 [
   {
-    "id": 1,
-    "name": "이상해씨",
+    "id": 19,
+    "name": "꼬렛",
+    "types": [
+      "normal"
+    ],
+    "stats": {
+      "hp": 30,
+      "atk": 56,
+      "def": 35,
+      "spe": 72
+    },
+    "rarity": 1,
+    "basic": "normal-easy",
+    "special": "normal-normal"
+  },
+  {
+    "id": 16,
+    "name": "구구",
+    "types": [
+      "normal",
+      "flying"
+    ],
+    "stats": {
+      "hp": 40,
+      "atk": 45,
+      "def": 40,
+      "spe": 56
+    },
+    "rarity": 1,
+    "basic": "normal-easy",
+    "special": "flying-normal"
+  },
+  {
+    "id": 13,
+    "name": "뿔충이",
+    "types": [
+      "bug",
+      "poison"
+    ],
+    "stats": {
+      "hp": 40,
+      "atk": 35,
+      "def": 30,
+      "spe": 50
+    },
+    "rarity": 1,
+    "basic": "bug-easy",
+    "special": "poison-normal"
+  },
+  {
+    "id": 41,
+    "name": "주뱃",
+    "types": [
+      "poison",
+      "flying"
+    ],
+    "stats": {
+      "hp": 40,
+      "atk": 45,
+      "def": 35,
+      "spe": 55
+    },
+    "rarity": 1,
+    "basic": "poison-easy",
+    "special": "flying-normal"
+  },
+  {
+    "id": 43,
+    "name": "뚜벅쵸",
     "types": [
       "grass",
       "poison"
     ],
     "stats": {
       "hp": 45,
-      "atk": 49,
-      "def": 49,
-      "spe": 45
+      "atk": 50,
+      "def": 55,
+      "spe": 30
     },
-    "moves": [
-      "grass-easy",
-      "poison-normal",
-      "grass-normal",
-      "grass-hard"
-    ]
+    "rarity": 1,
+    "basic": "grass-easy",
+    "special": "poison-normal"
   },
   {
-    "id": 3,
-    "name": "이상해꽃",
+    "id": 50,
+    "name": "디그다",
     "types": [
-      "grass",
-      "poison"
+      "ground"
     ],
     "stats": {
-      "hp": 80,
-      "atk": 82,
-      "def": 83,
+      "hp": 10,
+      "atk": 55,
+      "def": 25,
+      "spe": 95
+    },
+    "rarity": 1,
+    "basic": "ground-easy",
+    "special": "ground-normal"
+  },
+  {
+    "id": 129,
+    "name": "잉어킹",
+    "types": [
+      "water"
+    ],
+    "stats": {
+      "hp": 20,
+      "atk": 10,
+      "def": 55,
       "spe": 80
     },
-    "moves": [
-      "grass-easy",
-      "poison-normal",
-      "grass-normal",
-      "grass-hard"
-    ]
+    "rarity": 1,
+    "basic": "water-easy",
+    "special": "water-normal"
   },
   {
-    "id": 4,
-    "name": "파이리",
-    "types": [
-      "fire"
-    ],
-    "stats": {
-      "hp": 39,
-      "atk": 52,
-      "def": 43,
-      "spe": 65
-    },
-    "moves": [
-      "fire-easy",
-      "normal-easy",
-      "fire-normal",
-      "fire-hard"
-    ]
-  },
-  {
-    "id": 6,
-    "name": "리자몽",
-    "types": [
-      "fire",
-      "flying"
-    ],
-    "stats": {
-      "hp": 78,
-      "atk": 84,
-      "def": 78,
-      "spe": 100
-    },
-    "moves": [
-      "fire-easy",
-      "flying-normal",
-      "fire-normal",
-      "fire-hard"
-    ]
-  },
-  {
-    "id": 7,
-    "name": "꼬부기",
+    "id": 60,
+    "name": "발챙이",
     "types": [
       "water"
-    ],
-    "stats": {
-      "hp": 44,
-      "atk": 48,
-      "def": 65,
-      "spe": 43
-    },
-    "moves": [
-      "water-easy",
-      "normal-easy",
-      "water-normal",
-      "water-hard"
-    ]
-  },
-  {
-    "id": 9,
-    "name": "거북왕",
-    "types": [
-      "water"
-    ],
-    "stats": {
-      "hp": 79,
-      "atk": 83,
-      "def": 100,
-      "spe": 78
-    },
-    "moves": [
-      "water-easy",
-      "normal-easy",
-      "water-normal",
-      "water-hard"
-    ]
-  },
-  {
-    "id": 25,
-    "name": "피카츄",
-    "types": [
-      "electric"
-    ],
-    "stats": {
-      "hp": 35,
-      "atk": 55,
-      "def": 40,
-      "spe": 90
-    },
-    "moves": [
-      "electric-easy",
-      "normal-easy",
-      "electric-normal",
-      "electric-hard"
-    ]
-  },
-  {
-    "id": 39,
-    "name": "푸린",
-    "types": [
-      "normal",
-      "fairy"
-    ],
-    "stats": {
-      "hp": 115,
-      "atk": 45,
-      "def": 20,
-      "spe": 20
-    },
-    "moves": [
-      "normal-easy",
-      "fairy-normal",
-      "normal-normal",
-      "normal-hard"
-    ]
-  },
-  {
-    "id": 52,
-    "name": "나옹",
-    "types": [
-      "normal"
     ],
     "stats": {
       "hp": 40,
-      "atk": 45,
+      "atk": 50,
       "def": 35,
       "spe": 90
     },
-    "moves": [
-      "normal-easy",
-      "dark-normal",
-      "normal-normal",
-      "normal-hard"
-    ]
-  },
-  {
-    "id": 54,
-    "name": "고라파덕",
-    "types": [
-      "water"
-    ],
-    "stats": {
-      "hp": 50,
-      "atk": 52,
-      "def": 48,
-      "spe": 55
-    },
-    "moves": [
-      "water-easy",
-      "normal-easy",
-      "water-normal",
-      "water-hard"
-    ]
-  },
-  {
-    "id": 58,
-    "name": "가디",
-    "types": [
-      "fire"
-    ],
-    "stats": {
-      "hp": 55,
-      "atk": 70,
-      "def": 45,
-      "spe": 60
-    },
-    "moves": [
-      "fire-easy",
-      "normal-easy",
-      "fire-normal",
-      "fire-hard"
-    ]
-  },
-  {
-    "id": 63,
-    "name": "캐이시",
-    "types": [
-      "psychic"
-    ],
-    "stats": {
-      "hp": 25,
-      "atk": 20,
-      "def": 15,
-      "spe": 90
-    },
-    "moves": [
-      "psychic-easy",
-      "normal-easy",
-      "psychic-normal",
-      "psychic-hard"
-    ]
-  },
-  {
-    "id": 65,
-    "name": "후딘",
-    "types": [
-      "psychic"
-    ],
-    "stats": {
-      "hp": 55,
-      "atk": 50,
-      "def": 45,
-      "spe": 120
-    },
-    "moves": [
-      "psychic-easy",
-      "normal-easy",
-      "psychic-normal",
-      "psychic-hard"
-    ]
-  },
-  {
-    "id": 66,
-    "name": "알통몬",
-    "types": [
-      "fighting"
-    ],
-    "stats": {
-      "hp": 70,
-      "atk": 80,
-      "def": 50,
-      "spe": 35
-    },
-    "moves": [
-      "fighting-easy",
-      "normal-easy",
-      "fighting-normal",
-      "fighting-hard"
-    ]
-  },
-  {
-    "id": 68,
-    "name": "괴력몬",
-    "types": [
-      "fighting"
-    ],
-    "stats": {
-      "hp": 90,
-      "atk": 130,
-      "def": 80,
-      "spe": 55
-    },
-    "moves": [
-      "fighting-easy",
-      "normal-easy",
-      "fighting-normal",
-      "fighting-hard"
-    ]
+    "rarity": 1,
+    "basic": "water-easy",
+    "special": "water-normal"
   },
   {
     "id": 74,
@@ -301,12 +144,41 @@
       "def": 100,
       "spe": 20
     },
-    "moves": [
-      "rock-easy",
-      "ground-normal",
-      "rock-normal",
-      "rock-hard"
-    ]
+    "rarity": 1,
+    "basic": "rock-easy",
+    "special": "ground-normal"
+  },
+  {
+    "id": 52,
+    "name": "나옹",
+    "types": [
+      "normal"
+    ],
+    "stats": {
+      "hp": 40,
+      "atk": 45,
+      "def": 35,
+      "spe": 90
+    },
+    "rarity": 1,
+    "basic": "normal-easy",
+    "special": "normal-normal"
+  },
+  {
+    "id": 54,
+    "name": "고라파덕",
+    "types": [
+      "water"
+    ],
+    "stats": {
+      "hp": 50,
+      "atk": 52,
+      "def": 48,
+      "spe": 55
+    },
+    "rarity": 1,
+    "basic": "water-easy",
+    "special": "water-normal"
   },
   {
     "id": 92,
@@ -321,12 +193,337 @@
       "def": 30,
       "spe": 80
     },
-    "moves": [
-      "ghost-easy",
-      "poison-normal",
-      "ghost-normal",
-      "ghost-hard"
-    ]
+    "rarity": 1,
+    "basic": "ghost-easy",
+    "special": "poison-normal"
+  },
+  {
+    "id": 261,
+    "name": "포챠나",
+    "types": [
+      "dark"
+    ],
+    "stats": {
+      "hp": 70,
+      "atk": 55,
+      "def": 35,
+      "spe": 35
+    },
+    "rarity": 1,
+    "basic": "dark-easy",
+    "special": "dark-normal"
+  },
+  {
+    "id": 1,
+    "name": "이상해씨",
+    "types": [
+      "grass",
+      "poison"
+    ],
+    "stats": {
+      "hp": 45,
+      "atk": 49,
+      "def": 49,
+      "spe": 45
+    },
+    "rarity": 2,
+    "basic": "grass-easy",
+    "special": "poison-normal"
+  },
+  {
+    "id": 4,
+    "name": "파이리",
+    "types": [
+      "fire"
+    ],
+    "stats": {
+      "hp": 39,
+      "atk": 52,
+      "def": 43,
+      "spe": 65
+    },
+    "rarity": 2,
+    "basic": "fire-easy",
+    "special": "fire-normal"
+  },
+  {
+    "id": 7,
+    "name": "꼬부기",
+    "types": [
+      "water"
+    ],
+    "stats": {
+      "hp": 44,
+      "atk": 48,
+      "def": 65,
+      "spe": 43
+    },
+    "rarity": 2,
+    "basic": "water-easy",
+    "special": "water-normal"
+  },
+  {
+    "id": 25,
+    "name": "피카츄",
+    "types": [
+      "electric"
+    ],
+    "stats": {
+      "hp": 35,
+      "atk": 55,
+      "def": 40,
+      "spe": 90
+    },
+    "rarity": 2,
+    "basic": "electric-easy",
+    "special": "electric-normal"
+  },
+  {
+    "id": 58,
+    "name": "가디",
+    "types": [
+      "fire"
+    ],
+    "stats": {
+      "hp": 55,
+      "atk": 70,
+      "def": 45,
+      "spe": 60
+    },
+    "rarity": 2,
+    "basic": "fire-easy",
+    "special": "fire-normal"
+  },
+  {
+    "id": 63,
+    "name": "캐이시",
+    "types": [
+      "psychic"
+    ],
+    "stats": {
+      "hp": 25,
+      "atk": 20,
+      "def": 15,
+      "spe": 90
+    },
+    "rarity": 2,
+    "basic": "psychic-easy",
+    "special": "psychic-normal"
+  },
+  {
+    "id": 104,
+    "name": "탕구리",
+    "types": [
+      "ground"
+    ],
+    "stats": {
+      "hp": 50,
+      "atk": 50,
+      "def": 95,
+      "spe": 35
+    },
+    "rarity": 2,
+    "basic": "ground-easy",
+    "special": "ground-normal"
+  },
+  {
+    "id": 81,
+    "name": "코일",
+    "types": [
+      "electric",
+      "steel"
+    ],
+    "stats": {
+      "hp": 25,
+      "atk": 35,
+      "def": 70,
+      "spe": 45
+    },
+    "rarity": 2,
+    "basic": "electric-easy",
+    "special": "steel-normal"
+  },
+  {
+    "id": 37,
+    "name": "식스테일",
+    "types": [
+      "fire"
+    ],
+    "stats": {
+      "hp": 38,
+      "atk": 41,
+      "def": 40,
+      "spe": 65
+    },
+    "rarity": 2,
+    "basic": "fire-easy",
+    "special": "fire-normal"
+  },
+  {
+    "id": 35,
+    "name": "삐삐",
+    "types": [
+      "fairy"
+    ],
+    "stats": {
+      "hp": 70,
+      "atk": 45,
+      "def": 48,
+      "spe": 35
+    },
+    "rarity": 2,
+    "basic": "fairy-easy",
+    "special": "fairy-normal"
+  },
+  {
+    "id": 133,
+    "name": "이브이",
+    "types": [
+      "normal"
+    ],
+    "stats": {
+      "hp": 55,
+      "atk": 55,
+      "def": 50,
+      "spe": 55
+    },
+    "rarity": 2,
+    "basic": "normal-easy",
+    "special": "normal-normal"
+  },
+  {
+    "id": 66,
+    "name": "알통몬",
+    "types": [
+      "fighting"
+    ],
+    "stats": {
+      "hp": 70,
+      "atk": 80,
+      "def": 50,
+      "spe": 35
+    },
+    "rarity": 2,
+    "basic": "fighting-easy",
+    "special": "fighting-normal"
+  },
+  {
+    "id": 79,
+    "name": "야돈",
+    "types": [
+      "water",
+      "psychic"
+    ],
+    "stats": {
+      "hp": 90,
+      "atk": 65,
+      "def": 65,
+      "spe": 15
+    },
+    "rarity": 2,
+    "basic": "water-easy",
+    "special": "psychic-normal"
+  },
+  {
+    "id": 39,
+    "name": "푸린",
+    "types": [
+      "normal",
+      "fairy"
+    ],
+    "stats": {
+      "hp": 115,
+      "atk": 45,
+      "def": 20,
+      "spe": 20
+    },
+    "rarity": 2,
+    "basic": "normal-easy",
+    "special": "fairy-normal"
+  },
+  {
+    "id": 198,
+    "name": "니로우",
+    "types": [
+      "dark",
+      "flying"
+    ],
+    "stats": {
+      "hp": 60,
+      "atk": 85,
+      "def": 42,
+      "spe": 91
+    },
+    "rarity": 2,
+    "basic": "dark-easy",
+    "special": "flying-normal"
+  },
+  {
+    "id": 215,
+    "name": "포푸니",
+    "types": [
+      "dark",
+      "ice"
+    ],
+    "stats": {
+      "hp": 55,
+      "atk": 95,
+      "def": 55,
+      "spe": 115
+    },
+    "rarity": 2,
+    "basic": "dark-easy",
+    "special": "ice-normal"
+  },
+  {
+    "id": 6,
+    "name": "리자몽",
+    "types": [
+      "fire",
+      "flying"
+    ],
+    "stats": {
+      "hp": 78,
+      "atk": 84,
+      "def": 78,
+      "spe": 100
+    },
+    "rarity": 3,
+    "basic": "fire-easy",
+    "special": "fire-hard"
+  },
+  {
+    "id": 9,
+    "name": "거북왕",
+    "types": [
+      "water"
+    ],
+    "stats": {
+      "hp": 79,
+      "atk": 83,
+      "def": 100,
+      "spe": 78
+    },
+    "rarity": 3,
+    "basic": "water-easy",
+    "special": "water-hard"
+  },
+  {
+    "id": 3,
+    "name": "이상해꽃",
+    "types": [
+      "grass",
+      "poison"
+    ],
+    "stats": {
+      "hp": 80,
+      "atk": 82,
+      "def": 83,
+      "spe": 80
+    },
+    "rarity": 3,
+    "basic": "grass-easy",
+    "special": "grass-hard"
   },
   {
     "id": 94,
@@ -341,12 +538,41 @@
       "def": 60,
       "spe": 110
     },
-    "moves": [
-      "ghost-easy",
-      "poison-normal",
-      "ghost-normal",
-      "ghost-hard"
-    ]
+    "rarity": 3,
+    "basic": "ghost-easy",
+    "special": "ghost-hard"
+  },
+  {
+    "id": 65,
+    "name": "후딘",
+    "types": [
+      "psychic"
+    ],
+    "stats": {
+      "hp": 55,
+      "atk": 50,
+      "def": 45,
+      "spe": 120
+    },
+    "rarity": 3,
+    "basic": "psychic-easy",
+    "special": "psychic-hard"
+  },
+  {
+    "id": 68,
+    "name": "괴력몬",
+    "types": [
+      "fighting"
+    ],
+    "stats": {
+      "hp": 90,
+      "atk": 130,
+      "def": 80,
+      "spe": 55
+    },
+    "rarity": 3,
+    "basic": "fighting-easy",
+    "special": "fighting-hard"
   },
   {
     "id": 95,
@@ -361,31 +587,9 @@
       "def": 160,
       "spe": 70
     },
-    "moves": [
-      "rock-easy",
-      "ground-normal",
-      "rock-normal",
-      "rock-hard"
-    ]
-  },
-  {
-    "id": 104,
-    "name": "탕구리",
-    "types": [
-      "ground"
-    ],
-    "stats": {
-      "hp": 50,
-      "atk": 50,
-      "def": 95,
-      "spe": 35
-    },
-    "moves": [
-      "ground-easy",
-      "normal-easy",
-      "ground-normal",
-      "ground-hard"
-    ]
+    "rarity": 3,
+    "basic": "rock-easy",
+    "special": "rock-hard"
   },
   {
     "id": 113,
@@ -399,51 +603,26 @@
       "def": 5,
       "spe": 50
     },
-    "moves": [
-      "normal-easy",
-      "fairy-normal",
-      "normal-normal",
-      "normal-hard"
-    ]
+    "rarity": 3,
+    "basic": "normal-easy",
+    "special": "normal-hard"
   },
   {
-    "id": 129,
-    "name": "잉어킹",
+    "id": 123,
+    "name": "스라크",
     "types": [
-      "water"
-    ],
-    "stats": {
-      "hp": 20,
-      "atk": 10,
-      "def": 55,
-      "spe": 80
-    },
-    "moves": [
-      "water-easy",
-      "normal-normal",
-      "water-normal",
-      "water-hard"
-    ]
-  },
-  {
-    "id": 130,
-    "name": "갸라도스",
-    "types": [
-      "water",
+      "bug",
       "flying"
     ],
     "stats": {
-      "hp": 95,
-      "atk": 125,
-      "def": 79,
-      "spe": 81
+      "hp": 70,
+      "atk": 110,
+      "def": 80,
+      "spe": 105
     },
-    "moves": [
-      "water-easy",
-      "flying-normal",
-      "water-normal",
-      "water-hard"
-    ]
+    "rarity": 3,
+    "basic": "bug-easy",
+    "special": "bug-hard"
   },
   {
     "id": 131,
@@ -458,69 +637,9 @@
       "def": 80,
       "spe": 60
     },
-    "moves": [
-      "water-easy",
-      "ice-normal",
-      "water-normal",
-      "water-hard"
-    ]
-  },
-  {
-    "id": 133,
-    "name": "이브이",
-    "types": [
-      "normal"
-    ],
-    "stats": {
-      "hp": 55,
-      "atk": 55,
-      "def": 50,
-      "spe": 55
-    },
-    "moves": [
-      "normal-easy",
-      "dark-normal",
-      "normal-normal",
-      "normal-hard"
-    ]
-  },
-  {
-    "id": 135,
-    "name": "쥬피썬더",
-    "types": [
-      "electric"
-    ],
-    "stats": {
-      "hp": 65,
-      "atk": 65,
-      "def": 60,
-      "spe": 130
-    },
-    "moves": [
-      "electric-easy",
-      "normal-easy",
-      "electric-normal",
-      "electric-hard"
-    ]
-  },
-  {
-    "id": 143,
-    "name": "잠만보",
-    "types": [
-      "normal"
-    ],
-    "stats": {
-      "hp": 160,
-      "atk": 110,
-      "def": 65,
-      "spe": 30
-    },
-    "moves": [
-      "normal-easy",
-      "fighting-normal",
-      "normal-normal",
-      "normal-hard"
-    ]
+    "rarity": 3,
+    "basic": "water-easy",
+    "special": "water-hard"
   },
   {
     "id": 147,
@@ -534,12 +653,58 @@
       "def": 45,
       "spe": 50
     },
-    "moves": [
-      "dragon-easy",
-      "normal-easy",
-      "dragon-normal",
-      "dragon-hard"
-    ]
+    "rarity": 3,
+    "basic": "dragon-easy",
+    "special": "dragon-hard"
+  },
+  {
+    "id": 135,
+    "name": "쥬피썬더",
+    "types": [
+      "electric"
+    ],
+    "stats": {
+      "hp": 65,
+      "atk": 65,
+      "def": 60,
+      "spe": 130
+    },
+    "rarity": 3,
+    "basic": "electric-easy",
+    "special": "electric-hard"
+  },
+  {
+    "id": 130,
+    "name": "갸라도스",
+    "types": [
+      "water",
+      "flying"
+    ],
+    "stats": {
+      "hp": 95,
+      "atk": 125,
+      "def": 79,
+      "spe": 81
+    },
+    "rarity": 3,
+    "basic": "water-easy",
+    "special": "water-hard"
+  },
+  {
+    "id": 143,
+    "name": "잠만보",
+    "types": [
+      "normal"
+    ],
+    "stats": {
+      "hp": 160,
+      "atk": 110,
+      "def": 65,
+      "spe": 30
+    },
+    "rarity": 3,
+    "basic": "normal-easy",
+    "special": "normal-hard"
   },
   {
     "id": 149,
@@ -554,12 +719,9 @@
       "def": 95,
       "spe": 80
     },
-    "moves": [
-      "dragon-easy",
-      "flying-normal",
-      "dragon-normal",
-      "dragon-hard"
-    ]
+    "rarity": 4,
+    "basic": "dragon-easy",
+    "special": "dragon-hard"
   },
   {
     "id": 150,
@@ -573,11 +735,8 @@
       "def": 90,
       "spe": 130
     },
-    "moves": [
-      "psychic-easy",
-      "normal-easy",
-      "psychic-normal",
-      "psychic-hard"
-    ]
+    "rarity": 4,
+    "basic": "psychic-easy",
+    "special": "psychic-hard"
   }
 ]
