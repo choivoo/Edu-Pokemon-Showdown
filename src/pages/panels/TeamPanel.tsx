@@ -107,16 +107,17 @@ export default function TeamPanel() {
                   const x = i % GRID_W, y = Math.floor(i / GRID_W)
                   const k = `${x},${y}`
                   const isOpen = open.has(k)
+                   const socket = mon.sockets?.[i] ?? 'any'
                   const oi = occ.get(k)
                   const st = oi !== undefined ? save.stones.find(s => s.id === mon.stones[oi].stone) : undefined
                   const g = ghost.get(k)
                   return (
                     <button
-                      key={k} onClick={() => clickCell(x, y)} onMouseEnter={() => setHover([x, y])} onTouchStart={() => setHover([x, y])}
+                      key={k} title={socket === 'hp' ? '체력석 전용' : socket === 'atk' ? '공격석 전용' : '체력/공격 공용'} onClick={() => clickCell(x, y)} onMouseEnter={() => setHover([x, y])} onTouchStart={() => setHover([x, y])}
                       className="flex items-center justify-center border-2 border-black/40 text-lg font-bold text-white"
-                      style={{ width: CELL, height: CELL, background: st ? STONE_INFO[st.kind].color : g !== undefined ? (g ? '#58cf7c' : '#e0505a') : isOpen ? '#566' : '#2a2d38', opacity: isOpen ? 1 : 0.7, boxShadow: bingoCells.has(k) ? 'inset 0 0 0 4px #ffe14d' : undefined }}
+                      style={{ width: CELL, height: CELL, background: st ? STONE_INFO[st.kind].color : g !== undefined ? (g ? '#58cf7c' : '#e0505a') : isOpen ? (socket === 'hp' ? '#8a4457' : socket === 'atk' ? '#916036' : '#566') : '#2a2d38', opacity: isOpen ? 1 : 0.7, boxShadow: bingoCells.has(k) ? 'inset 0 0 0 4px #ffe14d' : undefined }}
                     >
-                      {st ? <Stars n={st.star} s={14} /> : isOpen ? null : <Icon n="lock" s={26} />}
+                      {st ? <Stars n={st.star} s={14} /> : isOpen ? <span className="text-[11px]">{socket === 'hp' ? 'HP' : socket === 'atk' ? 'ATK' : '·'}</span> : <Icon n="lock" s={26} />}
                     </button>
                   )
                 })}
