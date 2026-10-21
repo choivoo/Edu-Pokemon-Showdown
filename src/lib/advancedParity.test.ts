@@ -31,10 +31,10 @@ describe('151 real Bingo candidates and evolution',()=>{
   const bulb=questBingoEffects(1,[0,0,1],3)
   expect(bulb.hpFlat).toBe(550)
   const pikachu=questBingoEffects(25,[0,1,2],3)
-  expect(pikachu.typeMoveWait.electric).toBeCloseTo(.05)
+  expect(pikachu.typeWait.electric).toBeCloseTo(.05)
   expect(pikachu.atkFlat).toBe(550)
   const fire=questBingoEffects(25,[1,1,1],3)
-  expect(fire.typeMoveAtk.electric).toBeCloseTo(.05+.15+.5)
+  expect(fire.typeAtk.electric).toBeCloseTo(.05+.15+.5)
  })
  it('preserves selected three candidate indexes during legacy compatible save packing',()=>{
   const s=defaultSave()
