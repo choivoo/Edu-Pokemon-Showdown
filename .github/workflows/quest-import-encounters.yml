@@ -1,0 +1,45 @@
+name: Import source-verified Quest encounter tables
+on:
+  push:
+    branches: [quest-original-stage-data-import-v2-5]
+    paths: [.github/workflows/quest-import-encounters.yml]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: quest-original-stage-data-import-v2-5
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Extract stage-specific Pokemon Quest lottery tables
+        run: node scripts/import-quest-encounters.mjs
+      - name: Validate extracted data shape and coverage
+        run: |
+          node - <<'NODE'
+          const fs=require('fs')
+          const j=JSON.parse(fs.readFileSync('src/data/originalEncounterTable.json','utf8'))
+          if(Object.keys(j).length < 45)throw Error('Incomplete original stage table')
+          for (const [key,stage] of Object.entries(j)) {
+            if(!stage.bossSets.length)throw Error('Empty boss set '+key)
+            for(const group of [...stage.segments.flat(),...stage.bossSets]){
+              if(!group.every(x=>x.id>=1 && x.id<=151 && x.weight>0))throw Error('Invalid stage '+key)
+            }
+          }
+          console.log('VALID',Object.keys(j).length,'original stage tables')
+          NODE
+      - name: Commit only verified numeric data to development branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/data/originalEncounterTable.json
+          if ! git diff --cached --quiet; then
+            git commit -m "Data: import Serebii original Quest encounter and boss weight tables"
+            git push origin HEAD:quest-original-stage-data-import-v2-5
+          fi
