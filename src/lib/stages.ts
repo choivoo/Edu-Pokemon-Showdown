@@ -265,7 +265,7 @@ export function buildWaves(stage: Stage, rng: Rng = Math.random): WaveEnemy[][] 
 
 /** One starter should be able to clear First Steppe without high-tier stones. */
 export const introDifficulty = (area: number, index: number): number =>
-  area === ORIGINAL_FIRST ? ([0.44, 0.55, 0.67, 0.80][index] ?? 1) : area === ORIGINAL_FIRST + 1 ? 0.90 : 1
+  area === ORIGINAL_FIRST ? ([0.30, 0.36, 0.45, 0.55][index] ?? (index<7?0.75:0.88)) : area === ORIGINAL_FIRST + 1 ? 0.78 : area === ORIGINAL_FIRST + 2 ? 0.88 : 1
 export const softenIntroWaves = (stage: Stage, waves: WaveEnemy[][]): WaveEnemy[][] => {
   const factor = introDifficulty(stage.area, stage.index)
   return factor >= 1 ? waves : waves.map(w => w.map(e => ({ ...e, difficulty: factor })))
