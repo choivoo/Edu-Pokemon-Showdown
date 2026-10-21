@@ -4,7 +4,7 @@ import {
   ALL_RECIPES, COLOR_LABEL, COOKING_TIERS, DISH_SIZE, getIngredient, GRADE_LABEL, gradeOf, INGREDIENTS, type CookingTier, type IngredientId, KIND_LABEL, recipeFor, TEXTURE_LABEL,
 } from '../../lib/cooking'
 import { getSpecies } from '../../lib/roster'
-import { frontSprite } from '../../data/sprites'
+import { frontSprite, fallbackSpriteOnError } from '../../data/sprites'
 import { Btn, Panel } from '../../ui/kit'
 import Icon, { RarityMark } from '../../ui/Icon'
 import TypeBadge from '../../components/TypeBadge'
@@ -155,7 +155,7 @@ function Reveal({ mon, isNew, onClose }: { mon: OwnedMon; isNew: boolean; onClos
     <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/65" onClick={onClose}>
       <div className="pq-panel pop-in flex w-[460px] flex-col items-center gap-2 p-6 text-center">
         <p className="flex items-center gap-1 text-xl text-[#c06a00]"><Icon n="sparkle" s={24} />{isNew ? '처음 만나는 친구가 찾아왔어요!' : '친구가 찾아왔어요!'}</p>
-        <img src={frontSprite(sp.id)} alt="" className="sprite idle h-44 w-44" />
+        <img src={frontSprite(sp.id)} alt="" onError={e => fallbackSpriteOnError(e.currentTarget, sp.id)} className="sprite idle h-44 w-44 object-contain" />
         <p className="flex items-center gap-2 text-3xl">{sp.name} <RarityMark rarity={sp.rarity} s={20} /></p>
         <div className="flex gap-2">{sp.types.map(t => <TypeBadge key={t} type={t} />)}</div>
         <p className="text-base">Lv{mon.level}로 합류! 팀 편성에서 파티에 넣어 보세요.</p>
