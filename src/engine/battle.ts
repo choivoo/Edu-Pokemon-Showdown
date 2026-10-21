@@ -5,7 +5,7 @@ import { getMove, getSpecies } from '../lib/roster'
 import { computeStats, type Stats } from '../lib/stats'
 import type { WaveEnemy } from '../lib/stages'
 import { type MoveFx, NO_FX, SPIRIT_ATK, SPIRIT_SECONDS } from '../lib/moveStones'
-import { moveHits, moveProfile } from '../lib/moveProfiles'
+import { moveHits, moveProfile, type MoveProfile } from '../lib/moveProfiles'
 import { encounterBalance, type EncounterBalance } from '../lib/battleBalance'
 import { WORLD_BOUNDS } from '../art/openField'
 import type { Stage } from '../lib/stages'
@@ -95,7 +95,7 @@ export type FxEvent =
   | { k: 'buff'; uid: number; good: boolean }
   | { k: 'flee'; uid: number }
 
-interface Pending { at: number; from: number; to: number; amount: number; eff: number; crit: boolean; type: PokemonType; special: boolean; status?: StatusKind; sourceQuest?: boolean }
+interface Pending { at: number; from: number; to: number; amount: number; eff: number; crit: boolean; type: PokemonType; special: boolean; status?: StatusKind; sourceQuest?: boolean; geometry?: {profile:MoveProfile; origin:{x:number;y:number}; aim:{x:number;y:number}} }
 
 export type Phase = 'fight' | 'advance' | 'won' | 'lost'
 
@@ -288,7 +288,7 @@ const speedOf = (b: Battle, u: Unit) =>
 const stunned = (u: Unit) => u.status?.kind === 'sleep' || u.status?.kind === 'freeze'
 export const isBuffed = (b: Battle, u: Unit) => b.t < u.spirit.until
 
-function strike(b: Battle, from: Unit, to: Unit, move: Move, special: boolean, powerMul = 1, delay = 0.12) {
+function strike(b: Battle, from: Unit, to: Unit, move: Move, special: boolean, powerMul = 1, delay = 0.12, geometry?:Pending['geometry']) {
   const power = move.power * powerMul * (from.types.includes(move.type) ? STAB : 1) * (1 + (from.typeMoveAtk[move.type] ?? 0))
   const crit = b.rng() < from.crit
   const atk = atkOf(b, from)
@@ -299,7 +299,7 @@ function strike(b: Battle, from: Unit, to: Unit, move: Move, special: boolean, p
     r = { damage: Math.max(1, Math.floor(neutral.damage * 0.25)), effectiveness: 0.25, crit }
   }
   const amount = r.crit && from.critDmg > 0 ? Math.floor(r.damage * (1 + from.critDmg)) : r.damage
-  b.pending.push({ at: b.t + delay, from: from.uid, to: to.uid, amount, eff: r.effectiveness, crit: r.crit, type: move.type, special, status: move.id.startsWith('quest-') ? moveProfile(move).status : undefined, sourceQuest: move.id.startsWith('quest-') })
+  b.pending.push({ at: b.t + delay, from: from.uid, to: to.uid, amount, eff: r.effectiveness, crit: r.crit, type: move.type, special, status: move.id.startsWith('quest-') ? moveProfile(move).status : undefined, sourceQuest: move.id.startsWith('quest-'), geometry })
 }
 
 const travel = (a: Unit, c: Unit) => Math.max(0.12, dist(a, c) / 560)
@@ -376,15 +376,16 @@ function castSpecial(b: Battle, u: Unit, extraMul = 1, mv: Move = u.special, slo
   if(isQuest && targets.length===0) targets=[main]
   const base = u.boss ? 0.7 : aoe ? 0.65 : 1
   const mul = base * Math.pow(0.85, multiply) * extraMul
+  const geometry = isQuest ? {profile:{...profile,radius:profile.radius+50*widen,range:profile.range+35*widen},origin:{x:u.x,y:u.y},aim:{x:main.x,y:main.y}} : undefined
   u.lunge = 0.35
   u.face = main.x >= u.x ? 1 : -1
   b.events.push({ k: 'attack', from: u.uid, to: targets.map(t => t.uid), type: mv.type, special: true, ranged: true })
   for (const t of targets) for(let hit=0;hit<(isQuest?profile.hits:1);hit++)
-    strike(b,u,t,mv,true,mul/(isQuest?Math.sqrt(profile.hits):1), Math.max(profile.windup,travel(u,t))+hit*.12)
+    strike(b,u,t,mv,true,mul/(isQuest?Math.sqrt(profile.hits):1), Math.max(profile.windup,travel(u,t))+hit*.12,geometry)
   // 넓히기: 한 명만 맞히던 필살기도 주변까지 번진다
   if (!aoe && !u.boss && widen > 0) {
     const radius = 20 + 50 * widen
-    for (const f of foes) if (!targets.includes(f) && Math.hypot(f.x - main.x, f.y - main.y) <= radius) strike(b, u, f, mv, true, mul * 0.5, travel(u, f))
+    for (const f of foes) if (!targets.includes(f) && Math.hypot(f.x - main.x, f.y - main.y) <= radius) strike(b, u, f, mv, true, mul * 0.5, travel(u, f),geometry)
   }
   return true
 }
@@ -433,6 +434,9 @@ export function scatter(b: Battle): boolean {
 function applyHit(b: Battle, p: Pending) {
   const to = unitById(b, p.to)
   if (!to || !to.alive) return
+  // Projectile, beam, dash and AoE contact is resolved at its scheduled hit
+  // frame, not locked to a target's position at the casting frame.
+  if (p.geometry && !moveHits(p.geometry.profile,p.geometry.origin,p.geometry.aim,to,to.radius)) return
   if (to.scatterT > 0 && b.rng() < (p.special ? 0.55 : 0.3)) return
   const resisted = Math.round(p.amount * Math.max(0.05, 1 - (to.typeDamageResist[p.type] ?? 0)) * (p.crit ? Math.max(0,1-to.critTakenResist) : 1))
   to.hp = Math.max(0, to.hp - resisted)
