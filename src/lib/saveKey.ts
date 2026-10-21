@@ -108,7 +108,7 @@ export function validateSave(s: SaveData): string | null {
   if (!Array.isArray(s.owned) || s.owned.length === 0) return '포켓몬 정보가 없어요.'
   const ids = new Set(s.owned.map(o => o.id))
   if (ids.size !== s.owned.length) return '포켓몬 정보가 손상되었어요.'
-  if (s.owned.some(o => !(o.level >= 1 && o.level <= 99) || !Number.isFinite(o.species))) return '포켓몬 정보가 손상되었어요.'
+  if (s.owned.some(o => !(o.level >= 1 && o.level <= 100) || !Number.isFinite(o.species))) return '포켓몬 정보가 손상되었어요.'
   if (s.party.some(id => !ids.has(id))) return '파티 정보가 손상되었어요.'
   return null
 }
