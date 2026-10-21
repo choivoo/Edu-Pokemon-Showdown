@@ -130,10 +130,10 @@ export const useGame = create<GameState>((set, get) => {
       const first = pool[Math.floor(Math.random() * pool.length)]
       mon.move = first.id
       const second = pool.filter(m => m.id !== first.id)
-      if (second.length && Math.random() < Math.min(0.95, 0.38 * multipleMoveBonus(save.decorations))) mon.move2 = second[Math.floor(Math.random() * second.length)].id
+      if (second.length) mon.move2 = second[Math.floor(Math.random() * second.length)].id
     } else {
       const options = recallPool(mon)
-      if (options.length && Math.random() < Math.min(0.95, 0.38 * multipleMoveBonus(save.decorations))) mon.move2 = options[Math.floor(Math.random() * options.length)].id
+      if (options.length) mon.move2 = options[Math.floor(Math.random() * options.length)].id
     }
     return {
       mon,
