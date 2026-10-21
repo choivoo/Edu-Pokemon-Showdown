@@ -4,6 +4,8 @@ import type { Stone } from './stones'
 import { type Battery, freshBattery } from './battery'
 import type { MoveStone } from './moveStones'
 import { rollBonuses, seededRng } from './bingo'
+import { questLearnset } from '../data/questSpecies'
+import { getSpecies } from './roster'
 
 export interface CookingPot {
   species: number
@@ -70,7 +72,13 @@ export function migrate(s: SaveData): SaveData {
     pot: s.pot ?? null,
     pmTickets: s.pmTickets ?? 0, ticketClaimedAt: s.ticketClaimedAt ?? 0,
     decorations: Array.isArray(s.decorations) ? s.decorations : [],
-    owned: s.owned.map(o => ({ ...o, bonus: o.bonus?.length ? o.bonus : rollBonuses(seededRng(o.id)), mstones: o.mstones ?? [] })),
+    owned: s.owned.map(o => {
+      const moves=questLearnset(o.species)
+      const primary=o.move??getSpecies(o.species).special
+      const secondary=o.move2??moves.find(m=>m.id!==primary)?.id??moves[0]?.id??getSpecies(o.species).basic
+      return {...o, move2: secondary,
+        bonus: o.bonus?.length ? o.bonus : rollBonuses(seededRng(o.id)), mstones: o.mstones ?? [] }
+    }),
     moveStones: s.moveStones ?? [],
     battery: s.battery ?? freshBattery(Date.now()),
     counters: s.counters ?? {}, claimed: s.claimed ?? [], statue: s.statue ?? 0, themes: s.themes?.length ? s.themes : ['default'], theme: s.theme ?? 'default',
