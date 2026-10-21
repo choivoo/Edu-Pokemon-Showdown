@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { affinity, recall, recallChance, recallFatigue, recallPool, RECALL_RECOVER_MS, trainExp } from './training'
-import { canEvolve, EVOLUTIONS, targetOf } from './evolution'
+import { canEvolve, eeveeBranch, EVOLUTIONS, targetOf } from './evolution'
 import { claimable, isDone, QUESTS, statueCost, statueMul } from './quests'
 import { defaultSave } from './storage'
 import { exportSave, importSave } from './saveKey'
@@ -59,16 +59,17 @@ describe('진화', () => {
   it('레벨이 모자라면 진화할 수 없다', () => {
     expect(canEvolve(mon(4, 15))).toBe(false)
     expect(canEvolve(mon(4, 16))).toBe(true)
+    expect(EVOLUTIONS[5].level).toBe(36)
     expect(canEvolve(mon(150, 50))).toBe(false)
   })
   it('이브이는 고른 타입으로 진화한다', () => {
-    expect(targetOf(133, 'fire')).toBe(136)
-    expect(targetOf(133, 'water')).toBe(134)
-    expect(targetOf(133, 'electric')).toBe(135)
+    expect(targetOf(133, eeveeBranch(10, 2))).toBe(134)
+    expect(targetOf(133, eeveeBranch(2, 10))).toBe(136)
+    expect(targetOf(133, eeveeBranch(5, 5))).toBe(135)
   })
   it('진화로만 만나는 포켓몬은 요리 후보에 없다', () => {
     const all = new Set(ALL_RECIPES.flatMap(r => attractPool(r).map(s => s.id)))
-    for (const id of [2, 5, 8, 26, 151, 142]) expect(all.has(id)).toBe(false)
+    for (const id of [2, 5, 8, 26, 134, 136]) expect(all.has(id)).toBe(false)
   })
   it('모든 포켓몬의 기술이 존재한다', () => {
     for (const s of SPECIES) { getMove(s.basic); getMove(s.special) }

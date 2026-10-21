@@ -215,10 +215,8 @@ export default function TeamPanel() {
           </div>
           {canEvolve(mon) && (
             <div className="flex items-center gap-2 border-4 border-[#e8524a] bg-[#fff0b8] px-2 py-1">
-              <span className="flex-1 text-base font-bold text-[#c03a30]">{getSpecies(mon.species).name}이(가) 진화할 수 있어요! (레벨 {evolutionOf(mon.species)!.level})</span>
-              {(mon.species === 133 ? [['fire', '불꽃'], ['water', '물'], ['electric', '번개']] : [['', '진화']]).map(([c, label]) => (
-                <Btn key={c} color="red" onClick={() => { if (evolve(mon.id, c || undefined)) sfx.levelup() }} className="px-3 py-1 text-base">{label}</Btn>
-              ))}
+              <span className="flex-1 text-base font-bold text-[#c03a30]">{getSpecies(mon.species).name}이(가) 진화할 수 있어요!{mon.species === 133 ? ' (스톤 구성에 따라 모습이 달라져요)' : ''} (레벨 {evolutionOf(mon.species)!.level})</span>
+              <Btn color="red" onClick={() => { if (evolve(mon.id)) sfx.levelup() }} className="px-3 py-1 text-base">진화</Btn>
             </div>
           )}
           {evolutionOf(mon.species) && (

@@ -3,8 +3,8 @@ import type { Species } from '../types'
 import { cook, type IngredientId, getIngredient, DISH_SIZE } from '../lib/cooking'
 import { getSpecies, SPECIES } from '../lib/roster'
 import { addExp, expToNext, MAX_LEVEL, type OwnedMon } from '../lib/stats'
-import { canPlace, findSpot, mergeCost, occupancy, type Stone, type ShapeId, type StoneKind } from '../lib/stones'
-import { usedMoveStoneIds, usedStoneIds } from '../lib/party'
+import { canPlace, findSpot, mergeCost, occupancy, SHAPES, type Stone, type ShapeId, type StoneKind } from '../lib/stones'
+import { placedStones, usedMoveStoneIds, usedStoneIds } from '../lib/party'
 import { type MoveStone, MOVE_SLOTS } from '../lib/moveStones'
 import { rollBonuses } from '../lib/bingo'
 import { BATTERY_MAX, batteryNow, charge, consume } from '../lib/battery'
@@ -12,7 +12,7 @@ import { AREAS, rollRewards, type Rewards, type Stage, stageId } from '../lib/st
 import { defaultSave, loadSave, resetSave, type SaveData, writeSave } from '../lib/storage'
 import { setMuted } from '../lib/sound'
 import { recall, trainExp, TRAIN_MAX, type RecallResult } from '../lib/training'
-import { canEvolve, EVOLUTION_ONLY, targetOf } from '../lib/evolution'
+import { canEvolve, eeveeBranch, EVOLUTION_ONLY, targetOf } from '../lib/evolution'
 import { QUESTS, isClaimed, isDone, STATUE_MAX, statueCap, statueCost, statueMul } from '../lib/quests'
 
 export const ENCOUNTER_COST = 500
@@ -68,7 +68,7 @@ interface GameState {
   finishBattle: (win: boolean, stage: Stage, kills?: number) => void
   /** 특훈: 경험치(exp) 또는 기술 떠올리기(move). 재료로 쓴 포켓몬은 사라진다 */
   train: (targetId: string, foodIds: string[], mode: 'exp' | 'move') => { ok: boolean; exp?: number; recall?: RecallResult } | null
-  evolve: (monId: string, choice?: string) => number | null
+  evolve: (monId: string) => number | null
   upgradeStatue: () => boolean
   claimQuest: (id: string) => boolean
   setTheme: (id: string) => void
@@ -281,11 +281,13 @@ export const useGame = create<GameState>((set, get) => {
       return { ok: r.ok, recall: r }
     },
 
-    evolve: (monId, choice) => {
+    evolve: monId => {
       const s = get().save
       const m = s.owned.find(o => o.id === monId)
       if (!m || !canEvolve(m)) return null
-      const to = targetOf(m.species, choice)
+      // 이브이: 놓은 스톤의 종류에 따라 진화 모습이 정해진다
+      const cells = (kinds: string[]) => placedStones(s, m).filter(t => kinds.includes(t.kind)).reduce((a, t) => a + SHAPES[t.shape].length * t.star, 0)
+      const to = targetOf(m.species, eeveeBranch(cells(['hp', 'def']), cells(['atk'])))
       if (!to) return null
       // 새 종은 기본 필살기로 돌아간다 (떠올린 기술은 유지)
       commit({ owned: s.owned.map(o => (o.id === monId ? { ...o, species: to } : o)), dex: s.dex.includes(to) ? s.dex : [...s.dex, to], counters: bump(s.counters, 'evolved') })

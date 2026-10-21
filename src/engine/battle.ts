@@ -135,7 +135,7 @@ function makeUnit(b: Battle, side: Side, speciesId: number, level: number, stats
   const maxHp = Math.floor(stats.maxHp * m.hp)
   const special = getMove(o.move ?? sp.special)
   const basic = getMove(sp.basic)
-  const ranged = RANGED_TYPES.includes(basic.type) && !boss
+  const ranged = (sp.ranged ?? b.rng() < 0.5) && !boss
   const home = FORMATION[slot] ?? FORMATION[0]
   const x = o.pos?.x ?? (side === 'ally' ? home.x : boss ? 760 : 640 + b.rng() * 220)
   const y = o.pos?.y ?? (side === 'ally' ? home.y : boss ? 325 : FIELD.y0 + 30 + (slot / 2) * (FIELD.y1 - FIELD.y0 - 60) + (b.rng() - 0.5) * 30)

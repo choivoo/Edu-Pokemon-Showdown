@@ -64,7 +64,8 @@ describe('cooking', () => {
   })
   it('모든 타입의 포켓몬을 요리로 만날 수 있다', () => {
     const reachable = new Set(ALL_RECIPES.flatMap(r => attractPool(r).flatMap(s => s.types)))
-    for (const t of TYPES) expect(reachable.has(t)).toBe(true)
+    // 퀘스트 도감(1세대)에는 악 타입 포켓몬이 없다
+    for (const t of TYPES.filter(t => t !== 'dark')) expect(reachable.has(t)).toBe(true)
   })
   it('레시피는 18가지이며 번호가 겹치지 않는다', () => {
     expect(ALL_RECIPES).toHaveLength(18)

@@ -42,4 +42,6 @@ export interface Species {
   rarity: Rarity
   basic: string
   special: string
+  /** 위키 기준 공격 방식: true 원거리 / false 근거리 / 없으면 무작위(메타몽) */
+  ranged?: boolean
 }
