@@ -37,7 +37,7 @@ describe('cooking', () => {
     expect(recipeFor(ids('berryBlue', 'berryBlue', 'berryBlue', 'fossil', 'fossil')).no).toBe(7)
     expect(recipeFor(ids('mushroomRed', 'berryBlue', 'nutYellow', 'fossil', 'rockBlue')).no).toBe(1)
   })
-  it('신비로운 재료를 듬뿍 넣으면 전설의 수프', () => {
+  it('신비의 조개껍질을 넣으면 전설의 수프', () => {
     expect(recipeFor(ids('shell', 'shell', 'rainbow', 'rainbow', 'shell')).no).toBe(18)
   })
   it('요리 등급은 재료 희귀도의 합', () => {
