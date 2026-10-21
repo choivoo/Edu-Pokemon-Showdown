@@ -51,7 +51,7 @@ export default function Battle() {
       let stats = statsOf(save, o)
       // 지역 보너스 타입은 그 지역에서 더 강하다
       if (hasAreaBonus(stage.area, getSpecies(o.species).types)) stats = { ...stats, maxHp: Math.round(stats.maxHp * AREA_BONUS_MUL), atk: Math.round(stats.atk * AREA_BONUS_MUL) }
-      return { ownedId: o.id, speciesId: o.species, level: o.level, stats, fx: moveFxOf(save, o), move: o.move, move2: o.move2 }
+      return { ownedId: o.id, speciesId: o.species, level: o.level, stats, fx: moveFxOf(save, o, 0), fx2: moveFxOf(save,o,1), move: o.move, move2: o.move2 }
     })
     const waves = buildWaves(stage)
     preload([...allies.map(a => a.speciesId), ...waves.flat().map(w => w.species)])
