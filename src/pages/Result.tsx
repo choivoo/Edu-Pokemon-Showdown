@@ -8,12 +8,13 @@ import Dialog from '../components/Dialog'
 import { bgm, sfx } from '../lib/sound'
 import { useBattery } from '../ui/BatteryMeter'
 import { MOVE_STONE_INFO } from '../lib/moveStones'
+import { fieldScene } from '../lib/storyCampaign'
 import { Btn, Panel, Portrait } from '../ui/kit'
 import Icon, { Coins } from '../ui/Icon'
 
 export default function Result() {
   const { result: r, save, go, startStage, markStory } = useGame()
-  const [story, setStory] = useState(r?.outroArea != null)
+  const [storyMode, setStoryMode] = useState<'field' | 'outro' | null>(() => r?.win && r.firstClear && r.stage.area >= 0 ? 'field' : r?.outroArea != null ? 'outro' : null)
   const bat = useBattery()
 
   useEffect(() => {
@@ -24,6 +25,7 @@ export default function Result() {
 
   if (!r) return null
   const { stage } = r
+  const field = stage.area >= 0 ? fieldScene(stage.area, stage.index) : undefined
   const camp = () => go('camp')
 
   let next: (() => void) | null = null
@@ -49,7 +51,7 @@ export default function Result() {
                 <div><p className="text-sm text-[#c06a00]">새 동료가 합류!</p><p className="text-xl">{getSpecies(r.recruited.species).name}</p><p className="text-sm">Lv{r.recruited.level}</p></div>
               </div>
             )}
-            {!r.win && <p className="text-base">팀 레벨을 올리거나 파워스톤을 배치하고 다시 도전해 보세요!</p>}
+            {!r.win && <p className="text-base">팀 레벨을 올리거나 P스톤을 배치하고 다시 도전해 보세요!</p>}
           </div>
           <div className="pq-inner flex-1 space-y-2 p-4 text-xl">
             {r.win && r.rewards ? (<>
@@ -69,7 +71,8 @@ export default function Result() {
           {next && <Btn color="green" onClick={next} disabled={nextStarts && bat.n <= 0} className="flex items-center gap-2">다음<Icon n="next" s={22} /></Btn>}
         </div>
       </Panel>
-      {story && r.outroArea != null && <Dialog lines={AREAS[r.outroArea].outro} name={save.name} onDone={() => { markStory(`outro-${r.outroArea}`); setStory(false) }} />}
+      {storyMode === 'field' && field && <Dialog key={field.id} lines={field.lines} name={save.name} onDone={() => { markStory(field.id); setStoryMode(r.outroArea != null ? 'outro' : null) }} />}
+      {storyMode === 'outro' && r.outroArea != null && <Dialog key={'outro-' + r.outroArea} lines={AREAS[r.outroArea].outro} name={save.name} onDone={() => { markStory('outro-' + r.outroArea); setStoryMode(null) }} />}
     </div>
   )
 }
