@@ -1,5 +1,4 @@
 import { create } from 'zustand'
-import type { Species } from '../types'
 import { cook, cookingExpeditions, recipeFor, type IngredientId, getIngredient, DISH_SIZE } from '../lib/cooking'
 import { getSpecies } from '../lib/roster'
 import { addExp, expToNext, MAX_LEVEL, type OwnedMon } from '../lib/stats'
