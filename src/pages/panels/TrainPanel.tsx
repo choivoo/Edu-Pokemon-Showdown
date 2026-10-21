@@ -16,6 +16,7 @@ export default function TrainPanel() {
   const [targetId, setTargetId] = useState(save.party[0] ?? save.owned[0]?.id)
   const [foods, setFoods] = useState<string[]>([])
   const [mode, setMode] = useState<'exp' | 'move'>('exp')
+  const [moveSlot, setMoveSlot] = useState<0|1>(0)
   const [msg, setMsg] = useState('')
 
   const target = save.owned.find(o => o.id === targetId)
@@ -23,11 +24,11 @@ export default function TrainPanel() {
   const now = Date.now()
   const pool = save.owned.filter(o => o.id !== targetId && !save.party.includes(o.id))
   const toggle = (id: string) => setFoods(f => (f.includes(id) ? f.filter(x => x !== id) : f.length < TRAIN_MAX ? [...f, id] : f))
-  const move = target ? getMove(target.move ?? getSpecies(target.species).special) : null
+  const move = target ? getMove((moveSlot===1?target.move2:target.move) ?? getSpecies(target.species).special) : null
 
   const go = () => {
     if (!target || !picked.length) return
-    const r = train(target.id, foods, mode)
+    const r = train(target.id, foods, mode, moveSlot)
     if (!r) return
     setFoods([])
     if (mode === 'exp') { sfx.levelup(); setMsg(`경험치 ${r.exp}을(를) 얻었어요!`) }
@@ -74,6 +75,7 @@ export default function TrainPanel() {
               <p className="text-base leading-snug">고른 포켓몬을 훈련 상대로 삼아 경험치를 얻어요. 같은 종류·같은 타입·진화한 포켓몬일수록 더 많이 받아요.<br /><b className="text-[#c06a00]">예상 경험치 +{picked.length ? trainExp(target, picked) : 0}</b></p>
             ) : (
               <div className="text-base leading-snug">
+                {target.move2 && <div className="mb-2 flex gap-1"><Btn color={moveSlot===0?'yellow':'gray'} onClick={()=>setMoveSlot(0)} className="flex-1 text-sm">기술 1 변경</Btn><Btn color={moveSlot===1?'yellow':'gray'} onClick={()=>setMoveSlot(1)} className="flex-1 text-sm">기술 2 변경</Btn></div>}
                 <p>고른 포켓몬이 많고 잘 맞을수록 새 필살기를 떠올릴 확률이 올라요. 연달아 시도하면 확률이 떨어지고, 시간이 지나면 회복돼요.</p>
                 <p className="mt-1">성공 확률 <b className="text-[#c06a00]">{Math.round(recallChance(target, picked, now) * 100)}%</b> <span className="text-xs">(피로 {recallFatigue(target, now)})</span></p>
               </div>
