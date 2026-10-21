@@ -5,6 +5,7 @@ import { canPlace, cellsOf, GRID_H, GRID_W, occupancy, SHAPES, type Stone, STONE
 import { getMove, getSpecies } from '../../lib/roster'
 import { bingoOf, equippedMoveStones, powerOf, statsOf, usedMoveStoneIds, usedStoneIds } from '../../lib/party'
 import { BONUS_INFO, completeLines } from '../../lib/bingo'
+import { questBingoOptions } from '../../lib/questBingo'
 import { MOVE_SLOTS, MOVE_STONE_INFO } from '../../lib/moveStones'
 import { Bar, Btn, PARTY_COLORS, Panel, Portrait } from '../../ui/kit'
 import TypeBadge from '../../components/TypeBadge'
@@ -191,17 +192,23 @@ export default function TeamPanel() {
               <div className="space-y-2 text-sm">
                 <p className="leading-snug">P스톤 격자의 <b>가로 또는 세로 한 줄을 스톤으로 모두 채우면</b> 빙고! 가로·세로 빙고 줄을 1·2·3개 완성할 때마다 각각의 보너스가 켜져요.</p>
                 <p className="flex items-center gap-1 text-lg font-bold text-[#c06a00]"><Icon n="bingo" s={26} />완성한 빙고 {bingos}줄{bingos > 3 ? ' (3줄까지 인정)' : ''}</p>
-                {mon.bonus.map((b, bi) => (
-                  <div key={b.kind} className="border-4 border-[#c98a00] bg-white/60 p-2">
-                    <p className="text-base font-bold">{bi + 1}번째 빙고 {bingos > bi ? '활성' : '잠김'} · {BONUS_INFO[b.kind].label}</p>
+                {mon.bingoChoices ? ([0,1,2] as const).map(bi=><div key={bi} className="border-4 border-[#c98a00] bg-white/60 p-2">
+                  <p className="text-base font-bold">{bi+1}번째 빙고 {bingos>bi?'● 활성':'○ 잠김'} · {getSpecies(mon.species).name}</p>
+                  <div className="mt-1 grid grid-cols-3 gap-1 text-center text-xs">
+                    {questBingoOptions(mon.species,bi).map((option,i)=><span key={i}
+                      className={`border-2 p-1 leading-snug ${mon.bingoChoices?.[bi]===i?(bingos>bi?'border-[#e8524a] bg-[#ffe9a0]':'border-[#bd9b52] bg-[#fff6d4]'):'border-[#e5c36a] opacity-60'}`}>
+                      {option}
+                    </span>)}
+                  </div>
+                </div>) : mon.bonus.map((b,bi)=>(
+                  <div key={bi} className="border-4 border-[#c98a00] bg-white/60 p-2">
+                    <p className="text-base font-bold">{bi+1}번째 빙고 {bingos>bi?'활성':'잠김'} · {BONUS_INFO[b.kind].label}</p>
                     <div className="mt-1 grid grid-cols-3 gap-1 text-center text-xs">
-                      {b.v.map((v, i) => (
-                        <span key={i} className={`border-2 py-0.5 ${bingos > bi && bi === i ? 'border-[#e8524a] bg-[#ffe9a0] font-bold' : 'border-[#e5c36a]'}`}>{i + 1}빙고 +{v}{BONUS_INFO[b.kind].unit}</span>
-                      ))}
+                    {b.v.map((v,i)=><span key={i} className="border-2 border-[#e5c36a]">{i+1}빙고 +{v}{BONUS_INFO[b.kind].unit}</span>)}
                     </div>
                   </div>
                 ))}
-              </div>
+
             ) : (
               <div className="space-y-1.5">
                 {freeStones.length === 0 && <p className="p-4 text-center text-base">남은 스톤이 없어요. 탐험에서 얻어 보세요!</p>}
