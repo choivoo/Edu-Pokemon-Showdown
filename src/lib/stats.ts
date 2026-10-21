@@ -2,6 +2,7 @@ import type { Species } from '../types'
 import { calcMaxHp, calcStat } from './damage'
 import { type Placement, SHAPES, type Stone, STONE_INFO } from './stones'
 import { type Bonus, type Mods, NO_MODS } from './bingo'
+import { questStats } from '../data/questSpecies'
 
 export const MAX_LEVEL = 100
 /** 실시간 전투 호흡에 맞춘 체력 보정 */
@@ -26,6 +27,10 @@ export interface OwnedMon {
   recallT?: number
   /** When enabled, stop normal automatic level evolution. */
   everstone?: boolean
+  /** Pot-specific permanent base bonus and individual values (0 to 100). */
+  potBonus?: number
+  ivHp?: number
+  ivAtk?: number
 }
 
 export interface Stats {
@@ -47,7 +52,8 @@ export interface Stats {
 export const BASE_CRIT = 0.06
 
 /** 레벨과 배치한 파워스톤을 반영한 전투 스탯 (칸 수 × 별 개수만큼 효과가 커진다) */
-export function computeStats(sp: Species, level: number, stones: Stone[] = [], mods: Mods = NO_MODS): Stats {
+export function computeStats(sp: Species, level: number, stones: Stone[] = [], mods: Mods = NO_MODS, individual?: Pick<OwnedMon,'potBonus'|'ivHp'|'ivAtk'>): Stats {
+  const quest = questStats(sp.id)
   let hp = 1, atk = 1, def = 1, spd = 1, crit = BASE_CRIT
   let flatHp = 0, flatAtk = 0
   for (const s of stones) {
@@ -66,8 +72,8 @@ export function computeStats(sp: Species, level: number, stones: Stone[] = [], m
   hp += mods.hpUp / 100
   atk += mods.atkUp / 100
   return {
-    maxHp: Math.floor((calcMaxHp(sp.stats.hp, level) * HP_SCALE + flatHp) * hp),
-    atk: Math.floor((calcStat(sp.stats.atk, level) + flatAtk) * atk),
+    maxHp: Math.floor(((quest ? quest.hp + level + (individual?.potBonus ?? 0) + (individual?.ivHp ?? 0) : calcMaxHp(sp.stats.hp, level) * HP_SCALE) + flatHp) * hp),
+    atk: Math.floor(((quest ? quest.atk + level + (individual?.potBonus ?? 0) + (individual?.ivAtk ?? 0) : calcStat(sp.stats.atk, level)) + flatAtk) * atk),
     def: Math.floor(calcStat(sp.stats.def, level) * def),
     spe: Math.floor(calcStat(sp.stats.spe, level) * spd),
     crit: crit + mods.critRate / 100,
