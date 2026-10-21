@@ -1,6 +1,7 @@
 // 저장 키 시스템: 저장 데이터를 압축 → 랜덤 "암호 키"로 AES-GCM 암호화 → 문자열 "저장 키"로 만든다.
 // 저장 키와 암호 키 두 가지를 모두 적어 두면 다른 기기에서도 그대로 불러올 수 있다. (서버 없이 동작)
-import { defaultSave, type SaveData } from './storage'
+import { defaultSave, migrate, type SaveData } from './storage'
+import type { OwnedMon } from './stats'
 
 const PREFIX = 'PQF1'
 const PW_ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ'
@@ -48,15 +49,17 @@ async function pipe(bytes: Uint8Array, stream: CompressionStream | Decompression
 }
 
 // ---------- 저장 데이터 압축 표현 (배열 기반으로 크기를 줄임) ----------
-type Packed = [number, number, string, number, [string, number][], Array<[string, string, number, string]>, Array<[string, number, number, number, Array<[string, number, number, number]>]>, string[], string[], number[], number, number, number, number, number]
+type PackedMon = [string, number, number, number, Array<[string, number, number, number]>, Array<[string, number, number, number]>?, string[]?]
+type Packed = [number, number, string, number, [string, number][], Array<[string, string, number, string]>, PackedMon[], string[], string[], number[], number, number, number, number, number, number?, number?, Array<[string, string]>?]
 
 export function pack(s: SaveData): Packed {
   return [
     s.version, s.started ? 1 : 0, s.name, s.coins,
     Object.entries(s.ingredients),
     s.stones.map(t => [t.id, t.kind, t.star, t.shape]),
-    s.owned.map(o => [o.id, o.species, o.level, o.exp, o.stones.map(p => [p.stone, p.x, p.y, p.rot])]),
+    s.owned.map(o => [o.id, o.species, o.level, o.exp, o.stones.map(p => [p.stone, p.x, p.y, p.rot]), o.bonus.map(b => [b.kind, ...b.v]), o.mstones]),
     s.party, Object.keys(s.cleared), s.dex, s.endlessBest, s.uid, s.muted ? 1 : 0, s.exportedAt, s.clearsSinceExport,
+    s.battery.n, s.battery.at, s.moveStones.map(m => [m.id, m.kind]),
   ] as unknown as Packed
 }
 
@@ -64,7 +67,7 @@ export function unpack(p: Packed): SaveData {
   const base = defaultSave()
   const ing = { ...base.ingredients }
   for (const [k, v] of p[4]) if (k in ing) ing[k as keyof typeof ing] = Number(v) || 0
-  return {
+  const save: SaveData = {
     ...base,
     version: 1,
     started: !!p[1],
@@ -72,7 +75,13 @@ export function unpack(p: Packed): SaveData {
     coins: Number(p[3]) || 0,
     ingredients: ing,
     stones: p[5].map(([id, kind, star, shape]) => ({ id, kind, star, shape })) as SaveData['stones'],
-    owned: p[6].map(([id, species, level, exp, st]) => ({ id, species, level, exp, stones: st.map(([stone, x, y, rot]) => ({ stone, x, y, rot })) })),
+    owned: p[6].map(([id, species, level, exp, st, bonus, mstones]) => ({
+      id, species, level, exp,
+      stones: st.map(([stone, x, y, rot]) => ({ stone, x, y, rot })),
+      // 옛 저장 키에는 빙고 보너스/기술스톤이 없다 → migrate 가 채운다
+      bonus: (bonus ?? []).map(([kind, a, b, c]) => ({ kind, v: [a, b, c] })) as OwnedMon['bonus'],
+      mstones: mstones ?? [],
+    })),
     party: p[7],
     cleared: Object.fromEntries(p[8].map(k => [k, true as const])),
     seenStory: ['intro-0'],
@@ -82,7 +91,10 @@ export function unpack(p: Packed): SaveData {
     muted: !!p[12],
     exportedAt: Number(p[13]) || 0,
     clearsSinceExport: Number(p[14]) || 0,
+    battery: p[15] !== undefined && p[16] !== undefined ? { n: Math.max(0, Math.min(5, Number(p[15]) || 0)), at: Number(p[16]) || Date.now() } : defaultSave().battery,
+    moveStones: (p[17] ?? []).map(([id, kind]) => ({ id, kind })) as SaveData['moveStones'],
   }
+  return migrate(save)
 }
 
 /** 불러온 데이터가 게임이 믿고 써도 되는 모양인지 확인 */

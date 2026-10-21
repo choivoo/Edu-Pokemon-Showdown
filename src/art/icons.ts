@@ -1,10 +1,31 @@
-import { INK, make, type Pix } from './px'
+import { INK, make, type Pix, shade } from './px'
 
 // 16x16 도트 아이콘. 전부 코드로 찍는다. (이모지 사용 금지)
 const Y = '#ffd23f', Yd = '#e09a12', W = '#ffffff', R = '#ee4b4b', Rd = '#b02a35', B = '#4a8fe0', Bd = '#2f5fb0'
 const G = '#58cf7c', Gd = '#2e9f55', P = '#b061d8', K = '#aab0bd', Kd = '#6d7382', N = '#8a5a34', Nd = '#5a3a1a', L = '#fff3c8', C = '#7fe0f0', O = '#ff9a3c'
 
 type Draw = (p: Pix) => void
+
+/** 기술스톤 보석 바탕 */
+function gem(p: Pix, color: string) {
+  p.rows(1, 1, [
+    '...llllll...',
+    '..lXXXXXXd..',
+    '.lXXXXXXXXd.',
+    'lXXXXXXXXXXd',
+    'lXXXXXXXXXXd',
+    'lXXXXXXXXXXd',
+    'lXXXXXXXXXXd',
+    'lXXXXXXXXXXd',
+    'lXXXXXXXXXXd',
+    '.dXXXXXXXXd.',
+    '..dXXXXXXd..',
+    '...dddddd...',
+  ], { X: color, l: lighten(color), d: darken(color) })
+  p.outline(INK)
+}
+const lighten = (c: string) => shade(c, 1.35)
+const darken = (c: string) => shade(c, 0.68)
 const ICONS: Record<string, Draw> = {
   coin: p => { p.disc(8, 8, 6, Yd).disc(7, 7, 5, Y).rect(7, 5, 2, 6, Yd).rect(5, 4, 2, 1, W).dot(4, 5, W).dot(4, 6, W); p.outline(INK) },
   gem: p => p.rows(1, 2, [
@@ -150,6 +171,17 @@ const ICONS: Record<string, Draw> = {
   download: p => { p.rect(7, 1, 2, 7, W).rows(4, 7, ['WWWWWWWW', '.WWWWWW.', '..WWWW..', '...WW...'], { W }); p.rect(2, 12, 12, 2, W); p.outline(INK) },
   upload: p => { p.rect(7, 6, 2, 7, W).rows(4, 2, ['...WW...', '..WWWW..', '.WWWWWW.', 'WWWWWWWW'], { W }); p.rect(2, 13, 12, 2, W); p.outline(INK) },
   sparkle: p => { p.rect(7, 1, 2, 14, Y).rect(1, 7, 14, 2, Y).rect(5, 5, 6, 6, '#fff3a0').rect(6, 6, 4, 4, W).dot(3, 3, Y).dot(12, 3, Y).dot(3, 12, Y).dot(12, 12, Y); p.outline(INK) },
+  // ---- 배터리 ----
+  battery: p => { p.rect(5, 1, 6, 2, K).rect(3, 3, 10, 12, G).rect(3, 3, 3, 12, '#8af0a8').rect(11, 3, 2, 12, Gd); p.rows(5, 5, ['..WW', '.WW.', 'WWWW', '.WW.', 'WW..'], { W }); p.outline(INK) },
+  batteryEmpty: p => { p.rect(5, 1, 6, 2, Kd).rect(3, 3, 10, 12, '#4d5266').rect(3, 3, 3, 12, '#5d647c').rect(11, 3, 2, 12, '#3a3e4e'); p.rows(5, 5, ['..WW', '.WW.', 'WWWW', '.WW.', 'WW..'], { W: '#2f3342' }); p.outline(INK) },
+  // ---- 기술스톤 (보석 바탕 + 하얀 무늬) ----
+  msQuick: p => { gem(p, '#f5c518'); p.rows(4, 3, ['...WW.', '..WW..', '.WWWW.', '..WW..', '.WW...', 'WW....'], { W }) },
+  msRepeat: p => { gem(p, '#e0505a'); p.disc(8, 8, 3, W).erase(8, 8, 1).clear(8, 4, 4, 4); p.rows(10, 3, ['WWW', '.WW', '..W'], { W }) },
+  msWiden: p => { gem(p, '#4a8fe0'); p.rows(3, 5, ['W......W', 'WW....WW', 'WWWWWWWW', 'WW....WW', 'W......W'], { W }) },
+  msMultiply: p => { gem(p, '#43b97a'); p.rect(7, 3, 2, 3, W).rect(4, 8, 3, 2, W).rect(9, 8, 3, 2, W).rect(7, 7, 2, 2, W).dot(5, 6, W).dot(10, 6, W) },
+  msBond: p => { gem(p, '#b061d8'); p.disc(5, 8, 3, W).erase(5, 8, 1).disc(10, 8, 3, W).erase(10, 8, 1) },
+  msLasting: p => { gem(p, '#ff9a3c'); p.rows(4, 3, ['WWWWWW', '.WWWW.', '..WW..', '..WW..', '.WWWW.', 'WWWWWW'], { W }) },
+  bingo: p => { for (let y = 0; y < 3; y++) for (let x = 0; x < 3; x++) p.rect(2 + x * 4, 2 + y * 4, 3, 3, y === 1 ? Y : K); p.outline(INK) },
 }
 
 const cache = new Map<string, HTMLCanvasElement>()

@@ -5,19 +5,30 @@ import { usedStoneIds } from '../../lib/party'
 import { Btn, Panel } from '../../ui/kit'
 import Icon, { Coins, Stars } from '../../ui/Icon'
 import { sfx } from '../../lib/sound'
+import BatteryMeter, { useBattery } from '../../ui/BatteryMeter'
+import { BATTERY_MAX } from '../../lib/battery'
+import { BATTERY_FULL_COST, BATTERY_ONE_COST } from '../../store/gameStore'
 
 const SHAPE_IDS = Object.keys(SHAPES) as ShapeId[]
 
 export default function ShopPanel() {
-  const { save, openPanel, buyIngredient, mergeStones } = useGame()
+  const { save, openPanel, buyIngredient, mergeStones, buyBattery } = useGame()
+  const bat = useBattery()
   const used = usedStoneIds(save)
   const free = save.stones.filter(s => !used.has(s.id))
   const groups = STONE_KINDS.flatMap(kind => SHAPE_IDS.flatMap(shape => ([1, 2] as const).map(star => ({ kind: kind as StoneKind, shape, star, n: free.filter(s => s.kind === kind && s.shape === shape && s.star === star).length })))).filter(g => g.n > 0)
 
   return (
     <Panel title="상점" onClose={() => openPanel(null)} w={900}>
-      <p className="mb-2 text-right text-xl text-[#c06a00]"><Coins n={save.coins} /></p>
-      <div className="flex gap-4" style={{ height: 340 }}>
+      <div className="pq-inner mb-2 flex items-center gap-3 p-2 text-lg">
+        <span className="font-bold">배터리</span>
+        <BatteryMeter dark />
+        <span className="flex-1" />
+        <Btn color="green" disabled={bat.n >= BATTERY_MAX || save.coins < BATTERY_ONE_COST} onClick={() => { if (buyBattery(false)) sfx.coin() }} quiet className="flex items-center gap-1 px-3 py-1 text-sm">1개 충전 <Icon n="coin" s={16} />{BATTERY_ONE_COST}</Btn>
+        <Btn color="blue" disabled={bat.n >= BATTERY_MAX || save.coins < BATTERY_FULL_COST} onClick={() => { if (buyBattery(true)) sfx.coin() }} quiet className="flex items-center gap-1 px-3 py-1 text-sm">가득 충전 <Icon n="coin" s={16} />{BATTERY_FULL_COST}</Btn>
+        <span className="text-xl text-[#c06a00]"><Coins n={save.coins} /></span>
+      </div>
+      <div className="flex gap-4" style={{ height: 280 }}>
         <div className="pq-inner scroll-thin flex-1 space-y-1.5 overflow-y-auto p-3">
           <p className="text-xl font-bold">재료 상점</p>
           {INGREDIENTS.filter(i => i.price > 0).map(i => (

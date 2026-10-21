@@ -74,7 +74,7 @@ describe('cooking', () => {
 })
 
 describe('stats / 성장', () => {
-  const mon: OwnedMon = { id: 'm1', species: 25, level: 5, exp: 0, stones: [] }
+  const mon: OwnedMon = { id: 'm1', species: 25, level: 5, exp: 0, stones: [], bonus: [], mstones: [] }
   it('경험치로 여러 레벨이 오른다', () => {
     const r = addExp(mon, expToNext(5) + expToNext(6) + 1)
     expect(r.gained).toBe(2)

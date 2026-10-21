@@ -1,13 +1,16 @@
 import { describe, expect, it } from 'vitest'
 import { exportSave, formatPassword, generatePassword, importSave, keysToText, normalizePassword, pack, parseKeysText, SaveKeyError, unpack, validateSave } from './saveKey'
 import { defaultSave, type SaveData } from './storage'
+import { rollBonuses, seededRng } from './bingo'
 
 function sample(): SaveData {
   const s = defaultSave()
   s.started = true
   s.name = '하늘'
   s.coins = 1234
-  s.owned = Array.from({ length: 40 }, (_, i) => ({ id: `m${i + 1}`, species: [25, 6, 130, 150][i % 4], level: 10 + (i % 30), exp: i * 3, stones: i % 3 === 0 ? [{ stone: `s${i}`, x: 1, y: 1, rot: 1 }] : [] }))
+  s.owned = Array.from({ length: 40 }, (_, i) => ({ id: `m${i + 1}`, species: [25, 6, 130, 150][i % 4], level: 10 + (i % 30), exp: i * 3, stones: i % 3 === 0 ? [{ stone: `s${i}`, x: 1, y: 1, rot: 1 }] : [], bonus: rollBonuses(seededRng(`m${i}`)), mstones: i % 5 === 0 ? [`t${i}`] : [] }))
+  s.moveStones = Array.from({ length: 8 }, (_, i) => ({ id: `t${i * 5}`, kind: (['quick', 'repeat', 'widen', 'multiply', 'bond', 'lasting'] as const)[i % 6] }))
+  s.battery = { n: 3, at: 1_700_000_000_000 }
   s.stones = Array.from({ length: 30 }, (_, i) => ({ id: `s${i}`, kind: (['hp', 'atk', 'def', 'spd', 'crit'] as const)[i % 5], star: ((i % 3) + 1) as 1 | 2 | 3, shape: (['dot', 'bar2', 'bar3', 'ell'] as const)[i % 4] }))
   s.party = ['m1', 'm2', 'm3']
   s.cleared = { 'a0-s0': true, 'a0-s1': true, 'a1-s0': true }

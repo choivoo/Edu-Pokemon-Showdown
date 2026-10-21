@@ -3,7 +3,9 @@ import { useGame } from '../../store/gameStore'
 import { expToNext, MAX_LEVEL } from '../../lib/stats'
 import { canPlace, cellsOf, GRID_H, GRID_W, occupancy, SHAPES, type Stone, STONE_INFO, stoneName, unlockedSet } from '../../lib/stones'
 import { getMove, getSpecies } from '../../lib/roster'
-import { powerOf, statsOf, usedStoneIds } from '../../lib/party'
+import { bingoOf, equippedMoveStones, powerOf, statsOf, usedMoveStoneIds, usedStoneIds } from '../../lib/party'
+import { BONUS_INFO, completeLines } from '../../lib/bingo'
+import { MOVE_SLOTS, MOVE_STONE_INFO } from '../../lib/moveStones'
 import { Bar, Btn, PARTY_COLORS, Panel, Portrait } from '../../ui/kit'
 import TypeBadge from '../../components/TypeBadge'
 import { sfx } from '../../lib/sound'
@@ -23,9 +25,9 @@ function ShapePreview({ stone, size = 16 }: { stone: Stone; size?: number }) {
 }
 
 export default function TeamPanel() {
-  const { save, openPanel, setParty, placeStone, removeStone, levelUpCost, levelUpWithCoins, release } = useGame()
+  const { save, openPanel, setParty, placeStone, removeStone, levelUpCost, levelUpWithCoins, release, equipMoveStone, unequipMoveStone } = useGame()
   const [selId, setSelId] = useState(save.party[0] ?? save.owned[0]?.id)
-  const [right, setRight] = useState<'mons' | 'stones'>('mons')
+  const [right, setRight] = useState<'mons' | 'stones' | 'moves' | 'bingo'>('mons')
   const [hold, setHold] = useState<{ id: string; rot: number } | null>(null)
   const [hover, setHover] = useState<[number, number] | null>(null)
   const [msg, setMsg] = useState('')
@@ -38,6 +40,11 @@ export default function TeamPanel() {
   const open = unlockedSet(mon.level)
   const used = usedStoneIds(save)
   const freeStones = save.stones.filter(s => !used.has(s.id))
+  const usedMove = usedMoveStoneIds(save)
+  const freeMove = save.moveStones.filter(m => !usedMove.has(m.id))
+  const equipped = equippedMoveStones(save, mon)
+  const bingos = bingoOf(save, mon)
+  const bingoCells = new Set(completeLines(occ).flat())
   const holdStone = hold ? save.stones.find(s => s.id === hold.id) : undefined
   const inParty = save.party.includes(mon.id)
   const lvCost = levelUpCost(mon.id)
@@ -105,7 +112,7 @@ export default function TeamPanel() {
                     <button
                       key={k} onClick={() => clickCell(x, y)} onMouseEnter={() => setHover([x, y])} onTouchStart={() => setHover([x, y])}
                       className="flex items-center justify-center border-2 border-black/40 text-lg font-bold text-white"
-                      style={{ width: CELL, height: CELL, background: st ? STONE_INFO[st.kind].color : g !== undefined ? (g ? '#58cf7c' : '#e0505a') : isOpen ? '#566' : '#2a2d38', opacity: isOpen ? 1 : 0.7 }}
+                      style={{ width: CELL, height: CELL, background: st ? STONE_INFO[st.kind].color : g !== undefined ? (g ? '#58cf7c' : '#e0505a') : isOpen ? '#566' : '#2a2d38', opacity: isOpen ? 1 : 0.7, boxShadow: bingoCells.has(k) ? 'inset 0 0 0 4px #ffe14d' : undefined }}
                     >
                       {st ? <Stars n={st.star} s={14} /> : isOpen ? null : <Icon n="lock" s={26} />}
                     </button>
@@ -140,8 +147,10 @@ export default function TeamPanel() {
             })}
           </div>
           <div className="flex gap-2">
-            <Btn color={right === 'mons' ? 'yellow' : 'gray'} onClick={() => setRight('mons')} className="flex-1 py-1 text-base">포켓몬 {save.owned.length}</Btn>
-            <Btn color={right === 'stones' ? 'yellow' : 'gray'} onClick={() => setRight('stones')} className="flex-1 py-1 text-base">파워스톤 {freeStones.length}</Btn>
+            <Btn color={right === 'mons' ? 'yellow' : 'gray'} onClick={() => setRight('mons')} className="flex-1 whitespace-nowrap px-1 py-1 text-sm">포켓몬 {save.owned.length}</Btn>
+            <Btn color={right === 'stones' ? 'yellow' : 'gray'} onClick={() => setRight('stones')} className="flex-1 whitespace-nowrap px-1 py-1 text-sm">파워스톤 {freeStones.length}</Btn>
+            <Btn color={right === 'moves' ? 'yellow' : 'gray'} onClick={() => setRight('moves')} className="flex-1 whitespace-nowrap px-1 py-1 text-sm">기술스톤 {freeMove.length}</Btn>
+            <Btn color={right === 'bingo' ? 'yellow' : 'gray'} onClick={() => setRight('bingo')} className="flex flex-1 items-center justify-center gap-1 whitespace-nowrap px-1 py-1 text-sm"><Icon n="bingo" s={18} />빙고 {bingos}</Btn>
           </div>
           <div className="pq-inner scroll-thin min-h-0 flex-1 overflow-y-auto p-2">
             {right === 'mons' ? (
@@ -151,6 +160,43 @@ export default function TeamPanel() {
                     <Portrait id={m.species} size={60} />
                     <span className="absolute bottom-0 right-0 rounded bg-black/70 px-1 text-xs text-white">Lv{m.level}</span>
                   </button>
+                ))}
+              </div>
+            ) : right === 'moves' ? (
+              <div className="space-y-1.5">
+                <p className="text-sm font-bold">장착 중 ({equipped.length}/{MOVE_SLOTS}) · 필살기에 적용돼요</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {Array.from({ length: MOVE_SLOTS }, (_, i) => {
+                    const m = equipped[i]
+                    return (
+                      <button key={i} disabled={!m} onClick={() => m && unequipMoveStone(mon.id, m.id)} className="flex h-[78px] flex-col items-center justify-center gap-0.5 border-4 border-dashed border-[#c98a00] bg-white/60 text-xs">
+                        {m ? (<><Icon n={MOVE_STONE_INFO[m.kind].icon} s={36} /><span>{MOVE_STONE_INFO[m.kind].name}</span></>) : <span className="text-[#a06a10]">빈 칸</span>}
+                      </button>
+                    )
+                  })}
+                </div>
+                <p className="pt-1 text-sm font-bold">보유한 기술스톤</p>
+                {freeMove.length === 0 && <p className="p-3 text-center text-sm">남은 기술스톤이 없어요. 탐험에서 가끔 얻을 수 있어요!</p>}
+                {freeMove.map(m => (
+                  <button key={m.id} disabled={equipped.length >= MOVE_SLOTS} onClick={() => { if (equipMoveStone(mon.id, m.id)) sfx.select() }} className="flex w-full items-center gap-2 border-4 border-[#c98a00] bg-white/60 px-2 py-1 text-left disabled:opacity-50">
+                    <Icon n={MOVE_STONE_INFO[m.kind].icon} s={32} />
+                    <span className="flex-1"><b className="text-base">{MOVE_STONE_INFO[m.kind].name}</b><br /><span className="text-xs text-[#8a5a10]">{MOVE_STONE_INFO[m.kind].detail}</span></span>
+                  </button>
+                ))}
+              </div>
+            ) : right === 'bingo' ? (
+              <div className="space-y-2 text-sm">
+                <p className="leading-snug">파워스톤 격자의 <b>가로 또는 세로 한 줄을 스톤으로 모두 채우면</b> 빙고! 이 포켓몬만의 보너스 3개가 켜져요. 줄이 많을수록(최대 3줄) 효과가 커져요.</p>
+                <p className="flex items-center gap-1 text-lg font-bold text-[#c06a00]"><Icon n="bingo" s={26} />완성한 빙고 {bingos}줄{bingos > 3 ? ' (3줄까지 인정)' : ''}</p>
+                {mon.bonus.map(b => (
+                  <div key={b.kind} className="border-4 border-[#c98a00] bg-white/60 p-2">
+                    <p className="text-base font-bold">{BONUS_INFO[b.kind].label}</p>
+                    <div className="mt-1 grid grid-cols-3 gap-1 text-center text-xs">
+                      {b.v.map((v, i) => (
+                        <span key={i} className={`border-2 py-0.5 ${Math.min(3, bingos) === i + 1 ? 'border-[#e8524a] bg-[#ffe9a0] font-bold' : 'border-[#e5c36a]'}`}>{i + 1}빙고 +{v}{BONUS_INFO[b.kind].unit}</span>
+                      ))}
+                    </div>
+                  </div>
                 ))}
               </div>
             ) : (

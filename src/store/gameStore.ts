@@ -4,10 +4,16 @@ import { cook, type IngredientId, getIngredient, DISH_SIZE } from '../lib/cookin
 import { getSpecies } from '../lib/roster'
 import { addExp, expToNext, MAX_LEVEL, type OwnedMon } from '../lib/stats'
 import { canPlace, findSpot, mergeCost, occupancy, type Stone, type ShapeId, type StoneKind } from '../lib/stones'
-import { usedStoneIds } from '../lib/party'
+import { usedMoveStoneIds, usedStoneIds } from '../lib/party'
+import { type MoveStone, MOVE_SLOTS } from '../lib/moveStones'
+import { rollBonuses } from '../lib/bingo'
+import { BATTERY_MAX, batteryNow, charge, consume } from '../lib/battery'
 import { AREAS, rollRewards, type Rewards, type Stage, stageId } from '../lib/stages'
 import { defaultSave, loadSave, resetSave, type SaveData, writeSave } from '../lib/storage'
 import { setMuted } from '../lib/sound'
+
+export const BATTERY_ONE_COST = 150
+export const BATTERY_FULL_COST = 600
 
 export type Screen = 'title' | 'intro' | 'camp' | 'island' | 'battle' | 'result'
 /** 화면 위에 겹쳐 뜨는 창 (원작처럼 한 화면 안에서 열고 닫는다) */
@@ -21,6 +27,7 @@ export interface BattleResult {
   recruited: OwnedMon | null
   levelUps: { name: string; from: number; to: number }[]
   stone: Stone | null
+  moveStone: MoveStone | null
   /** 보스 첫 클리어 시 보여줄 후일담 지역 */
   outroArea: number | null
 }
@@ -49,7 +56,11 @@ interface GameState {
   levelUpCost: (monId: string) => number
   levelUpWithCoins: (monId: string) => boolean
   release: (monId: string) => boolean
-  startStage: (stage: Stage) => void
+  /** 배터리를 1개 쓰고 탐험을 시작한다. 배터리가 없으면 false */
+  startStage: (stage: Stage) => boolean
+  buyBattery: (full: boolean) => boolean
+  equipMoveStone: (monId: string, stoneId: string) => boolean
+  unequipMoveStone: (monId: string, stoneId: string) => void
   finishBattle: (win: boolean, stage: Stage) => void
 }
 
@@ -75,7 +86,7 @@ export const useGame = create<GameState>((set, get) => {
     return save
   }
   const newMon = (save: SaveData, speciesId: number, level: number): { mon: OwnedMon; patch: Partial<SaveData> } => {
-    const mon: OwnedMon = { id: `m${save.uid}`, species: speciesId, level, exp: 0, stones: [] }
+    const mon: OwnedMon = { id: `m${save.uid}`, species: speciesId, level, exp: 0, stones: [], bonus: rollBonuses(), mstones: [] }
     return {
       mon,
       patch: { owned: [...save.owned, mon], uid: save.uid + 1, dex: save.dex.includes(speciesId) ? save.dex : [...save.dex, speciesId] },
@@ -206,12 +217,41 @@ export const useGame = create<GameState>((set, get) => {
       return true
     },
 
-    startStage: stage => set({ stage, result: null, screen: 'battle' }),
+    startStage: stage => {
+      const s = get().save
+      const next = consume(s.battery, Date.now())
+      if (!next) return false
+      commit({ battery: next })
+      set({ stage, result: null, screen: 'battle' })
+      return true
+    },
+
+    buyBattery: full => {
+      const s = get().save
+      const now = Date.now()
+      const have = batteryNow(s.battery, now).n
+      const cost = full ? BATTERY_FULL_COST : BATTERY_ONE_COST
+      if (s.coins < cost || have >= BATTERY_MAX) return false
+      commit({ coins: s.coins - cost, battery: charge(s.battery, now, full ? BATTERY_MAX : 1) })
+      return true
+    },
+
+    equipMoveStone: (monId, stoneId) => {
+      const s = get().save
+      const mon = s.owned.find(o => o.id === monId)
+      if (!mon || mon.mstones.length >= MOVE_SLOTS || usedMoveStoneIds(s).has(stoneId) || !s.moveStones.some(m => m.id === stoneId)) return false
+      commit({ owned: s.owned.map(o => (o.id === monId ? { ...o, mstones: [...o.mstones, stoneId] } : o)) })
+      return true
+    },
+    unequipMoveStone: (monId, stoneId) => {
+      const s = get().save
+      commit({ owned: s.owned.map(o => (o.id === monId ? { ...o, mstones: o.mstones.filter(x => x !== stoneId) } : o)) })
+    },
 
     finishBattle: (win, stage) => {
       const s = get().save
       if (!win) {
-        set({ result: { win: false, stage, rewards: null, firstClear: false, recruited: null, levelUps: [], stone: null, outroArea: null }, screen: 'result' })
+        set({ result: { win: false, stage, rewards: null, firstClear: false, recruited: null, levelUps: [], stone: null, moveStone: null, outroArea: null }, screen: 'result' })
         return
       }
       const rewards = rollRewards(stage)
@@ -230,6 +270,9 @@ export const useGame = create<GameState>((set, get) => {
       let stones = s.stones
       let stone: Stone | null = null
       if (rewards.stone) { stone = { ...rewards.stone, id: `s${uid++}` }; stones = [...stones, stone] }
+      let moveStone: MoveStone | null = null
+      let moveStones = s.moveStones
+      if (rewards.moveStone) { moveStone = { id: `t${uid++}`, kind: rewards.moveStone }; moveStones = [...moveStones, moveStone] }
       let cleared = s.cleared
       let endlessBest = s.endlessBest
       if (stage.area >= 0) cleared = { ...cleared, [stage.id]: true }
@@ -238,13 +281,13 @@ export const useGame = create<GameState>((set, get) => {
       let recruited: OwnedMon | null = null
       let dex = s.dex
       if (firstClear && stage.recruit) {
-        recruited = { id: `m${uid++}`, species: stage.recruit, level: Math.max(newcomerLevel(s), stage.level - 3), exp: 0, stones: [] }
+        recruited = { id: `m${uid++}`, species: stage.recruit, level: Math.max(newcomerLevel(s), stage.level - 3), exp: 0, stones: [], bonus: rollBonuses(), mstones: [] }
         owned = [...owned, recruited]
         if (!dex.includes(stage.recruit)) dex = [...dex, stage.recruit]
       }
-      commit({ coins: s.coins + rewards.coins, ingredients, owned, stones, cleared, endlessBest, uid, dex, clearsSinceExport: s.clearsSinceExport + 1 })
+      commit({ coins: s.coins + rewards.coins, ingredients, owned, stones, moveStones, cleared, endlessBest, uid, dex, clearsSinceExport: s.clearsSinceExport + 1 })
       set({
-        result: { win: true, stage, rewards, firstClear, recruited, levelUps, stone, outroArea: firstClear && stage.boss && stage.area >= 0 ? stage.area : null },
+        result: { win: true, stage, rewards, firstClear, recruited, levelUps, stone, moveStone, outroArea: firstClear && stage.boss && stage.area >= 0 ? stage.area : null },
         screen: 'result',
       })
     },

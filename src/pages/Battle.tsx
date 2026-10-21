@@ -3,7 +3,7 @@ import { useGame } from '../store/gameStore'
 import { type AllyInput, type Battle as BattleState, createBattle, step, useSpecial } from '../engine/battle'
 import { consumeEvents, drawBattle, H, newVisual, preload, SLOT_COLORS, W } from '../engine/render'
 import { AREAS, buildWaves } from '../lib/stages'
-import { partyMons, statsOf } from '../lib/party'
+import { moveFxOf, partyMons, statsOf } from '../lib/party'
 import { bgm, sfx } from '../lib/sound'
 import { TYPE_COLOR } from '../lib/typeChart'
 import { Btn, Portrait } from '../ui/kit'
@@ -43,7 +43,7 @@ export default function Battle() {
 
   useEffect(() => {
     if (!stage) return
-    const allies: AllyInput[] = partyMons(save).map(o => ({ ownedId: o.id, speciesId: o.species, level: o.level, stats: statsOf(save, o) }))
+    const allies: AllyInput[] = partyMons(save).map(o => ({ ownedId: o.id, speciesId: o.species, level: o.level, stats: statsOf(save, o), fx: moveFxOf(save, o) }))
     const waves = buildWaves(stage)
     preload([...allies.map(a => a.speciesId), ...waves.flat().map(w => w.species)])
     const b = createBattle(allies, waves)

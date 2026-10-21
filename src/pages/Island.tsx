@@ -10,6 +10,7 @@ import { H, W } from '../engine/draw'
 import Dialog from '../components/Dialog'
 import { Btn, PARTY_COLORS, Panel, Portrait } from '../ui/kit'
 import Icon, { Coins } from '../ui/Icon'
+import BatteryMeter, { useBattery } from '../ui/BatteryMeter'
 import { bgm, sfx } from '../lib/sound'
 
 export default function Island() {
@@ -37,6 +38,7 @@ export default function Island() {
       <div className="absolute left-3 top-3 flex items-center gap-3">
         <span className="pq-title border-4 border-[#7a4200] px-6 py-2 text-xl">섬 탐험</span>
         <span className="hud-bar flex items-center gap-2 px-4 py-2 text-base"><Icon n="sword" s={22} />내 파티 전투력 <b className="text-yellow-300">{mine}</b></span>
+        <span className="hud-bar px-3 py-1.5"><BatteryMeter compact /></span>
       </div>
 
       {AREAS.map((a, i) => {
@@ -77,7 +79,7 @@ export default function Island() {
         <Btn color="red" onClick={() => go('camp')} className="flex h-[70px] w-[130px] items-center justify-center gap-2 text-xl"><Icon n="back" s={24} />캠프</Btn>
       </div>
 
-      {area !== null && !story && <StagePanel area={area} onClose={() => setArea(null)} onGo={s => startStage(s)} />}
+      {area !== null && !story && <StagePanel area={area} onClose={() => setArea(null)} onGo={s => { startStage(s) }} />}
       {story !== null && <Dialog lines={AREAS[story].intro} name={save.name} onDone={() => { markStory(`intro-${story}`); setStory(null) }} />}
     </div>
   )
@@ -92,6 +94,7 @@ function StagePanel({ area, onClose, onGo }: { area: number; onClose: () => void
   const st = getStage(area, sel)
   const rec = recommendedPower(st)
   const party = partyMons(save).length
+  const bat = useBattery()
 
   return (
     <Panel title={a.name} onClose={onClose} w={820}>
@@ -116,7 +119,8 @@ function StagePanel({ area, onClose, onGo }: { area: number; onClose: () => void
           <p>추천 전투력 <b className={mine >= rec ? 'text-[#2e8f4a]' : 'text-[#d23c36]'}>{rec}</b> <span className="text-base">(내 파티 {mine})</span></p>
           <p className="flex flex-wrap items-center gap-1">재료 {a.drops.map(d => <Icon key={d} n={getIngredient(d).icon} s={24} />)} <Coins n={st.coins} s={20} className="ml-2" /> <span className="ml-2">EXP {st.exp}</span></p>
           <p className="text-base">파워스톤 {st.boss ? '확정' : '가끔'} 드롭{st.recruit ? ` · 첫 클리어 시 ${getSpecies(st.recruit).name} 합류!` : ''}</p>
-          <Btn color="red" disabled={!party} onClick={() => onGo(st)} className="mt-auto py-3 text-2xl">출발!</Btn>
+          <p className="flex items-center gap-1 text-base"><Icon n="battery" s={20} />탐험하면 배터리 1개를 써요 (남은 {bat.n}개)</p>
+          <Btn color="red" disabled={!party || bat.n <= 0} onClick={() => onGo(st)} className="mt-auto py-3 text-2xl">{bat.n <= 0 ? '배터리가 없어요' : '출발!'}</Btn>
         </div>
       </div>
     </Panel>

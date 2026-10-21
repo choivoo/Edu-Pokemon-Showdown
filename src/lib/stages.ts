@@ -3,6 +3,7 @@ import { type IngredientId } from './cooking'
 import { SPECIES } from './roster'
 import { computeStats, expToNext, powerRating } from './stats'
 import { SHAPE_WEIGHTS, type Stone, STONE_KINDS, type StoneKind } from './stones'
+import { MOVE_STONE_KINDS, type MoveStoneKind } from './moveStones'
 import type { Species } from '../types'
 
 export type Theme = 'beach' | 'forest' | 'cave' | 'gorge' | 'volcano' | 'altar'
@@ -203,6 +204,8 @@ export interface Rewards {
   exp: number
   ingredients: Partial<Record<IngredientId, number>>
   stone: Omit<Stone, 'id'> | null
+  /** 기술스톤 (가끔, 보스는 자주) */
+  moveStone: MoveStoneKind | null
 }
 
 function weighted(w: number[], rng: Rng): number {
@@ -229,7 +232,8 @@ export function rollRewards(stage: Stage, rng: Rng = Math.random): Rewards {
   const gotStone = stage.boss || rng() < 0.35
   const shape = SHAPE_WEIGHTS[weighted(SHAPE_WEIGHTS.map(w => w[1]), rng)][0]
   const stone = gotStone ? { kind: pick<StoneKind>(STONE_KINDS, rng), star: (weighted(stars, rng) + 1) as 1 | 2 | 3, shape } : null
-  return { coins: stage.coins, exp: stage.exp, ingredients, stone }
+  const moveStone = rng() < (stage.boss ? 0.7 : 0.2) ? pick<MoveStoneKind>(MOVE_STONE_KINDS, rng) : null
+  return { coins: stage.coins, exp: stage.exp, ingredients, stone, moveStone }
 }
 
 const AVG: Species = { id: 0, name: '', types: ['normal'], stats: { hp: 60, atk: 60, def: 60, spe: 60 }, rarity: 2, basic: '', special: '' }

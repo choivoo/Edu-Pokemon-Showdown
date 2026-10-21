@@ -1,6 +1,9 @@
 import type { IngredientId } from './cooking'
 import type { OwnedMon } from './stats'
 import type { Stone } from './stones'
+import { type Battery, freshBattery } from './battery'
+import type { MoveStone } from './moveStones'
+import { rollBonuses, seededRng } from './bingo'
 
 export interface SaveData {
   version: 1
@@ -20,6 +23,8 @@ export interface SaveData {
   /** 마지막으로 저장 키를 만든 시각(0이면 아직 없음)과 그 뒤의 클리어 횟수 */
   exportedAt: number
   clearsSinceExport: number
+  battery: Battery
+  moveStones: MoveStone[]
 }
 
 const KEY = 'pokemon-quest-fan-edition:v1'
@@ -28,7 +33,18 @@ export const defaultSave = (): SaveData => ({
   version: 1, started: false, name: '', coins: 100,
   ingredients: { mushroomRed: 6, berryBlue: 6, nutYellow: 6, fossil: 6, rootRed: 6, rockBlue: 0, honey: 0, mushroomGray: 0, rainbow: 0, shell: 0 },
   stones: [], owned: [], party: [], cleared: {}, seenStory: [], dex: [], endlessBest: 0, uid: 1, muted: false, exportedAt: 0, clearsSinceExport: 0,
+  battery: freshBattery(Date.now()), moveStones: [],
 })
+
+/** 옛 저장 데이터에 새로 생긴 항목(빙고 보너스, 기술스톤, 배터리)을 채워 넣는다 */
+export function migrate(s: SaveData): SaveData {
+  return {
+    ...s,
+    owned: s.owned.map(o => ({ ...o, bonus: o.bonus?.length ? o.bonus : rollBonuses(seededRng(o.id)), mstones: o.mstones ?? [] })),
+    moveStones: s.moveStones ?? [],
+    battery: s.battery ?? freshBattery(Date.now()),
+  }
+}
 
 export function loadSave(): SaveData {
   try {
@@ -36,7 +52,7 @@ export function loadSave(): SaveData {
     if (!raw) return defaultSave()
     const d = JSON.parse(raw) as Partial<SaveData>
     const base = defaultSave()
-    return { ...base, ...d, ingredients: { ...base.ingredients, ...(d.ingredients ?? {}) }, version: 1 }
+    return migrate({ ...base, ...d, ingredients: { ...base.ingredients, ...(d.ingredients ?? {}) }, version: 1 })
   } catch {
     return defaultSave()
   }

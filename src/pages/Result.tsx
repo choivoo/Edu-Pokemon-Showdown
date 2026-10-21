@@ -6,12 +6,15 @@ import { getSpecies } from '../lib/roster'
 import { stoneName, SHAPES, STONE_INFO } from '../lib/stones'
 import Dialog from '../components/Dialog'
 import { bgm, sfx } from '../lib/sound'
+import { useBattery } from '../ui/BatteryMeter'
+import { MOVE_STONE_INFO } from '../lib/moveStones'
 import { Btn, Panel, Portrait } from '../ui/kit'
 import Icon, { Coins } from '../ui/Icon'
 
 export default function Result() {
   const { result: r, save, go, startStage, markStory } = useGame()
   const [story, setStory] = useState(r?.outroArea != null)
+  const bat = useBattery()
 
   useEffect(() => {
     if (!r) return
@@ -24,11 +27,12 @@ export default function Result() {
   const camp = () => go('camp')
 
   let next: (() => void) | null = null
+  let nextStarts = true
   if (r.win) {
     if (stage.area >= 0) {
       const ni = stage.index + 1
       if (ni < STAGES_PER_AREA) next = () => startStage(getStage(stage.area, ni))
-      else next = () => go('island')
+      else { next = () => go('island'); nextStarts = false }
     } else next = () => startStage(getEndlessStage(stage.endlessFloor! + 1))
   }
 
@@ -53,14 +57,16 @@ export default function Result() {
               <div className="flex justify-between"><span>경험치 (파티 전원)</span><b>+{r.rewards.exp}</b></div>
               <div className="flex justify-between"><span>재료</span><span className="flex flex-wrap justify-end gap-2">{INGREDIENTS.filter(i => r.rewards!.ingredients[i.id]).map(i => <span key={i.id} className="inline-flex items-center"><Icon n={i.icon} s={28} />×{r.rewards!.ingredients[i.id]}</span>)}</span></div>
               {r.stone && <div className="flex justify-between"><span>파워스톤</span><b className="flex items-center gap-1" style={{ color: STONE_INFO[r.stone.kind].color }}><Icon n={STONE_INFO[r.stone.kind].icon} s={26} />{stoneName(r.stone)} ({SHAPES[r.stone.shape].length}칸)</b></div>}
+              {r.moveStone && <div className="flex justify-between"><span>기술스톤</span><b className="flex items-center gap-1" style={{ color: MOVE_STONE_INFO[r.moveStone.kind].color }}><Icon n={MOVE_STONE_INFO[r.moveStone.kind].icon} s={26} />{MOVE_STONE_INFO[r.moveStone.kind].name}</b></div>}
               {r.levelUps.map(l => <p key={l.name} className="flex items-center gap-1 text-lg text-[#2e8f4a]"><Icon n="up" s={22} />{l.name} Lv{l.from} 에서 Lv{l.to}</p>)}
             </>) : <p className="text-center text-lg">아쉽지만 보상은 없어요.</p>}
           </div>
         </div>
         <div className="mt-4 flex justify-end gap-3">
           <Btn color="gray" onClick={camp}>캠프로</Btn>
-          <Btn color="blue" onClick={() => startStage(stage)}>{r.win ? '다시' : '재도전'}</Btn>
-          {next && <Btn color="green" onClick={next} className="flex items-center gap-2">다음<Icon n="next" s={22} /></Btn>}
+          {bat.n <= 0 && <span className="mr-auto flex items-center gap-1 self-center text-base text-[#d23c36]"><Icon n="batteryEmpty" s={22} />배터리가 없어요. 충전되길 기다리거나 상점에서 충전하세요.</span>}
+          <Btn color="blue" disabled={bat.n <= 0} onClick={() => startStage(stage)}>{r.win ? '다시' : '재도전'}</Btn>
+          {next && <Btn color="green" onClick={next} disabled={nextStarts && bat.n <= 0} className="flex items-center gap-2">다음<Icon n="next" s={22} /></Btn>}
         </div>
       </Panel>
       {story && r.outroArea != null && <Dialog lines={AREAS[r.outroArea].outro} name={save.name} onDone={() => { markStory(`outro-${r.outroArea}`); setStory(false) }} />}

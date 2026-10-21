@@ -9,6 +9,7 @@ import { H, W } from '../engine/draw'
 import { preload } from '../engine/render'
 import { Btn, PARTY_COLORS, Portrait } from '../ui/kit'
 import Icon, { Coins } from '../ui/Icon'
+import BatteryMeter from '../ui/BatteryMeter'
 import { bgm, sfx } from '../lib/sound'
 
 export default function Camp() {
@@ -39,6 +40,7 @@ export default function Camp() {
         <span className="font-bold">{save.name}</span>
         <Coins n={save.coins} className="text-yellow-300" />
         <span className="inline-flex items-center gap-1 text-purple-200"><Icon n="gem" s={22} />{shardCount(save)}/{AREAS.length}</span>
+        <BatteryMeter compact />
       </div>
       <div className="absolute right-3 top-3 flex gap-2">
         <Btn color={needBackup ? 'red' : 'blue'} onClick={() => openPanel('save')} className="relative flex items-center gap-1 px-3 py-1 text-base">

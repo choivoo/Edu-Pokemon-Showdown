@@ -1,4 +1,4 @@
-import type { Battle, FxEvent, Unit } from './battle'
+import { type Battle, type FxEvent, isBuffed, type Unit } from './battle'
 import { backSprite, frontSprite } from '../data/sprites'
 import { TYPE_COLOR } from '../lib/typeChart'
 import type { Theme } from '../lib/stages'
@@ -136,6 +136,7 @@ function drawUnit(ctx: CanvasRenderingContext2D, b: Battle, u: Unit, t: number) 
   ctx.fillStyle = '#fff'
   const label = u.name
   ctx.strokeText(label, u.x, by - 6); ctx.fillText(label, u.x, by - 6)
+  if (isBuffed(b, u)) ctx.drawImage(iconCanvas('up'), Math.floor(u.x + bw / 2 + 4), Math.floor(by - 8), 24, 24)
   if (ally && u.spCd <= 0 && b.phase === 'fight' && Math.floor(t * 4) % 2 === 0) {
     ctx.drawImage(iconCanvas('star'), Math.floor(u.x - 12), Math.floor(by - 44), 24, 24)
   }
