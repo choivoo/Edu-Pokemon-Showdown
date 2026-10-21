@@ -77,13 +77,13 @@ describe('Original evolution and Bingo rules', () => {
     save.pmTickets = 300
     save.ticketClaimedAt = 150000
     save.decorations = ['jolteonCushion']
-    save.owned = [{ id: 'm1', species: 25, level: 44, exp: 0, stones: [], bonus: [], mstones: [], move2: 'thunderbolt', everstone: true }]
+    save.owned = [{ id: 'm1', species: 25, level: 44, exp: 0, stones: [], bonus: [], mstones: [], move2: 'rally', everstone: true }]
     const restored = unpack(pack(save))
     expect(restored.pmTickets).toBe(300)
     expect(restored.ticketClaimedAt).toBe(150000)
     expect(restored.decorations).toEqual(['jolteonCushion'])
     expect(restored.owned[0].everstone).toBe(true)
-    expect(restored.owned[0].move2).toBe('thunderbolt')
+    expect(restored.owned[0].move2).toBe('rally')
   })
 })
 describe('2D battle original revival and dual-move input', () => {
@@ -100,7 +100,7 @@ describe('2D battle original revival and dual-move input', () => {
     expect(first.hp).toBeLessThanOrEqual(first.maxHp * 0.5)
   })
   it('recognizes the optional second move and two independent cooldowns', () => {
-    const battle = createBattle([ally(25, 0, 'thunderbolt'), ally(7, 1)], [[{ species: 19, level: 1 }]])
+    const battle = createBattle([ally(25, 0, 'rally'), ally(7, 1)], [[{ species: 19, level: 1 }]])
     const first = battle.units.find(u => u.side === 'ally' && u.slot === 0)!
     expect(first.secondary).not.toBeNull()
     first.spCd = 0; first.spCd2 = 0
