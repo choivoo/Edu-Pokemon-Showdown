@@ -9,15 +9,16 @@ import BatteryMeter, { useBattery } from '../../ui/BatteryMeter'
 import { BATTERY_MAX } from '../../lib/battery'
 import { STATUE_MAX, statueCap, statueCost, statueMul } from '../../lib/quests'
 import { BATTERY_FULL_COST, BATTERY_ONE_COST } from '../../store/gameStore'
+import { DECORATIONS, DECOR_MAX } from '../../lib/decorations'
 
 const SHAPE_IDS = Object.keys(SHAPES) as ShapeId[]
 
 export default function ShopPanel() {
-  const { save, openPanel, buyIngredient, mergeStones, buyBattery, upgradeStatue } = useGame()
+  const { save, openPanel, buyIngredient, mergeStones, buyBattery, upgradeStatue, buyDecoration, toggleDecoration } = useGame()
   const bat = useBattery()
   const used = usedStoneIds(save)
   const free = save.stones.filter(s => !used.has(s.id))
-  const groups = STONE_KINDS.flatMap(kind => SHAPE_IDS.flatMap(shape => ([1, 2] as const).map(star => ({ kind: kind as StoneKind, shape, star, n: free.filter(s => s.kind === kind && s.shape === shape && s.star === star).length })))).filter(g => g.n > 0)
+  const groups = STONE_KINDS.flatMap(kind => SHAPE_IDS.flatMap(shape => ([1, 2] as const).map(star => ({ kind: kind as StoneKind, shape, star, n: free.filter(s => s.kind === kind && s.shape === shape && s.star === star && s.value === undefined).length })))).filter(g => g.n > 0)
 
   return (
     <Panel title="프렌들리숍" onClose={() => openPanel(null)} w={900}>
@@ -61,6 +62,18 @@ export default function ShopPanel() {
               <Btn color="blue" disabled={g.n < 2 || save.coins < mergeCost(g)} onClick={() => { if (mergeStones(g.kind, g.shape, g.star)) sfx.levelup() }} quiet className="flex items-center gap-1 px-2 py-1 text-sm">합성 <Icon n="coin" s={16} />{mergeCost(g)}</Btn>
             </div>
           ))}
+          <p className="pt-2 text-xl font-bold">베이스캠프 꾸미기</p>
+          <p className="text-xs">소유한 장식의 혜택은 전시 여부와 관계없이 적용돼요. 캠프에는 최대 {DECOR_MAX}개까지 전시할 수 있어요.</p>
+          {DECORATIONS.map(d => {
+            const owned = save.decorations.includes(d.id)
+            const placed = save.placedDecorations.includes(d.id)
+            return <div key={d.id} className="flex items-center gap-2 border-b border-[#ddb966] py-1">
+              <span className="h-8 w-8 shrink-0 border-4 border-[#2b2838]" style={{ background: d.color }} />
+              <span className="min-w-0 flex-1 text-sm"><b>{d.name}</b><br /><span className="text-xs text-[#8a5a10]">{d.desc}</span></span>
+              {owned ? <Btn color={placed ? 'yellow' : 'gray'} disabled={!placed && save.placedDecorations.length >= DECOR_MAX} onClick={() => { if (toggleDecoration(d.id)) sfx.select() }} quiet className="px-2 py-1 text-xs">{placed ? '치우기' : '전시'}</Btn> :
+                <Btn color="green" disabled={save.coins < d.cost} onClick={() => { if (buyDecoration(d.id)) sfx.coin() }} quiet className="flex items-center gap-1 px-2 py-1 text-xs"><Icon n="coin" s={14}/>{d.cost}</Btn>}
+            </div>
+          })}
         </div>
       </div>
     </Panel>
