@@ -8,7 +8,7 @@ import { type MoveStone, MOVE_SLOTS } from '../lib/moveStones'
 import { rollBonuses } from '../lib/bingo'
 import { BATTERY_MAX, batteryNow, charge, consume } from '../lib/battery'
 import { AREAS, rollRewards, stageCount, type Rewards, type Stage, stageId } from '../lib/stages'
-import { ORIGINAL_FIRST, ORIGINAL_LAST, ORIGINAL_BOSS_AREA, ORIGINAL_STATUE_COUNT, originalUnlocked } from '../lib/originalCampaign'
+import { ORIGINAL_FIRST, ORIGINAL_LAST, ORIGINAL_BOSS_AREA, ORIGINAL_STATUE_COUNT, HAPPENSTANCE_AREA, originalUnlocked } from '../lib/originalCampaign'
 import { defaultSave, loadSave, resetSave, type SaveData, writeSave } from '../lib/storage'
 import { setMuted } from '../lib/sound'
 import { recall, trainExp, TRAIN_MAX, type RecallResult } from '../lib/training'
@@ -87,6 +87,7 @@ export const areaCleared = (save: SaveData, area: number) => isCleared(save, are
 export const legacyFanProgress = (save: SaveData): boolean =>
   Object.keys(save.cleared).some(k => /^a[0-5]-s\d+$/.test(k))
 export const areaUnlocked = (save: SaveData, area: number): boolean => {
+  if (area === HAPPENSTANCE_AREA) return areaCleared(save, ORIGINAL_BOSS_AREA)
   if (area >= ORIGINAL_FIRST && area <= ORIGINAL_LAST) return originalUnlocked(area, i => areaCleared(save, i))
   // Existing pre-2D-remake saves keep access to their already-played fan route.
   return (areaCleared(save, ORIGINAL_BOSS_AREA) || legacyFanProgress(save)) && (area === 0 || areaCleared(save, area - 1))
