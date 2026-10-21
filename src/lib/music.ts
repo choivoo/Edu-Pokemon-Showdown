@@ -1,6 +1,7 @@
 import { audio, masterOut } from './audio'
 import { DRUM_INSTS, NOTE_INSTS } from './instruments'
 import { JINGLES, SONGS, STEPS, type JingleName, type Song, type SongName } from './songs'
+import { QUEST_ALBUM_CUES, QUEST_ALBUM_BUNDLE_PATH, type QuestAlbumCue } from './questAlbum'
 
 const indexCache = new WeakMap<Song, Array<Array<{ trackIdx: number; kind: 'note' | 'drum'; midi?: number; dur: number; vel: number }>>>()
 
@@ -89,20 +90,44 @@ class Player {
 let current: Player | null = null
 let currentName: SongName | '' = ''
 let duckGain: GainNode | null = null
-/** Timecodes provided by the user for a locally selected soundtrack.
- * The MP3 stays on the player's own device; it is NEVER uploaded to GitHub.
- * This does not claim public redistribution rights over official game tracks.
- */
-export const LOCAL_CUES: Record<SongName,{start:number;end:number}>={
- title:{start:0,end:158}, camp:{start:438,end:580}, map:{start:1047,end:1260},
- battle:{start:684,end:798}, boss:{start:798,end:914}, story:{start:914,end:943},
- tide:{start:1260,end:1483}, grove:{start:580,end:684}, echo:{start:3743,end:4059},
- spark:{start:1483,end:1674}, ember:{start:1674,end:1800}, astral:{start:3288,end:3494},
+/** The 27 cue times are source-of-truth for both player-loaded and bundled audio. */
+const DEFAULT_CUES:Record<SongName,QuestAlbumCue>={
+ title:'title',camp:'camp',map:'expeditions',battle:'firstSteppe',
+ boss:'boss1',story:'storyTalk',tide:'backforthBrook',
+ grove:'gloomyGrove',echo:'happenstanceCave',spark:'parchedPeak',
+ ember:'pincushionPlain',astral:'happenstanceGrassland',
 }
+export const LOCAL_CUES:Record<SongName,{start:number;end:number}>=Object.fromEntries(
+ Object.entries(DEFAULT_CUES).map(([key,value])=>{
+  const [start,end]=QUEST_ALBUM_CUES[value]
+  return [key,{start,end}]
+ })
+) as Record<SongName,{start:number;end:number}>
 let localAudio:HTMLAudioElement|null=null
 let localBlobUrl:string|null=null
+let bundledAudio:HTMLAudioElement|null=null
+let currentCue:QuestAlbumCue='title'
 let activeLocalCue:{start:number;end:number}|null=null
-
+let sourceKind:'synth'|'local'|'bundled'='synth'
+let publicSoundtrackProbe:Promise<boolean>|null=null
+function musicElement() {return localAudio??bundledAudio}
+function cueBounds(cue:QuestAlbumCue) {
+ const [start,end]=QUEST_ALBUM_CUES[cue]
+ return {start,end}
+}
+function attachPlayer(player:HTMLAudioElement) {
+ const ctx=audio(),bus=ctx&&bgmBus(ctx)
+ if(!ctx||!bus)return false
+ ctx.createMediaElementSource(player).connect(bus)
+ player.preload='metadata'
+ player.addEventListener('timeupdate',()=>{
+  if (!activeLocalCue || musicElement()!==player) return
+  const t=player.currentTime
+  if (t >= activeLocalCue.end-.06 || t < activeLocalCue.start-1)
+    player.currentTime=activeLocalCue.start
+ })
+ return true
+}
 
 function bgmBus(ctx: AudioContext): AudioNode | null {
   const m = masterOut()
@@ -112,82 +137,111 @@ function bgmBus(ctx: AudioContext): AudioNode | null {
 }
 
 export const bgm = {
-  get playing(): SongName | '' { return currentName },
-  get localMusicActive():boolean {return !!localAudio},
-  /** Playback is a device-local opt-in; no user MP3 is included in the public app. */
+  get playing(): SongName | '' {return currentName},
+  get playingAlbumCue(): QuestAlbumCue {return currentCue},
+  get localMusicActive():boolean {return sourceKind==='local'},
+  get bundledMusicActive():boolean {return sourceKind==='bundled'},
+  get musicSource(): 'synth'|'local'|'bundled' {return sourceKind},
+
+  /**
+   * A correctly licensed audio recording may be placed at
+   * public/music/quest-complete.mp3 and will stream automatically
+   * on any device visiting GitHub Pages. No upload is performed here.
+   */
+  autoUseBundledAlbum():Promise<boolean> {
+    if(sourceKind==='local') return Promise.resolve(false)
+    if(bundledAudio) return Promise.resolve(true)
+    if(publicSoundtrackProbe)return publicSoundtrackProbe
+    publicSoundtrackProbe=(async ()=>{
+      const url=new URL(import.meta.env.BASE_URL+QUEST_ALBUM_BUNDLE_PATH,window.location.origin)
+      try {
+        const res=await fetch(url,{method:'HEAD',cache:'no-cache'})
+        const len=Number(res.headers.get('content-length')||'0')
+        const type=res.headers.get('content-type')||''
+        if(!res.ok || len<64_000 || (/text\/html/i.test(type)))return false
+        if(sourceKind==='local')return false
+        const player=new Audio(url.toString())
+        if(!attachPlayer(player))return false
+        bundledAudio=player;sourceKind='bundled'
+        const name=currentName || 'title',cue=currentCue
+        currentName=''
+        this.play(name,cue)
+        return true
+      }catch{return false}
+    })()
+    return publicSoundtrackProbe
+  },
+  /** Local music is an optional override and stays in this browser only. */
   useLocalFile(file:File):boolean {
-    if(!file || !(file.type.startsWith('audio/') || /\\.(mp3|m4a|ogg|wav)$/i.test(file.name)))return false
-    const ctx=audio(),bus=ctx&&bgmBus(ctx)
-    if(!ctx||!bus)return false
-    const selected=currentName || 'title'
+    if(!file || !(file.type.startsWith('audio/') || /\.(mp3|m4a|ogg|wav)$/i.test(file.name)))return false
+    const selected=currentName||'title',cue=currentCue
     localAudio?.pause()
     if(localAudio){localAudio.removeAttribute('src');localAudio.load()}
     if(localBlobUrl)URL.revokeObjectURL(localBlobUrl)
     localBlobUrl=URL.createObjectURL(file)
     const player=new Audio(localBlobUrl)
-    const node=ctx.createMediaElementSource(player)
-    node.connect(bus)
-    localAudio=player
-    player.preload='auto'
-    player.addEventListener('timeupdate',()=>{
-      if(!activeLocalCue)return
-      const t=player.currentTime
-      if(t>=activeLocalCue.end-0.06||t<activeLocalCue.start-1)
-        player.currentTime=activeLocalCue.start
-    })
-    current?.fadeOut(0.2);current=null;currentName=''
-    this.play(selected)
+    if(!attachPlayer(player)){URL.revokeObjectURL(localBlobUrl);localBlobUrl=null;return false}
+    bundledAudio?.pause()
+    localAudio=player;sourceKind='local'
+    current?.fadeOut(.25);current=null;currentName=''
+    this.play(selected,cue)
     return true
   },
   disableLocalFile() {
-    const previous=currentName || 'title'
+    const previous=currentName||'title',cue=currentCue
     localAudio?.pause()
     if(localAudio){localAudio.removeAttribute('src');localAudio.load()}
     localAudio=null;activeLocalCue=null
     if(localBlobUrl)URL.revokeObjectURL(localBlobUrl)
-    localBlobUrl=null;currentName=''
-    this.play(previous)
+    localBlobUrl=null
+    sourceKind=bundledAudio?'bundled':'synth'
+    currentName=''
+    this.play(previous,cue)
+    if(!bundledAudio)void this.autoUseBundledAlbum()
   },
-  /** 배경음악을 바꾼다. 이미 같은 곡이면 그대로 둔다. */
-  play(name: SongName) {
-    if (currentName === name && (current || localAudio))return
-    if(localAudio){
-      const cue=LOCAL_CUES[name]
-      activeLocalCue=cue
-      current?.fadeOut(0.15);current=null
-      const player=localAudio
+  /** Change musical scene. Correct album segment plays when audio is available. */
+  play(name:SongName,cue:QuestAlbumCue=DEFAULT_CUES[name]) {
+    if(currentName===name && currentCue===cue && (current||musicElement()))return
+    currentCue=cue
+    const player=musicElement()
+    if(player){
+      const bounds=cueBounds(cue)
+      activeLocalCue=bounds
+      current?.fadeOut(.15);current=null
       const seek=()=>{
-        if(localAudio===player && activeLocalCue===cue)
-          player.currentTime=Math.min(cue.start,Math.max(0,(player.duration||4524)-1))
+        if(musicElement()===player && activeLocalCue===bounds){
+          const limit=Number.isFinite(player.duration)?player.duration:4524.225
+          player.currentTime=Math.min(bounds.start,Math.max(0,limit-1))
+        }
       }
       if(player.readyState>=1)seek()
       else player.addEventListener('loadedmetadata',seek,{once:true})
-      void player.play().catch(()=>{/* browsers may require a new user gesture */})
+      void player.play().catch(()=>{/* mobile browser may require the next click */})
       currentName=name
       return
     }
-    const ctx = audio()
-    const bus = ctx && bgmBus(ctx)
-    if (!ctx || !bus) return
-    current?.fadeOut(0.35)
-    current = new Player(SONGS[name], ctx, bus, ctx.currentTime + 0.08)
-    currentName = name
+    const ctx=audio(),bus=ctx&&bgmBus(ctx)
+    if(!ctx||!bus)return
+    current?.fadeOut(.35)
+    current=new Player(SONGS[name],ctx,bus,ctx.currentTime+.08)
+    currentName=name
+    sourceKind='synth'
   },
   stop() {
-    localAudio?.pause()
-    current?.fadeOut(0.3)
-    current = null
-    currentName = ''
+    musicElement()?.pause()
+    current?.fadeOut(.3)
+    current=null
+    currentName=''
   },
-  /** 효과 음악이 나오는 동안 배경음악을 줄인다 */
-  duck(seconds: number) {
-    const ctx = audio()
-    if (!ctx || !duckGain) return
-    const t = ctx.currentTime
+  /** Lower both personal and bundled soundtrack under sound effects. */
+  duck(seconds:number) {
+    const ctx=audio()
+    if(!ctx||!duckGain)return
+    const t=ctx.currentTime
     duckGain.gain.cancelScheduledValues(t)
-    duckGain.gain.setValueAtTime(duckGain.gain.value, t)
-    duckGain.gain.linearRampToValueAtTime(0.14, t + 0.1)
-    duckGain.gain.linearRampToValueAtTime(0.62, t + seconds)
+    duckGain.gain.setValueAtTime(duckGain.gain.value,t)
+    duckGain.gain.linearRampToValueAtTime(.14,t+.1)
+    duckGain.gain.linearRampToValueAtTime(.62,t+Math.max(.2,seconds))
   },
 }
 
