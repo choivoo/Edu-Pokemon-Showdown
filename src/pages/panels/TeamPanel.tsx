@@ -187,14 +187,14 @@ export default function TeamPanel() {
               </div>
             ) : right === 'bingo' ? (
               <div className="space-y-2 text-sm">
-                <p className="leading-snug">P스톤 격자의 <b>가로 또는 세로 한 줄을 스톤으로 모두 채우면</b> 빙고! 이 포켓몬만의 보너스 3개가 켜져요. 줄이 많을수록(최대 3줄) 효과가 커져요.</p>
+                <p className="leading-snug">P스톤 격자의 <b>가로 또는 세로 한 줄을 스톤으로 모두 채우면</b> 빙고! 3/6/9개의 스톤을 장착하고 줄을 완성할 때마다 보너스가 하나씩 켜져요.</p>
                 <p className="flex items-center gap-1 text-lg font-bold text-[#c06a00]"><Icon n="bingo" s={26} />완성한 빙고 {bingos}줄{bingos > 3 ? ' (3줄까지 인정)' : ''}</p>
-                {mon.bonus.map(b => (
+                {mon.bonus.map((b, bi) => (
                   <div key={b.kind} className="border-4 border-[#c98a00] bg-white/60 p-2">
-                    <p className="text-base font-bold">{BONUS_INFO[b.kind].label}</p>
+                    <p className="text-base font-bold">{bi + 1}번째 빙고 {bingos > bi ? '활성' : '잠김'} · {BONUS_INFO[b.kind].label}</p>
                     <div className="mt-1 grid grid-cols-3 gap-1 text-center text-xs">
                       {b.v.map((v, i) => (
-                        <span key={i} className={`border-2 py-0.5 ${Math.min(3, bingos) === i + 1 ? 'border-[#e8524a] bg-[#ffe9a0] font-bold' : 'border-[#e5c36a]'}`}>{i + 1}빙고 +{v}{BONUS_INFO[b.kind].unit}</span>
+                        <span key={i} className={`border-2 py-0.5 ${bingos > bi && bi === i ? 'border-[#e8524a] bg-[#ffe9a0] font-bold' : 'border-[#e5c36a]'}`}>{i + 1}빙고 +{v}{BONUS_INFO[b.kind].unit}</span>
                       ))}
                     </div>
                   </div>
