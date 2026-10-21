@@ -19,6 +19,8 @@ export interface OwnedMon {
   mstones: string[]
   /** 특훈으로 떠올린 필살기 (없으면 기본 필살기) */
   move?: string
+  /** Original Quest Pokémon can learn a second optional special move. */
+  move2?: string
   /** 기술 떠올리기 피로도와 마지막 시도 시각 */
   recalls?: number
   recallT?: number
