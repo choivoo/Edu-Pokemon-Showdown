@@ -7,7 +7,7 @@
  */
 import type { Rng } from '../types'
 import type { WaveEnemy } from '../lib/stages'
-import { EXTRA_STAGE_FIXTURES, type EncounterFixture } from './expandedStageTables'
+import { EXTRA_STAGE_FIXTURES } from './expandedStageTables'
 type Choice = {id:number; weight:number}
 type Group = readonly Choice[]
 type Segment = readonly Group[]
