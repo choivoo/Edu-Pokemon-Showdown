@@ -112,9 +112,9 @@ describe('stats / 성장', () => {
 describe('파워스톤 격자', () => {
   const stones: Stone[] = [{ id: 'a', kind: 'atk', star: 1, shape: 'bar2' }, { id: 'b', kind: 'hp', star: 1, shape: 'ell' }]
   it('레벨이 오르면 열리는 칸이 늘어나고 12칸을 넘지 않는다', () => {
-    expect(unlockedCount(1)).toBe(4)
+    expect(unlockedCount(1)).toBe(1)
     expect(unlockedCount(6)).toBeGreaterThan(unlockedCount(1))
-    expect(unlockedCount(50)).toBe(GRID_W * GRID_H)
+    expect(unlockedCount(100)).toBe(GRID_W * GRID_H)
   })
   it('회전해도 칸 수가 같고 좌상단으로 정규화된다', () => {
     for (let r = 0; r < 4; r++) {
@@ -131,7 +131,7 @@ describe('파워스톤 격자', () => {
     expect(canPlace(1, empty, 'dot', 0, 1, 1)).toBe(true)
     const occ = occupancy([{ stone: 'a', x: 1, y: 1, rot: 0 }], stones)
     expect(canPlace(1, occ, 'dot', 0, 2, 1)).toBe(false) // bar2 가 (1,1)(2,1) 차지
-    expect(canPlace(1, occ, 'dot', 0, 1, 0)).toBe(true)
+    expect(canPlace(100, occ, 'dot', 0, 1, 0)).toBe(true)
   })
   it('자동 배치는 들어갈 자리가 없으면 null', () => {
     expect(findSpot(1, occupancy([], stones), 'bar3')).toBeNull() // 레벨1은 열린 칸이 4개뿐이라 3칸 일자는 들어가지 않는다
@@ -140,13 +140,16 @@ describe('파워스톤 격자', () => {
 
 describe('스테이지 / 보상', () => {
   it('원작 11지역 54스테이지 + 확장 6지역 30스테이지를 보존한다', () => {
-    expect(AREAS).toHaveLength(17)
+    expect(AREAS).toHaveLength(18)
     expect(AREAS.slice(0, 6).every(a => !a.stageCount)).toBe(true)
-    expect(AREAS.slice(6).map(a => a.stageCount)).toEqual([4,5,5,5,5,5,6,6,6,6,1])
+    expect(AREAS.slice(6).map(a => a.stageCount)).toEqual([4,5,5,5,5,5,6,6,6,6,1,9])
     for(let i=0;i<6;i++) expect(getStage(i,4).recruit).toBe(AREAS[i].boss)
     expect(getStage(6,3).boss).toBe(true)
     expect(getStage(16,0).boss).toBe(true)
     expect(getStage(16,0).recruit).toBeNull()
+    expect(getStage(17,8).timeLimitSec).toBe(300)
+    expect(getStage(17,0).recommended).toBe(18000)
+    expect(getStage(17,8).recommended).toBe(36500)
   })
   it('지역이 갈수록 적 레벨이 오른다', () => {
     for (let a = 1; a < 6; a++) {
