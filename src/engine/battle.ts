@@ -5,6 +5,7 @@ import { getMove, getSpecies } from '../lib/roster'
 import { computeStats, type Stats } from '../lib/stats'
 import type { WaveEnemy } from '../lib/stages'
 import { type MoveFx, NO_FX, SPIRIT_ATK, SPIRIT_SECONDS } from '../lib/moveStones'
+import { moveHits, moveProfile } from '../lib/moveProfiles'
 
 export type Side = 'ally' | 'enemy'
 
@@ -89,7 +90,7 @@ export type FxEvent =
   | { k: 'buff'; uid: number; good: boolean }
   | { k: 'flee'; uid: number }
 
-interface Pending { at: number; from: number; to: number; amount: number; eff: number; crit: boolean; type: PokemonType; special: boolean }
+interface Pending { at: number; from: number; to: number; amount: number; eff: number; crit: boolean; type: PokemonType; special: boolean; status?: StatusKind }
 
 export type Phase = 'fight' | 'advance' | 'won' | 'lost'
 
@@ -260,7 +261,7 @@ function strike(b: Battle, from: Unit, to: Unit, move: Move, special: boolean, p
     r = { damage: Math.max(1, Math.floor(neutral.damage * 0.25)), effectiveness: 0.25, crit }
   }
   const amount = r.crit && from.critDmg > 0 ? Math.floor(r.damage * (1 + from.critDmg)) : r.damage
-  b.pending.push({ at: b.t + delay, from: from.uid, to: to.uid, amount, eff: r.effectiveness, crit: r.crit, type: move.type, special })
+  b.pending.push({ at: b.t + delay, from: from.uid, to: to.uid, amount, eff: r.effectiveness, crit: r.crit, type: move.type, special, status: move.id.startsWith('quest-') ? moveProfile(move).status : undefined })
 }
 
 const travel = (a: Unit, c: Unit) => Math.max(0.12, dist(a, c) / 560)
@@ -320,10 +321,13 @@ function castSpecial(b: Battle, u: Unit, extraMul = 1, mv: Move = u.special) {
   const main = nearest(b, u)
   if (!main) return false
   const foes = alive(b, u.side === 'ally' ? 'enemy' : 'ally')
-  const aoe = u.boss || AOE_TYPES.includes(mv.type)
+  const profile=moveProfile(mv)
+  const isQuest=mv.id.startsWith('quest-')
+  const aoe = u.boss || (isQuest ? ['burst','wave','cone'].includes(profile.shape) : AOE_TYPES.includes(mv.type))
   const { widen, multiply } = u.fx
   let targets: Unit[]
   if (u.boss) targets = foes
+  else if (isQuest) targets = foes.filter(f => moveHits({...profile,radius:profile.radius+50*widen,range:profile.range+35*widen},u,main,f,f.radius))
   else if (aoe) targets = foes.filter(f => Math.hypot(f.x - main.x, f.y - main.y) <= AOE_RADIUS + 50 * widen)
   else {
     targets = [main]
@@ -331,12 +335,14 @@ function castSpecial(b: Battle, u: Unit, extraMul = 1, mv: Move = u.special) {
     const others = foes.filter(f => f !== main).sort((x, y) => Math.hypot(x.x - u.x, x.y - u.y) - Math.hypot(y.x - u.x, y.y - u.y))
     targets.push(...others.slice(0, multiply))
   }
+  if(isQuest && targets.length===0) targets=[main]
   const base = u.boss ? 0.7 : aoe ? 0.65 : 1
   const mul = base * Math.pow(0.85, multiply) * extraMul
   u.lunge = 0.35
   u.face = main.x >= u.x ? 1 : -1
   b.events.push({ k: 'attack', from: u.uid, to: targets.map(t => t.uid), type: mv.type, special: true, ranged: true })
-  for (const t of targets) strike(b, u, t, mv, true, mul, travel(u, t))
+  for (const t of targets) for(let hit=0;hit<(isQuest?profile.hits:1);hit++)
+    strike(b,u,t,mv,true,mul/(isQuest?Math.sqrt(profile.hits):1), Math.max(profile.windup,travel(u,t))+hit*.12)
   // 넓히기: 한 명만 맞히던 필살기도 주변까지 번진다
   if (!aoe && !u.boss && widen > 0) {
     const radius = 20 + 50 * widen
@@ -401,7 +407,10 @@ function applyHit(b: Battle, p: Pending) {
     from.hp = Math.min(from.maxHp, from.hp + heal)
     b.events.push({ k: 'heal', uid: from.uid, amount: heal })
   }
-  if (from && from.alive && p.special && from.side !== to.side && to.hp > 0 && b.rng() < STATUS_CHANCE) applyStatus(b, to, TYPE_STATUS[p.type])
+  if (from && from.alive && p.special && from.side !== to.side && to.hp > 0) {
+    if(p.status) {if(b.rng()<STATUS_CHANCE)applyStatus(b,to,p.status)}
+    else if(b.rng()<STATUS_CHANCE && !p.status) applyStatus(b, to, TYPE_STATUS[p.type])
+  }
   if (to.hp <= 0) {
     to.alive = false
     to.deadT = 0
