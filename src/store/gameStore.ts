@@ -194,9 +194,12 @@ export const useGame = create<GameState>((set, get) => {
       const ingredients = { ...s.ingredients }
       for (const [id, n] of Object.entries(need) as [IngredientId, number][]) ingredients[id] -= n
       const visitor = cook(sel)
+      // Original cooking: 4.3% chance to attract two Pokémon, 0.5% for three.
+      const roll = Math.random()
+      const extras = roll < 0.005 ? [cook(sel).id, cook(sel).id] : roll < 0.048 ? [cook(sel).id] : []
       const total = cookingExpeditions(sel, tier)
       const recipe = recipeFor(sel).no
-      commit({ ingredients, pot: { species: visitor.id, remaining: total, total, recipe, ...(tier ? { tier } : {}) } })
+      commit({ ingredients, pot: { species: visitor.id, visitors: extras, remaining: total, total, recipe, ...(tier ? { tier } : {}) } })
       return true
     },
 
@@ -207,7 +210,9 @@ export const useGame = create<GameState>((set, get) => {
       const low = [1,16,31,71][potTier] ?? 1
       const high = [15,30,70,100][potTier] ?? 15
       const { mon, patch } = newMon(s, s.pot.species, Math.max(low, Math.min(high, newcomerLevel(s, low))), potTier)
-      commit({ ...patch, pot: null, counters: bump(s.counters, 'cooked') })
+      const waiting = s.pot.visitors ?? []
+      const pot = waiting.length ? { ...s.pot, species: waiting[0], visitors: waiting.slice(1), remaining: 0 } : null
+      commit({ ...patch, pot, counters: bump(s.counters, 'cooked') })
       return mon
     },
 
