@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import type { Species } from '../types'
-import { cook, type IngredientId, getIngredient, DISH_SIZE } from '../lib/cooking'
+import { cook, cookingExpeditions, recipeFor, type IngredientId, getIngredient, DISH_SIZE } from '../lib/cooking'
 import { getSpecies } from '../lib/roster'
 import { addExp, expToNext, MAX_LEVEL, type OwnedMon } from '../lib/stats'
 import { canPlace, findSpot, mergeCost, occupancy, type Stone, type ShapeId, type StoneKind } from '../lib/stones'
@@ -50,7 +50,8 @@ interface GameState {
   hardReset: () => void
   toggleMute: () => void
   markStory: (key: string) => void
-  cookDish: (sel: IngredientId[]) => OwnedMon | null
+  startCooking: (sel: IngredientId[]) => boolean
+  collectCooked: () => OwnedMon | null
   setParty: (ids: string[]) => void
   placeStone: (monId: string, stoneId: string, x: number, y: number, rot: number) => boolean
   autoPlaceStone: (monId: string, stoneId: string) => boolean
@@ -154,17 +155,27 @@ export const useGame = create<GameState>((set, get) => {
       if (!s.seenStory.includes(key)) commit({ seenStory: [...s.seenStory, key] })
     },
 
-    cookDish: sel => {
+    startCooking: sel => {
       const s = get().save
-      if (sel.length !== DISH_SIZE) return null
+      if (s.pot || sel.length !== DISH_SIZE) return false
       const need: Partial<Record<IngredientId, number>> = {}
       for (const id of sel) need[id] = (need[id] ?? 0) + 1
-      for (const [id, n] of Object.entries(need) as [IngredientId, number][]) if ((s.ingredients[id] ?? 0) < n) return null
+      for (const [id, n] of Object.entries(need) as [IngredientId, number][])
+        if ((s.ingredients[id] ?? 0) < n) return false
       const ingredients = { ...s.ingredients }
       for (const [id, n] of Object.entries(need) as [IngredientId, number][]) ingredients[id] -= n
-      const sp: Species = cook(sel)
-      const { mon, patch } = newMon({ ...s, ingredients }, sp.id, newcomerLevel(s))
-      commit({ ...patch, ingredients, counters: bump(s.counters, 'cooked') })
+      const visitor = cook(sel)
+      const total = cookingExpeditions(sel)
+      const recipe = recipeFor(sel).no
+      commit({ ingredients, pot: { species: visitor.id, remaining: total, total, recipe } })
+      return true
+    },
+
+    collectCooked: () => {
+      const s = get().save
+      if (!s.pot || s.pot.remaining > 0) return null
+      const { mon, patch } = newMon(s, s.pot.species, newcomerLevel(s))
+      commit({ ...patch, pot: null, counters: bump(s.counters, 'cooked') })
       return mon
     },
 
@@ -324,6 +335,7 @@ export const useGame = create<GameState>((set, get) => {
     finishBattle: (win, stage, kills = 0) => {
       const s = get().save
       if (!win) {
+        if (s.pot && s.pot.remaining > 0) commit({ pot: { ...s.pot, remaining: s.pot.remaining - 1 } })
         set({ result: { win: false, stage, rewards: null, firstClear: false, recruited: null, levelUps: [], stone: null, moveStone: null, outroArea: null }, screen: 'result' })
         return
       }
@@ -360,7 +372,8 @@ export const useGame = create<GameState>((set, get) => {
         owned = [...owned, recruited]
         if (!dex.includes(stage.recruit)) dex = [...dex, stage.recruit]
       }
-      commit({ coins: s.coins + rewards.coins, ingredients, owned, stones, moveStones, cleared, endlessBest, uid, dex, clearsSinceExport: s.clearsSinceExport + 1, counters: bump(bump(bump(s.counters, 'clears'), 'kills', kills), 'bosses', stage.boss ? 1 : 0) })
+      const pot = s.pot && s.pot.remaining > 0 ? { ...s.pot, remaining: s.pot.remaining - 1 } : s.pot
+      commit({ coins: s.coins + rewards.coins, ingredients, owned, stones, moveStones, cleared, endlessBest, uid, dex, pot, clearsSinceExport: s.clearsSinceExport + 1, counters: bump(bump(bump(s.counters, 'clears'), 'kills', kills), 'bosses', stage.boss ? 1 : 0) })
       set({
         result: { win: true, stage, rewards, firstClear, recruited, levelUps, stone, moveStone, outroArea: firstClear && stage.boss && stage.area >= 0 ? stage.area : null },
         screen: 'result',
