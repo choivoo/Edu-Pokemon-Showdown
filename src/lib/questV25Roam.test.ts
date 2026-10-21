@@ -5,9 +5,10 @@ import { ORIGINAL_FIRST, ORIGINAL_BOSS_AREA } from './originalCampaign'
 import { ATTRACTABLE_SOURCE_SPECIES, attractionWeight, QUEST_DISH_NAMES } from '../data/questAttractionWeights'
 import { verifiedRecipeOdds } from '../data/verifiedRecipeOdds'
 import { attractionOdds } from './cooking'
-import { createBattle, movePartyTo, clearPartyWaypoint, step, FIELD } from '../engine/battle'
+import { createBattle, movePartyTo, clearPartyWaypoint, step, useSpecial, FIELD } from '../engine/battle'
 import { computeStats } from './stats'
 import { getSpecies } from './roster'
+import { QUEST_MOVE_BY_NAME } from '../data/questMoves'
 const random=()=>.5
 describe('Original 54 stages: complete sourced encounter coverage',()=>{
  it('includes exactly all four first-world and the 50 other original-world stages',()=>{
@@ -66,5 +67,30 @@ describe('Touchable 360° exploration',()=>{
    expect(b.manualPoint).toMatchObject({x:FIELD.x0,y:FIELD.y1})
    clearPartyWaypoint(b);expect(b.manualPoint).toBe(null)
    expect(movePartyTo(b,Number.NaN,300)).toBe(false)
+ })
+})
+
+describe('Quest moves resolve collision on impact frames',()=>{
+ it('a fast-moving enemy can dodge a narrow Hyper Beam after the casting frame',()=>{
+   const beam=QUEST_MOVE_BY_NAME.get('Hyper Beam')!
+   const make=()=>{
+     const b=createBattle([{ownedId:'x',speciesId:150,level:35,stats:computeStats(getSpecies(150),35),move:beam.id}],
+       [[{species:19,level:10}]],random)
+     const hero=b.units.find(u=>u.side==='ally')!,enemy=b.units.find(u=>u.side==='enemy')!
+     hero.x=410;hero.y=650;hero.atkCd=999;hero.spCd=0
+     enemy.x=615;enemy.y=650;enemy.atkCd=999;enemy.speed=0
+     return {b,hero,enemy}
+   }
+   const dodge=make()
+   const full=dodge.enemy.hp
+   expect(useSpecial(dodge.b,dodge.hero.uid)).toBe(true)
+   dodge.enemy.y+=245
+   for(let i=0;i<15;i++)step(dodge.b,.05)
+   expect(dodge.enemy.hp).toBe(full)
+   const hit=make()
+   const full2=hit.enemy.hp
+   expect(useSpecial(hit.b,hit.hero.uid)).toBe(true)
+   for(let i=0;i<15;i++)step(hit.b,.05)
+   expect(hit.enemy.hp).toBeLessThan(full2)
  })
 })
