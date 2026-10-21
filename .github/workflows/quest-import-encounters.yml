@@ -2,7 +2,7 @@ name: Import source-verified Quest encounter tables
 on:
   push:
     branches: [quest-original-stage-data-import-v2-5]
-    paths: [.github/workflows/quest-import-encounters.yml]
+    paths: [.github/workflows/quest-import-encounters.yml, scripts/import-quest-encounters.mjs]
   workflow_dispatch:
 permissions:
   contents: write
