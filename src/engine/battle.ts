@@ -159,7 +159,7 @@ function makeUnit(b: Battle, side: Side, speciesId: number, level: number, stats
     uid: b.nextUid++, side, speciesId, name: sp.name, types: sp.types, level, maxHp, hp: maxHp,
     atk: Math.floor(stats.atk * atkMul), def: Math.floor(stats.def * m.def), spe: stats.spe, crit: stats.crit,
     basic, special, secondary, spCd2: secondary ? 4 : 0,
-    spMax2: secondary ? Math.max(1, (secondary.wait ?? (secondary.power >= 100 ? 10 : 8)) * (1 - stats.spCd) * (1 - (stats.typeMoveWait?.[secondary.type] ?? 0))) : 0,
+    spMax2: secondary ? Math.max(1, (secondary.wait ?? (secondary.power >= 100 ? 10 : 8)) * (1 - 0.05 * fx2.quick) * (1 + 0.5 * fx2.repeat) * (1 - stats.spCd) * (1 - (stats.typeMoveWait?.[secondary.type] ?? 0))) : 0,
     boss, ownedId, slot, x, y, face: side === 'ally' ? 1 : -1, moving: false,
     range: boss ? 96 : ranged ? RANGED_RANGE : MELEE_RANGE,
     speed: Math.min(190, Math.min(150, 62 + stats.spe * 0.55) * (1 + stats.moveSpd)),
