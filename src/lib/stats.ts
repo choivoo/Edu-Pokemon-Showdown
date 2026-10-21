@@ -49,7 +49,13 @@ export const BASE_CRIT = 0.06
 /** 레벨과 배치한 파워스톤을 반영한 전투 스탯 (칸 수 × 별 개수만큼 효과가 커진다) */
 export function computeStats(sp: Species, level: number, stones: Stone[] = [], mods: Mods = NO_MODS): Stats {
   let hp = 1, atk = 1, def = 1, spd = 1, crit = BASE_CRIT
+  let flatHp = 0, flatAtk = 0
   for (const s of stones) {
+    if (s.value !== undefined && (s.kind === 'hp' || s.kind === 'atk')) {
+      if (s.kind === 'hp') flatHp += s.value
+      else flatAtk += s.value
+      continue
+    }
     const v = STONE_INFO[s.kind].per * s.star * SHAPES[s.shape].length
     if (s.kind === 'hp') hp += v
     else if (s.kind === 'atk') atk += v
