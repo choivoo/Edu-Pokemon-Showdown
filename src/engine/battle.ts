@@ -6,11 +6,14 @@ import { computeStats, type Stats } from '../lib/stats'
 import type { WaveEnemy } from '../lib/stages'
 import { type MoveFx, NO_FX, SPIRIT_ATK, SPIRIT_SECONDS } from '../lib/moveStones'
 import { moveHits, moveProfile } from '../lib/moveProfiles'
+import { encounterBalance, type EncounterBalance } from '../lib/battleBalance'
+import { WORLD_BOUNDS } from '../art/openField'
+import type { Stage } from '../lib/stages'
 
 export type Side = 'ally' | 'enemy'
 
 /** 전장 크기(가상 좌표). 렌더러와 같은 좌표계를 쓴다. */
-export const FIELD = { x0: 70, x1: 890, y0: 190, y1: 460 }
+export const FIELD = { x0: 100, x1: WORLD_BOUNDS.right - 100, y0: 110, y1: WORLD_BOUNDS.bottom - 110 }
 
 export interface Unit {
   uid: number
@@ -84,6 +87,7 @@ export type FxEvent =
   | { k: 'attack'; from: number; to: number[]; type: PokemonType; special: boolean; ranged: boolean }
   | { k: 'hit'; from: number; to: number; amount: number; eff: number; crit: boolean; type: PokemonType; special: boolean }
   | { k: 'faint'; uid: number }
+  | { k: 'bossDefeated'; uid: number; x: number; y: number }
   | { k: 'heal'; uid: number; amount: number }
   | { k: 'wave'; index: number }
   | { k: 'banner'; text: string; tone: 'info' | 'warn' | 'boss' }
@@ -117,11 +121,12 @@ export interface Battle {
   kills: number
   nextUid: number
   rng: Rng
+  balance: EncounterBalance
 }
 
 export interface AllyInput { ownedId: string; speciesId: number; level: number; stats: Stats; fx?: MoveFx; fx2?: MoveFx; move?: string; move2?: string }
 
-export const ADVANCE_TIME = 1.7
+export const ADVANCE_TIME = 2.7
 export const AOE_TYPES: PokemonType[] = ['electric', 'ground', 'ice', 'psychic', 'ghost']
 /** 멀리서 쏘는 타입 (나머지는 달려가서 때린다) */
 export const RANGED_TYPES: PokemonType[] = ['fire', 'water', 'electric', 'psychic', 'ice', 'ghost', 'dragon', 'grass', 'fairy', 'poison']
@@ -131,11 +136,16 @@ export const AOE_RADIUS = 150
 const BOSS = { hp: 3, atk: 1.12, def: 1.05 }
 const ELITE = { hp: 1.7, atk: 1.1, def: 1.05 }
 /** 아군은 스톤으로 강해지므로 일반 적의 공격은 살짝 낮춘다 */
-const ENEMY_ATK = 1.0
+const ENEMY_ATK = 0.96
 
 const MELEE_RANGE = 52
 const RANGED_RANGE = 190
-export const FORMATION = [{ x: 280, y: 320 }, { x: 205, y: 395 }, { x: 205, y: 245 }]
+export const FORMATION = [{ x: 420, y: 650 }, { x: 360, y: 715 }, { x: 370, y: 595 }]
+export function waveCenter(wave: number, total: number) {
+  const count = Math.max(1,total)
+  const step = count <= 3 ? 800 : count === 4 ? 600 : 440
+  return { x: 880 + step * wave, y: 660 + Math.sin(wave * 1.4) * 210 }
+}
 
 const attackInterval = (spe: number) => 2.3 / (1 + spe / 130)
 const dist = (a: Unit, b: Unit) => Math.hypot(a.x - b.x, a.y - b.y)
@@ -146,18 +156,21 @@ function makeUnit(b: Battle, side: Side, speciesId: number, level: number, stats
   const { ownedId, fx = NO_FX, fx2 = NO_FX, elite = false } = o
   const sp = getSpecies(speciesId)
   const m = boss ? BOSS : elite ? ELITE : { hp: 1, atk: 1, def: 1 }
-  const atkMul = side === 'enemy' ? m.atk * ENEMY_ATK : m.atk
-  const maxHp = Math.floor(stats.maxHp * m.hp)
+  const atkMul = side === 'enemy' ? m.atk * ENEMY_ATK * b.balance.attack : m.atk
+  const maxHp = Math.max(5, Math.floor(stats.maxHp * m.hp * (side === 'enemy' ? b.balance.hp * (boss ? b.balance.bossHp : 1) : 1)))
   const special = getMove(o.move ?? sp.special)
   const secondary = o.move2 ? getMove(o.move2) : null
   const basic = getMove(sp.basic)
   const ranged = RANGED_TYPES.includes(basic.type) && !boss
   const home = FORMATION[slot] ?? FORMATION[0]
-  const x = o.pos?.x ?? (side === 'ally' ? home.x : boss ? 760 : 640 + b.rng() * 220)
-  const y = o.pos?.y ?? (side === 'ally' ? home.y : boss ? 325 : FIELD.y0 + 30 + (slot / 2) * (FIELD.y1 - FIELD.y0 - 60) + (b.rng() - 0.5) * 30)
+  const anchor = waveCenter(b.wave,b.waves.length)
+  const angle = slot * 2.39996 + b.rng() * 0.65
+  const radial = boss ? 0 : 65 + (slot % 3) * 34
+  const x = o.pos?.x ?? (side === 'ally' ? home.x : anchor.x + Math.cos(angle) * radial)
+  const y = o.pos?.y ?? (side === 'ally' ? home.y : anchor.y + Math.sin(angle) * radial)
   return {
     uid: b.nextUid++, side, speciesId, name: sp.name, types: sp.types, level, maxHp, hp: maxHp,
-    atk: Math.floor(stats.atk * atkMul), def: Math.floor(stats.def * m.def), spe: stats.spe, crit: stats.crit,
+    atk: Math.floor(stats.atk * atkMul), def: Math.floor(stats.def * m.def * (side === 'enemy' ? b.balance.defense : 1)), spe: stats.spe, crit: stats.crit,
     basic, special, secondary, spCd2: secondary ? 4 : 0,
     spMax2: secondary ? Math.max(1, (secondary.wait ?? (secondary.power >= 100 ? 10 : 8)) * (1 - 0.05 * fx2.quick) * (1 + 0.5 * fx2.repeat) * (1 - stats.spCd) * (1 - (stats.typeMoveWait?.[secondary.type] ?? 0))) : 0,
     boss, ownedId, slot, x, y, face: side === 'ally' ? 1 : -1, moving: false,
@@ -175,7 +188,7 @@ function makeUnit(b: Battle, side: Side, speciesId: number, level: number, stats
     critTakenResist: stats.critTakenResist ?? 0,
     spirit: { mul: 0, until: 0 },
     buff: { atk: 0, def: 0, speed: 0, until: 0 }, debuff: { atk: 0, def: 0, speed: 0, until: 0 }, status: null, scatterT: 0, elite,
-    spCd: side === 'ally' ? 3.5 : 6 + b.rng() * 3,
+    spCd: side === 'ally' ? 1.2 : 6 + b.rng() * 3,
     alive: true, deadT: 0, revives: 0, lunge: 0, hurt: 0,
   }
 }
@@ -183,8 +196,8 @@ function makeUnit(b: Battle, side: Side, speciesId: number, level: number, stats
 /** 포위당했을 때 적이 나타나는 자리: 아군을 둘러싼 가장자리 */
 function surroundPos(i: number, n: number) {
   const ang = (i / n) * Math.PI * 2 + 0.4
-  const cx = (FIELD.x0 + FIELD.x1) / 2 - 80, cy = (FIELD.y0 + FIELD.y1) / 2
-  return { x: Math.min(FIELD.x1, Math.max(FIELD.x0, cx + Math.cos(ang) * 400)), y: Math.min(FIELD.y1, Math.max(FIELD.y0, cy + Math.sin(ang) * 150)) }
+  const center = waveCenter(0,3)
+  return { x: Math.min(FIELD.x1, Math.max(FIELD.x0, center.x + Math.cos(ang) * 185)), y: Math.min(FIELD.y1, Math.max(FIELD.y0, center.y + Math.sin(ang) * 170)) }
 }
 
 function addEnemy(b: Battle, e: WaveEnemy, i: number, pos?: { x: number; y: number }) {
@@ -217,10 +230,10 @@ function joinLate(b: Battle, kind: 'call' | 'new' | 'bossHp') {
   group.forEach((e, i) => addEnemy(b, e, i + 4, kind === 'new' ? undefined : surroundPos(i, group.length)))
 }
 
-export function createBattle(allies: AllyInput[], waves: WaveEnemy[][], rng: Rng = Math.random): Battle {
+export function createBattle(allies: AllyInput[], waves: WaveEnemy[][], rng: Rng = Math.random, stage?: Pick<Stage,'area'|'index'>): Battle {
   const b: Battle = {
     late: [], scatterCd: 0, surrounded: false, waveKills: 0, t: 0, units: [], waves, wave: 0, phase: 'fight', phaseT: 0, pending: [], queue: [], events: [],
-    auto: false, kills: 0, nextUid: 1, rng,
+    auto: false, kills: 0, nextUid: 1, rng, balance: stage ? encounterBalance(stage) : { hp: 1, attack: 1, defense: 1, allyHeal: 0.1, bossHp: 1 },
   }
   allies.forEach((a, i) => b.units.push(makeUnit(b, 'ally', a.speciesId, a.level, a.stats, i, false, { ownedId: a.ownedId, fx: a.fx, move: a.move, move2: a.move2, fx2: a.fx2 })))
   spawnWave(b)
@@ -434,6 +447,7 @@ function applyHit(b: Battle, p: Pending) {
       }
     }
     b.events.push({ k: 'faint', uid: to.uid })
+    if(to.boss && to.side === 'enemy') b.events.push({ k: 'bossDefeated', uid: to.uid, x: to.x, y: to.y })
     // 보스가 쓰러지면 부하들은 도망친다
     if (to.boss && to.side === 'enemy') {
       for (const m of b.units) if (m.side === 'enemy' && m.alive) { m.alive = false; m.deadT = 0; b.events.push({ k: 'flee', uid: m.uid }) }
@@ -595,7 +609,7 @@ export function step(b: Battle, dt: number): void {
       for (const a of alive(b, 'ally')) {
         a.status = null
         a.scatterT = 0
-        const heal = Math.floor(a.maxHp * (0.1 + a.waveHeal))
+        const heal = Math.floor(a.maxHp * (b.balance.allyHeal + a.waveHeal))
         a.hp = Math.min(a.maxHp, a.hp + heal)
         b.events.push({ k: 'heal', uid: a.uid, amount: heal })
       }
