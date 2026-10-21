@@ -502,6 +502,7 @@ export function movePartyTo(b:Battle,x:number,y:number):boolean {
  if(b.phase!=='fight'&&b.phase!=='advance')return false
  if(!Number.isFinite(x)||!Number.isFinite(y))return false
  b.manualPoint={x:Math.max(FIELD.x0,Math.min(FIELD.x1,x)),y:Math.max(FIELD.y0,Math.min(FIELD.y1,y))}
+ b.manualDirection=null // tap-to-waypoint overrides held motion
  return true
 }
 export function clearPartyWaypoint(b:Battle):void {b.manualPoint=null}
