@@ -111,9 +111,9 @@ describe('stats / 성장', () => {
 
 describe('파워스톤 격자', () => {
   const stones: Stone[] = [{ id: 'a', kind: 'atk', star: 1, shape: 'bar2' }, { id: 'b', kind: 'hp', star: 1, shape: 'ell' }]
-  it('레벨이 오르면 열리는 칸이 늘어나고 12칸을 넘지 않는다', () => {
+  it('레벨에 따라 P애뮬릿 최대 9칸이 열린다', () => {
     expect(unlockedCount(1)).toBe(1)
-    expect(unlockedCount(6)).toBeGreaterThan(unlockedCount(1))
+    expect(unlockedCount(11)).toBeGreaterThan(unlockedCount(1))
     expect(unlockedCount(100)).toBe(GRID_W * GRID_H)
   })
   it('회전해도 칸 수가 같고 좌상단으로 정규화된다', () => {
@@ -127,14 +127,14 @@ describe('파워스톤 격자', () => {
   })
   it('잠긴 칸과 겹친 칸에는 놓을 수 없다', () => {
     const empty = occupancy([], stones)
-    expect(canPlace(1, empty, 'dot', 0, 3, 2)).toBe(false) // 잠긴 칸
+    expect(canPlace(1, empty, 'dot', 0, 2, 2)).toBe(false) // 잠긴 칸
     expect(canPlace(1, empty, 'dot', 0, 1, 1)).toBe(true)
     const occ = occupancy([{ stone: 'a', x: 1, y: 1, rot: 0 }], stones)
     expect(canPlace(1, occ, 'dot', 0, 2, 1)).toBe(false) // bar2 가 (1,1)(2,1) 차지
     expect(canPlace(100, occ, 'dot', 0, 1, 0)).toBe(true)
   })
   it('자동 배치는 들어갈 자리가 없으면 null', () => {
-    expect(findSpot(1, occupancy([], stones), 'bar3')).toBeNull() // 레벨1은 열린 칸이 4개뿐이라 3칸 일자는 들어가지 않는다
+    expect(findSpot(1, occupancy([], stones), 'bar3')).toBeNull() // 레벨1은 열린 칸이 1개라 3칸 일자는 들어가지 않는다
   })
 })
 
