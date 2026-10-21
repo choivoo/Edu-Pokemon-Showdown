@@ -57,7 +57,7 @@ export function pack(s: SaveData): Packed {
     s.version, s.started ? 1 : 0, s.name, s.coins,
     Object.entries(s.ingredients),
     s.stones.map(t => [t.id, t.kind, t.star, t.shape, ...(t.value !== undefined ? [t.value, t.effects] : [])]),
-    s.owned.map(o => [o.id, o.species, o.level, o.exp, o.stones.map(p => [p.stone, p.x, p.y, p.rot]), o.bonus.map(b => [b.kind, ...b.v]), o.mstones, o.move ?? '', o.recalls ?? 0, o.recallT ?? 0]),
+    s.owned.map(o => [o.id, o.species, o.level, o.exp, o.stones.map(p => [p.stone, p.x, p.y, p.rot]), o.bonus.map(b => [b.kind, ...b.v]), o.mstones, o.move ?? '', o.recalls ?? 0, o.recallT ?? 0, ...(o.everstone ? [1] : [])]),
     s.party, Object.keys(s.cleared), s.dex, s.endlessBest, s.uid, s.muted ? 1 : 0, s.exportedAt, s.clearsSinceExport,
     s.battery.n, s.battery.at, s.moveStones.map(m => [m.id, m.kind]),
     s.counters, s.claimed, s.statue, s.themes, s.theme,
@@ -80,9 +80,9 @@ export function unpack(p: Packed): SaveData {
     coins: Number(p[3]) || 0,
     ingredients: ing,
     stones: p[5].map(([id, kind, star, shape, value, effects]) => ({ id, kind, star, shape, ...(value !== undefined && value !== null ? { value, ...(effects ? { effects } : {}) } : {}) })) as SaveData['stones'],
-    owned: p[6].map(([id, species, level, exp, st, bonus, mstones, move, recalls, recallT]) => ({
+    owned: p[6].map(([id, species, level, exp, st, bonus, mstones, move, recalls, recallT, everstone]) => ({
       id, species, level, exp,
-      ...(move ? { move } : {}), ...(recalls ? { recalls, recallT } : {}),
+      ...(move ? { move } : {}), ...(recalls ? { recalls, recallT } : {}), ...(everstone ? { everstone: true } : {}),
       stones: st.map(([stone, x, y, rot]) => ({ stone, x, y, rot })),
       // 옛 저장 키에는 빙고 보너스/기술스톤이 없다 → migrate 가 채운다
       bonus: (bonus ?? []).map(([kind, a, b, c]) => ({ kind, v: [a, b, c] })) as OwnedMon['bonus'],
