@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { allCleared, areaCleared, areaUnlocked, isCleared, useGame } from '../store/gameStore'
+import { allCleared, areaCleared, areaUnlocked, isCleared, legacyFanProgress, useGame } from '../store/gameStore'
 import TypeBadge from '../components/TypeBadge'
 import { AREA_BONUS, AREA_BONUS_MUL, AREAS, getEndlessStage, getStage, recommendedPower, stageCount, type Stage } from '../lib/stages'
 import { getIngredient } from '../lib/cooking'
@@ -22,9 +22,10 @@ export default function Island() {
   useEffect(() => { bgm.play('map') }, [])
   const [area, setArea] = useState<number | null>(null)
   const [story, setStory] = useState<number | null>(null)
-  const [mode, setMode] = useState<'original' | 'fan'>(() => allCleared(save) ? 'fan' : 'original')
+  const [mode, setMode] = useState<'original' | 'fan'>(() => legacyFanProgress(save) ? 'fan' : 'original')
   const unlocked = AREAS.map((_, i) => areaUnlocked(save, i))
   const endless = allCleared(save)
+  const fanAvailable = endless || legacyFanProgress(save)
   useCanvas(canvas, (ctx, t) => {
     if (mode === 'original') drawOriginalIsland(ctx, t, unlocked.slice(ORIGINAL_FIRST, ORIGINAL_LAST + 1), AREAS.slice(ORIGINAL_FIRST, ORIGINAL_LAST + 1).map((_, i) => areaCleared(save, ORIGINAL_FIRST + i)))
     else drawIsland(ctx, t, unlocked.slice(0, FAN_AREA_COUNT), endless)
@@ -50,7 +51,7 @@ export default function Island() {
 
       <div className="absolute left-3 top-[80px] flex gap-2">
         <Btn color={mode === 'original' ? 'yellow' : 'gray'} onClick={() => { setArea(null); setStory(null); setMode('original') }} className="px-4 py-1 text-base">본편 · 네모루루섬</Btn>
-        <Btn color={mode === 'fan' ? 'yellow' : 'gray'} disabled={!endless} onClick={() => { setArea(null); setStory(null); setMode('fan') }} className="px-4 py-1 text-base">{endless ? '추가 스토리 · 별모래섬' : '추가 스토리 · 엔딩 후 개방'}</Btn>
+        <Btn color={mode === 'fan' ? 'yellow' : 'gray'} disabled={!fanAvailable} onClick={() => { setArea(null); setStory(null); setMode('fan') }} className="px-4 py-1 text-base">{fanAvailable ? '추가 스토리 · 별모래섬' : '추가 스토리 · 엔딩 후 개방'}</Btn>
       </div>
 
       {AREAS.map((a, i) => {
