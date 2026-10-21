@@ -16,8 +16,8 @@ async function copy(text: string): Promise<boolean> {
 }
 
 export default function SavePanel() {
-  const { save, openPanel, markExported, importSave: apply } = useGame()
-  const [tab, setTab] = useState<'export' | 'import'>(save.started ? 'export' : 'import')
+  const { save, openPanel, markExported, importSave: apply, hardReset } = useGame()
+  const [tab, setTab] = useState<'export' | 'import' | 'reset'>(save.started ? 'export' : 'import')
   const [keys, setKeys] = useState<ExportedKeys | null>(null)
   const [busy, setBusy] = useState(false)
   const [note, setNote] = useState('')
@@ -25,6 +25,8 @@ export default function SavePanel() {
   const [inPw, setInPw] = useState('')
   const [err, setErr] = useState('')
   const [confirm, setConfirm] = useState(false)
+  const [resetPhrase, setResetPhrase] = useState('')
+  const [resetArmed, setResetArmed] = useState(false)
 
   const make = async () => {
     setBusy(true)
@@ -62,10 +64,11 @@ export default function SavePanel() {
   }
 
   return (
-    <Panel title="데이터 이전 (저장 키)" onClose={() => openPanel(null)} w={880} z={60}>
+    <Panel title="저장 데이터 관리" onClose={() => openPanel(null)} w={880} z={60}>
       <div className="mb-3 flex gap-2">
         <Btn color={tab === 'export' ? 'yellow' : 'gray'} onClick={() => setTab('export')} className="flex-1 py-1.5 text-lg">저장 키 만들기</Btn>
         <Btn color={tab === 'import' ? 'yellow' : 'gray'} onClick={() => setTab('import')} className="flex-1 py-1.5 text-lg">저장 키로 불러오기</Btn>
+        <Btn color={tab === 'reset' ? 'red' : 'gray'} onClick={() => { setTab('reset'); setResetPhrase(''); setResetArmed(false) }} className="px-3 py-1.5 text-lg">계정 초기화</Btn>
       </div>
 
       {tab === 'export' && (
@@ -92,6 +95,29 @@ export default function SavePanel() {
               <p className="flex items-start gap-1 text-sm text-[#a03a2a]"><Icon n="warn" s={20} />암호 키가 없으면 저장 키를 열 수 없고, 이 키 없이는 잃어버린 데이터를 복구할 수 없어요. 꼭 두 가지를 함께 보관하세요.</p>
             </div>
           )}
+        </div>
+      )}
+
+      {tab === 'reset' && (
+        <div className="space-y-4 rounded-lg border-4 border-[#ad403a] bg-[#fff0df] p-5 text-[#613327]" style={{minHeight:330}}>
+          <div className="flex items-center gap-2 text-2xl font-black"><Icon n="warn" s={30}/>이 기기의 모험 데이터를 초기화</div>
+          <p className="text-base leading-relaxed">이 브라우저에 저장된 <b>포켓몬·레벨·파워스톤·지역 진행도·요리 재료·PM티켓·업적</b>이 모두 초기화되고, 첫 시작 화면으로 돌아갑니다. 다른 기기의 데이터나 이미 만들어 둔 저장 키 파일은 삭제하지 않습니다.</p>
+          <p className="text-sm font-bold">초기화 전에는 위의 ‘저장 키 만들기’에서 저장 키와 암호 키를 백업하는 것을 권장합니다.</p>
+          <label className="block text-base font-bold" htmlFor="quest-reset-phrase">정말 초기화하려면 아래에 <span className="text-red-700">초기화</span>를 입력하세요.</label>
+          <input id="quest-reset-phrase" className="w-full rounded border-4 border-[#d1a177] bg-white px-3 py-2 text-xl text-[#452c20]"
+            value={resetPhrase} onChange={e=>{setResetPhrase(e.target.value);setResetArmed(false)}} placeholder="초기화" autoComplete="off" />
+          <div className="flex items-center justify-end gap-2">
+            <Btn color="gray" onClick={()=>{setTab('export');setResetArmed(false);setResetPhrase('')}} className="px-5 py-2">취소</Btn>
+            {!resetArmed ? (
+              <Btn color="red" disabled={!save.started || resetPhrase.trim()!=='초기화'}
+                onClick={()=>setResetArmed(true)} className="px-5 py-2">초기화 확인</Btn>
+            ) : (
+              <Btn color="red" onClick={()=>{sfx.wrong();hardReset()}} className="px-5 py-2">
+                모든 진행 데이터 삭제하고 새로 시작
+              </Btn>
+            )}
+          </div>
+          {resetArmed && <p role="alert" className="text-center text-sm font-bold text-red-700">마지막 확인입니다. 삭제 후에는 백업이 없으면 이전 진행도를 복구할 수 없습니다.</p>}
         </div>
       )}
 
