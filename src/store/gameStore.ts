@@ -84,9 +84,12 @@ export function newcomerLevel(save: SaveData, floor = 5): number {
 export const isCleared = (save: SaveData, area: number, index: number) => !!save.cleared[stageId(area, index)]
 export const areaCleared = (save: SaveData, area: number) => isCleared(save, area, stageCount(area) - 1)
 /** Original campaign first. Fan-created six chapters unlock only after Mewtwo. */
+export const legacyFanProgress = (save: SaveData): boolean =>
+  Object.keys(save.cleared).some(k => /^a[0-5]-s\\d+$/.test(k))
 export const areaUnlocked = (save: SaveData, area: number): boolean => {
   if (area >= ORIGINAL_FIRST && area <= ORIGINAL_LAST) return originalUnlocked(area, i => areaCleared(save, i))
-  return areaCleared(save, ORIGINAL_BOSS_AREA) && (area === 0 || areaCleared(save, area - 1))
+  // Existing pre-2D-remake saves keep access to their already-played fan route.
+  return (areaCleared(save, ORIGINAL_BOSS_AREA) || legacyFanProgress(save)) && (area === 0 || areaCleared(save, area - 1))
 }
 /** The postgame Happenstance Island is available as soon as the original final boss falls. */
 export const allCleared = (save: SaveData) => areaCleared(save, ORIGINAL_BOSS_AREA)
