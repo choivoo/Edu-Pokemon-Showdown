@@ -213,7 +213,13 @@ function spawnWave(b: Battle) {
   const first = wave.filter(e => !e.late)
   const surround = first.some(e => e.surround)
   const last = b.wave === b.waves.length - 1
-  first.forEach((e, i) => addEnemy(b, e, i, e.surround || surround ? surroundPos(i, first.length) : undefined))
+  first.forEach((e, i) => {
+    if (e.surround || surround) {
+      const around = surroundPos(i, first.length)
+      const node = waveCenter(b.wave,b.waves.length)
+      addEnemy(b,e,i,{x:around.x+node.x-880,y:around.y+node.y-660})
+    } else addEnemy(b,e,i)
+  })
   b.events.push({ k: 'wave', index: b.wave })
   if (surround) b.events.push({ k: 'banner', text: '포위당했다!', tone: 'warn' })
   else if (last && wave.some(e => e.boss)) b.events.push({ k: 'banner', text: '매우 강해 보이는 포켓몬이 나타났다!', tone: 'boss' })
@@ -521,6 +527,7 @@ export function step(b: Battle, dt: number): void {
               u.alive = false; u.deadT = 0; u.status = null
               if (u.side === 'enemy') { b.kills++; b.waveKills++ }
               b.events.push({ k: 'faint', uid: u.uid })
+              if (u.boss && u.side === 'enemy') b.events.push({ k: 'bossDefeated', uid: u.uid, x: u.x, y: u.y })
               continue
             }
           }
@@ -561,10 +568,17 @@ export function step(b: Battle, dt: number): void {
         if (u.status?.kind === 'chain') { u.moving = false; continue }
         u.moving = true
         const k = Math.min(speedOf(b, u) * dt, d)
-        u.x += ((t.x - u.x) / d) * k
-        u.y += ((t.y - u.y) / d) * k
+        const weave = 0.28 * Math.sin(b.t * 0.9 + u.uid * 1.9)
+        u.x += (((t.x-u.x)/d) - ((t.y-u.y)/d) * weave) * k
+        u.y += (((t.y-u.y)/d) + ((t.x-u.x)/d) * weave) * k
       } else {
-        u.moving = false
+        if (u.range > MELEE_RANGE + 10 && u.atkCd > 0.3 && d > 24) {
+          const sign = Math.sin(u.uid * 2.17) >= 0 ? 1 : -1
+          const k = speedOf(b, u) * dt * 0.32 * sign
+          u.x += -(t.y - u.y) / d * k
+          u.y += (t.x - u.x) / d * k
+          u.moving = true
+        } else u.moving = false
         if (u.atkCd <= 0) {
           const ranged = u.range > MELEE_RANGE + 10 && !u.boss
           u.lunge = 0.25
@@ -617,12 +631,13 @@ export function step(b: Battle, dt: number): void {
   } else if (b.phase === 'advance') {
     b.phaseT -= dt
     for (const a of alive(b, 'ally')) {
-      const h = FORMATION[a.slot] ?? FORMATION[0]
+      const center = waveCenter(b.wave + 1,b.waves.length)
+      const h = { x: center.x - 225 - a.slot * 25, y: center.y + (a.slot-1)*62 }
       const dx = h.x - a.x, dy = h.y - a.y
       const d = Math.hypot(dx, dy)
       a.moving = true
-      a.face = 1
-      if (d > 2) { const k = Math.min(d, 170 * dt); a.x += (dx / d) * k; a.y += (dy / d) * k }
+      a.face = dx >= 0 ? 1 : -1
+      if (d > 2) { const k = Math.min(d, 410 * dt); a.x += (dx / d) * k; a.y += (dy / d) * k }
     }
     if (b.phaseT <= 0) {
       b.wave++
