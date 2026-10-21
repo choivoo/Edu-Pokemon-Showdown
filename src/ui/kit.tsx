@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react'
-import { frontSprite } from '../data/sprites'
+import { frontSprite, fallbackSpriteOnError } from '../data/sprites'
 import { sfx } from '../lib/sound'
 import Icon from './Icon'
 
@@ -36,7 +36,7 @@ export function Panel({ title, onClose, children, w = 760, h, z = 40 }: { title:
 export function Portrait({ id, bg = '#fff3c8', size = 64, dim }: { id: number; bg?: string; size?: number; dim?: boolean }) {
   return (
     <span className="inline-flex items-center justify-center overflow-hidden rounded-lg border-2 border-black/25" style={{ width: size, height: size, background: bg }}>
-      <img src={frontSprite(id)} alt="" className="sprite" style={{ width: size * 1.35, height: size * 1.35, marginTop: size * 0.08, filter: dim ? 'brightness(0) opacity(0.45)' : undefined }} />
+      <img src={frontSprite(id)} alt="" loading="lazy" onError={e => fallbackSpriteOnError(e.currentTarget, id)} className="sprite" style={{ width: size * 1.25, height: size * 1.25, objectFit: 'contain', imageRendering: 'pixelated', filter: dim ? 'brightness(0) opacity(0.45)' : undefined }} />
     </span>
   )
 }
