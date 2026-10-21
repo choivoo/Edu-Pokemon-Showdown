@@ -67,7 +67,7 @@ describe('Original evolution and Bingo rules', () => {
     for (let y = 0; y < 3; y++) {
       for (let x = 0; x < 3; x++) {
         occ.set(x + ',' + y, x + y * 3)
-        const expected = y === 0 ? (x === 2 ? 1 : 0) : y === 1 ? (x === 2 ? 2 : 1) : x === 2 ? 3 : 2
+        const expected = y === 0 ? (x === 2 ? 1 : 0) : y === 1 ? (x === 2 ? 2 : 1) : 3
         expect(unlockedBingoCount(occ)).toBe(expected)
       }
     }
