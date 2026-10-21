@@ -129,6 +129,7 @@ export const STAB = 1.3
 export const AOE_RADIUS = 150
 
 const BOSS = { hp: 2.35, atk: 1.03, def: 1.0 }
+/** Boss waves retain a recognizable oversized final enemy, even on stages 1-1 to 1-4. */
 const ELITE = { hp: 1.7, atk: 1.1, def: 1.05 }
 /** 아군은 스톤으로 강해지므로 일반 적의 공격은 살짝 낮춘다 */
 const ENEMY_ATK = 0.72
