@@ -18,6 +18,8 @@ import StoryPanel from './pages/panels/StoryPanel'
 import { enterLandscapeFullscreen } from './lib/fullscreen'
 import Icon from './ui/Icon'
 import { audio } from './lib/audio'
+import { bgm } from './lib/music'
+import { restoreLocalSoundtrack } from './lib/localSoundtrack'
 
 /** 게임은 항상 960×540(16:9) 가상 화면에 그려지고, 창 크기에 맞춰 통째로 확대/축소된다. */
 const VW = 960
@@ -44,6 +46,11 @@ export default function App() {
     window.addEventListener('pointerdown', unlock)
     window.addEventListener('keydown', unlock)
     return () => { window.removeEventListener('pointerdown', unlock); window.removeEventListener('keydown', unlock) }
+  }, [])
+  useEffect(() => {
+    void restoreLocalSoundtrack().then(found => {
+      if (found && bgm.playing) { const song=bgm.playing; bgm.stop(); bgm.play(song) }
+    })
   }, [])
   const { w, h } = useViewport()
   const portrait = h > w
