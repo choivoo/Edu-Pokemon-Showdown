@@ -23,7 +23,7 @@ function sample(): SaveData {
 describe('저장 키', () => {
   it('탐험 대기 중인 요리도 암호화 저장 키에서 정확히 복원된다', async () => {
     const original = sample()
-    original.pot = { species: 25, remaining: 2, total: 3, recipe: 4 }
+    original.pot = { species: 25, remaining: 2, total: 3, recipe: 4, tier: 3 }
     expect(unpack(pack(original)).pot).toEqual(original.pot)
     const keys = await exportSave(original)
     const restored = await importSave(keys.saveKey, keys.password)
