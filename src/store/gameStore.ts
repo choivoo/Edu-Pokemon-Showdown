@@ -195,7 +195,7 @@ export const useGame = create<GameState>((set, get) => {
       const mon = s.owned.find(o => o.id === monId)
       const stone = s.stones.find(t => t.id === stoneId)
       if (!mon || !stone || usedStoneIds(s).has(stoneId)) return false
-      if (!canPlace(mon.level, occupancy(mon.stones, s.stones), stone.shape, rot, x, y)) return false
+      if (!canPlace(mon.level, occupancy(mon.stones, s.stones), stone.shape, rot, x, y) || !socketAccepts(mon.id, mon.species, stone.kind, stone.shape, x, y, rot)) return false
       commit({ owned: s.owned.map(o => (o.id === monId ? { ...o, stones: [...o.stones, { stone: stoneId, x, y, rot }] } : o)) })
       return true
     },
@@ -204,7 +204,11 @@ export const useGame = create<GameState>((set, get) => {
       const mon = s.owned.find(o => o.id === monId)
       const stone = s.stones.find(t => t.id === stoneId)
       if (!mon || !stone) return false
-      const spot = findSpot(mon.level, occupancy(mon.stones, s.stones), stone.shape)
+      const used = occupancy(mon.stones, s.stones)
+      const spots = [] as Array<{ x: number; y: number; rot: number }>
+      for (let y = 0; y < 3; y++) for (let x = 0; x < 3; x++)
+        for (let rot = 0; rot < 4; rot++) if (canPlace(mon.level, used, stone.shape, rot, x, y) && socketAccepts(mon.id, mon.species, stone.kind, stone.shape, x, y, rot)) spots.push({ x, y, rot })
+      const spot = spots[0]
       return spot ? get().placeStone(monId, stoneId, spot.x, spot.y, spot.rot) : false
     },
     removeStone: (monId, stoneId) => {
