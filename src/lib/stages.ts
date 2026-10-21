@@ -6,6 +6,7 @@ import { SHAPE_WEIGHTS, STONE_PERKS, type Stone, type StoneKind, type StonePerk 
 import { MOVE_STONE_KINDS, type MoveStoneKind } from './moveStones'
 import type { Species } from '../types'
 import { ORIGINAL_AREAS, ORIGINAL_BOSS_AREA, ORIGINAL_FIRST, HAPPENSTANCE_AREA, HAPPENSTANCE } from './originalCampaign'
+import { verifiedWaves } from '../data/verifiedEncounters'
 
 export type Theme = 'beach' | 'forest' | 'cave' | 'gorge' | 'volcano' | 'altar'
 export interface DialogLine { speaker: string | null; text: string }
@@ -227,6 +228,8 @@ const pick = <T,>(arr: T[], rng: Rng): T => arr[Math.floor(rng() * arr.length)]
 
 /** 스테이지의 웨이브 구성을 무작위로 뽑는다 */
 export function buildWaves(stage: Stage, rng: Rng = Math.random): WaveEnemy[][] {
+  const verified = verifiedWaves(stage.area, stage.index, stage.level, rng)
+  if (verified) return verified
   const area = stage.area >= 0 ? AREAS[stage.area] : null
   const postgame = stage.area === HAPPENSTANCE_AREA
   const pool = stage.area === ORIGINAL_FIRST && stage.index < 3 ? [
