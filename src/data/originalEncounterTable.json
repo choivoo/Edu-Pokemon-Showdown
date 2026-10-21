@@ -1610,6 +1610,454 @@
     ],
     "source": "serebii-location-numerical"
   },
+  "10-0": {
+    "segments": [
+      [
+        [
+          {
+            "id": 41,
+            "weight": 25
+          },
+          {
+            "id": 74,
+            "weight": 75
+          }
+        ],
+        [
+          {
+            "id": 41,
+            "weight": 100
+          }
+        ],
+        [
+          {
+            "id": 74,
+            "weight": 100
+          }
+        ]
+      ],
+      [
+        [
+          {
+            "id": 92,
+            "weight": 80
+          },
+          {
+            "id": 66,
+            "weight": 20
+          }
+        ],
+        [
+          {
+            "id": 92,
+            "weight": 100
+          }
+        ],
+        [
+          {
+            "id": 74,
+            "weight": 100
+          }
+        ]
+      ],
+      [
+        [
+          {
+            "id": 19,
+            "weight": 100
+          }
+        ],
+        [
+          {
+            "id": 74,
+            "weight": 100
+          }
+        ]
+      ],
+      [
+        [
+          {
+            "id": 20,
+            "weight": 100
+          }
+        ]
+      ]
+    ],
+    "bossSets": [],
+    "source": "serebii-location-numerical"
+  },
+  "10-1": {
+    "segments": [
+      [
+        [
+          {
+            "id": 27,
+            "weight": 46.67
+          },
+          {
+            "id": 41,
+            "weight": 36.67
+          },
+          {
+            "id": 19,
+            "weight": 16.67
+          }
+        ],
+        [
+          {
+            "id": 27,
+            "weight": 100
+          }
+        ],
+        [
+          {
+            "id": 41,
+            "weight": 100
+          }
+        ]
+      ],
+      [
+        [
+          {
+            "id": 75,
+            "weight": 70
+          },
+          {
+            "id": 20,
+            "weight": 30
+          }
+        ],
+        [
+          {
+            "id": 41,
+            "weight": 100
+          }
+        ],
+        [
+          {
+            "id": 28,
+            "weight": 100
+          }
+        ],
+        [
+          {
+            "id": 41,
+            "weight": 100
+          }
+        ]
+      ],
+      [
+        [
+          {
+            "id": 41,
+            "weight": 100
+          }
+        ],
+        [
+          {
+            "id": 41,
+            "weight": 100
+          }
+        ]
+      ],
+      [
+        [
+          {
+            "id": 41,
+            "weight": 100
+          }
+        ],
+        [
+          {
+            "id": 41,
+            "weight": 100
+          }
+        ]
+      ]
+    ],
+    "bossSets": [
+      [
+        {
+          "id": 42,
+          "weight": 100
+        }
+      ],
+      [
+        {
+          "id": 41,
+          "weight": 100
+        }
+      ]
+    ],
+    "source": "serebii-location-numerical"
+  },
+  "10-2": {
+    "segments": [
+      [
+        [
+          {
+            "id": 50,
+            "weight": 100
+          }
+        ],
+        [
+          {
+            "id": 81,
+            "weight": 100
+          }
+        ]
+      ],
+      [
+        [
+          {
+            "id": 75,
+            "weight": 100
+          }
+        ],
+        [
+          {
+            "id": 50,
+            "weight": 50
+          },
+          {
+            "id": 27,
+            "weight": 50
+          }
+        ],
+        [
+          {
+            "id": 81,
+            "weight": 100
+          }
+        ]
+      ],
+      [
+        [
+          {
+            "id": 81,
+            "weight": 100
+          }
+        ],
+        [
+          {
+            "id": 100,
+            "weight": 96.67
+          },
+          {
+            "id": 135,
+            "weight": 3.33
+          }
+        ],
+        [
+          {
+            "id": 50,
+            "weight": 50
+          },
+          {
+            "id": 27,
+            "weight": 50
+          }
+        ]
+      ]
+    ],
+    "bossSets": [
+      [
+        {
+          "id": 95,
+          "weight": 100
+        }
+      ]
+    ],
+    "source": "serebii-location-numerical"
+  },
+  "10-3": {
+    "segments": [
+      [
+        [
+          {
+            "id": 104,
+            "weight": 100
+          }
+        ],
+        [
+          {
+            "id": 129,
+            "weight": 3.33
+          },
+          {
+            "id": 54,
+            "weight": 30
+          },
+          {
+            "id": 41,
+            "weight": 13.33
+          },
+          {
+            "id": 104,
+            "weight": 53.33
+          }
+        ],
+        [
+          {
+            "id": 55,
+            "weight": 100
+          }
+        ]
+      ],
+      [
+        [
+          {
+            "id": 28,
+            "weight": 50
+          },
+          {
+            "id": 55,
+            "weight": 50
+          }
+        ],
+        [
+          {
+            "id": 104,
+            "weight": 100
+          }
+        ],
+        [
+          {
+            "id": 54,
+            "weight": 100
+          }
+        ]
+      ],
+      [
+        [
+          {
+            "id": 54,
+            "weight": 100
+          }
+        ],
+        [
+          {
+            "id": 104,
+            "weight": 100
+          }
+        ]
+      ],
+      [
+        [
+          {
+            "id": 54,
+            "weight": 100
+          }
+        ]
+      ]
+    ],
+    "bossSets": [
+      [
+        {
+          "id": 105,
+          "weight": 100
+        }
+      ],
+      [
+        {
+          "id": 105,
+          "weight": 100
+        }
+      ],
+      [
+        {
+          "id": 105,
+          "weight": 100
+        }
+      ]
+    ],
+    "source": "serebii-location-numerical"
+  },
+  "10-4": {
+    "segments": [
+      [
+        [
+          {
+            "id": 74,
+            "weight": 100
+          }
+        ],
+        [
+          {
+            "id": 28,
+            "weight": 100
+          }
+        ],
+        [
+          {
+            "id": 50,
+            "weight": 100
+          }
+        ]
+      ],
+      [
+        [
+          {
+            "id": 75,
+            "weight": 100
+          }
+        ],
+        [
+          {
+            "id": 105,
+            "weight": 100
+          }
+        ],
+        [
+          {
+            "id": 50,
+            "weight": 100
+          }
+        ],
+        [
+          {
+            "id": 75,
+            "weight": 100
+          }
+        ]
+      ],
+      [
+        [
+          {
+            "id": 74,
+            "weight": 100
+          }
+        ],
+        [
+          {
+            "id": 51,
+            "weight": 95
+          },
+          {
+            "id": 113,
+            "weight": 5
+          }
+        ]
+      ],
+      [
+        [
+          {
+            "id": 74,
+            "weight": 100
+          }
+        ]
+      ]
+    ],
+    "bossSets": [
+      [
+        {
+          "id": 76,
+          "weight": 100
+        }
+      ]
+    ],
+    "source": "serebii-location-numerical"
+  },
   "11-0": {
     "segments": [
       [
@@ -4194,6 +4642,18 @@
         {
           "id": 149,
           "weight": 2.5
+        }
+      ]
+    ],
+    "source": "serebii-location-numerical"
+  },
+  "16-0": {
+    "segments": [],
+    "bossSets": [
+      [
+        {
+          "id": 150,
+          "weight": 100
         }
       ]
     ],
