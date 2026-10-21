@@ -1,0 +1,48 @@
+name: Fan Edition 1.0 Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish-v1:
+    if: github.repository == 'choivoo/Pokemon-Quest-fan.Edition'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install and verify
+        run: |
+          npm ci
+          npm run typecheck
+          npm test
+          npm run build
+          test -s dist/index.html
+      - name: Package standalone web build
+        run: |
+          zip -qr pokemon-quest-fan-edition-v1.0.0-web.zip dist
+          unzip -t pokemon-quest-fan-edition-v1.0.0-web.zip
+      - name: Publish unofficial 1.0.0 release if absent
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: v1.0.0
+        run: |
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release $TAG already exists; preserving published tag."
+            exit 0
+          fi
+          gh release create "$TAG" pokemon-quest-fan-edition-v1.0.0-web.zip \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "Pokémon Quest: Fan Edition 1.0.0 (비공식)" \
+            --notes-file RELEASE_NOTES.md
