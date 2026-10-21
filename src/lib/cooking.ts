@@ -1,6 +1,7 @@
 import type { PokemonType, Rng, Species } from '../types'
 import { SPECIES } from './roster'
 import { EVOLUTION_ONLY } from './evolution'
+import { questStats } from '../data/questSpecies'
 
 // 재료는 원작처럼 "색 / 식감 / 종류" 세 가지 성질을 가진다. 어떤 성질이 얼마나 들어갔는지로 레시피가 정해진다.
 export type IngredientId =
@@ -143,29 +144,43 @@ export function attractPool(recipe: Recipe): Species[] {
   return SPECIES.filter(s => s.rarity <= 3 && !EVOLUTION_ONLY.has(s.id) && !LEGENDARY_SPECIES.includes(s.id as typeof LEGENDARY_SPECIES[number]) && s.types.some(t => recipe.types.includes(t)))
 }
 
-/** 요리를 해서 찾아오는 포켓몬을 뽑는다 */
+/**
+ * Species-level recipe odds table. Normal stages use the observed relative
+ * rarity bucket and per-species normalized numerical affinities. Until the
+ * entire retail datamine is independently verified, these are explicitly
+ * ESTIMATES, never advertised as official original spawn percentages.
+ */
+export interface AttractionOdds { species: Species; probability: number; weight: number }
+export function attractionOdds(sel: IngredientId[]): AttractionOdds[] {
+  const recipe=recipeFor(sel)
+  const pool=attractPool(recipe)
+  if (!pool.length) return []
+  if (recipe.no===18) {
+    const shells=sel.filter(x=>x==='shell').length
+    const weights=pool.map(p=>p.id===150||p.id===151 ? (shells>1 ? 2 : 1) : 3)
+    const total=weights.reduce((a,b)=>a+b,0)
+    return pool.map((species,i)=>({species,weight:weights[i],probability:weights[i]/total}))
+  }
+  const rarity=RARITY_WEIGHTS[gradeOf(sel)]
+  const groups=([1,2,3] as const).filter(x=>pool.some(p=>p.rarity===x)&&rarity[x-1]>0)
+  const rarityTotal=groups.reduce((n,k)=>n+rarity[k-1],0)
+  const odds:AttractionOdds[]=[]
+  for (const r of groups) {
+    const candidates=pool.filter(s=>s.rarity===r)
+    const weights=candidates.map(s=>{
+      const q=questStats(s.id)
+      const strength=q ? (q.hp+q.atk)/2 : 400
+      const flavor=1+((s.id*37)%9)*.025
+      return (1/Math.sqrt(Math.max(100,strength))) * flavor
+    })
+    const groupTotal=weights.reduce((a,b)=>a+b,0)
+    candidates.forEach((species,i)=>odds.push({species,weight:weights[i],probability:rarity[r-1]/rarityTotal*weights[i]/groupTotal}))
+  }
+  return odds
+}
 export function cook(sel: IngredientId[], rng: Rng = Math.random): Species {
-  const recipe = recipeFor(sel)
-  const pool = attractPool(recipe)
-  if (recipe.no === 18) {
-    const shellCount = sel.filter(id => id === 'shell').length
-    // Legendary Pokémon are obtainable ONLY using the special shell recipe.
-    const weights = pool.map(p => p.id === 150 || p.id === 151 ? (shellCount > 1 ? 2 : 1) : 3)
-    const max = weights.reduce((sum, weight) => sum + weight, 0)
-    let value = rng() * max
-    for (let i = 0; i < pool.length; i++) { value -= weights[i]; if (value < 0) return pool[i] }
-    return pool[pool.length - 1]
-  }
-  const w = RARITY_WEIGHTS[gradeOf(sel)]
-  // 풀에 존재하는 희귀도만으로 가중치를 다시 계산
-  const avail = ([1, 2, 3] as const).filter(r => pool.some(s => s.rarity === r) && w[r - 1] > 0)
-  const total = avail.reduce((a, r) => a + w[r - 1], 0)
-  let roll = rng() * total
-  let pick = avail[avail.length - 1]
-  for (const r of avail) {
-    roll -= w[r - 1]
-    if (roll < 0) { pick = r; break }
-  }
-  const cands = pool.filter(s => s.rarity === pick)
-  return cands[Math.floor(rng() * cands.length)]
+  const odds=attractionOdds(sel)
+  let r=rng()
+  for (const o of odds) {r-=o.probability;if(r<0)return o.species}
+  return odds[odds.length-1].species
 }
