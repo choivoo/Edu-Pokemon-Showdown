@@ -98,7 +98,7 @@ export function unpack(p: Packed): SaveData {
     battery: p[15] !== undefined && p[16] !== undefined ? { n: Math.max(0, Math.min(5, Number(p[15]) || 0)), at: Number(p[16]) || Date.now() } : defaultSave().battery,
     moveStones: (p[17] ?? []).map(([id, kind]) => ({ id, kind })) as SaveData['moveStones'],
     counters: p[18] ?? {}, claimed: p[19] ?? [], statue: Number(p[20]) || 0, themes: p[21] ?? ['default'], theme: p[22] ?? 'default',
-    pot: p[23] ? { species: p[23][0], remaining: p[23][1], total: p[23][2], recipe: p[23][3], ...(p[23][4] ? { tier: p[23][4] as 0 | 1 | 2 | 3 } : {}), ...(Array.isArray(p[23][5]) ? { visitors: p[23][5] } : {}) } : null,
+    pot: p[23] ? { species: p[23][0], remaining: p[23][1], total: p[23][2], recipe: p[23][3], ...(p[23][4] ? { tier: p[23][4] as 0 | 1 | 2 | 3 } : {}), ...(Array.isArray(p[23][5]) && p[23][5].length ? { visitors: p[23][5] } : {}) } : null,
     pmTickets: Math.max(0, Number(p[24]) || 0), ticketClaimedAt: Math.max(0, Number(p[25]) || 0),
     decorations: Array.isArray(p[26]) ? p[26] : [],
   }
