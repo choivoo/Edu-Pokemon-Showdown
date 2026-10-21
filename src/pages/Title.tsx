@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useGame } from '../store/gameStore'
 import { frontSprite, fallbackSpriteOnError } from '../data/sprites'
 import { bgm, sfx } from '../lib/sound'
@@ -14,6 +14,8 @@ const POSTER=[{id:1,x:'-3deg'},{id:25,x:'2deg'},{id:4,x:'-1deg'},{id:7,x:'4deg'}
 export default function Title(){
  const {save,go,openPanel,toggleMute}=useGame()
  const canvas=useRef<HTMLCanvasElement>(null)
+ const [localSound,setLocalSound]=useState(bgm.localMusicActive)
+ const [musicMessage,setMusicMessage]=useState('')
  useEffect(()=>{preload(HEROES);bgm.play('title')},[])
  useCanvas(canvas,(ctx,t)=>{
    drawTitleWorld(ctx,t)
@@ -62,6 +64,19 @@ export default function Title(){
        <Btn color="blue" onClick={()=>openPanel('save')} className="flex items-center gap-2 text-sm"><Icon n="key" s={19}/>데이터 이전</Btn>
        <Btn color="gray" onClick={()=>void enterLandscapeFullscreen()} className="flex items-center gap-2 text-sm"><Icon n="expand" s={19}/>전체화면</Btn>
        <Btn color="gray" onClick={toggleMute} className="flex items-center gap-2 text-sm"><Icon n={save.muted?'mute':'sound'} s={19}/>{save.muted?'소리 켜기':'소리 끄기'}</Btn>
+     </div>
+     <div className="flex items-center justify-center gap-2 bg-[#214d4b]/75 p-1 text-center text-xs text-white">
+       <label className="cursor-pointer border-2 border-[#fff0b8] bg-[#518b71] px-2 py-1 font-bold">
+         <input className="sr-only" type="file" accept="audio/*,.mp3" aria-label="내 기기의 BGM 파일 선택"
+          onChange={e=>{const file=e.target.files?.[0];if(!file)return
+            const ok=bgm.useLocalFile(file);setLocalSound(ok);setMusicMessage(ok?'내 기기 음악 재생 중':'오디오 파일을 열 수 없습니다')
+          }} />
+         개인 MP3 음악 선택
+       </label>
+       {localSound && <button className="border-2 border-white bg-[#4f665c] px-2 py-1" onClick={()=>{
+         bgm.disableLocalFile();setLocalSound(false);setMusicMessage('새로 만든 게임 음악')
+       }}>기본 음악 복원</button>}
+       <span>{musicMessage || '선택 파일은 서버로 전송하지 않습니다'}</span>
      </div>
    </div>
    <footer className="quest-title-footer">비공식 · 비상업 2D 팬게임  |  Pokémon 관련 권리는 원권리자 소유  |  PokéAPI 도트 사용</footer>
