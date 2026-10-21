@@ -89,6 +89,20 @@ class Player {
 let current: Player | null = null
 let currentName: SongName | '' = ''
 let duckGain: GainNode | null = null
+/** Timecodes provided by the user for a locally selected soundtrack.
+ * The MP3 stays on the player's own device; it is NEVER uploaded to GitHub.
+ * This does not claim public redistribution rights over official game tracks.
+ */
+export const LOCAL_CUES: Record<SongName,{start:number;end:number}>={
+ title:{start:0,end:158}, camp:{start:438,end:580}, map:{start:1047,end:1260},
+ battle:{start:684,end:798}, boss:{start:798,end:914}, story:{start:914,end:943},
+ tide:{start:1260,end:1483}, grove:{start:580,end:684}, echo:{start:3743,end:4059},
+ spark:{start:1483,end:1674}, ember:{start:1674,end:1800}, astral:{start:3288,end:3494},
+}
+let localAudio:HTMLAudioElement|null=null
+let localBlobUrl:string|null=null
+let activeLocalCue:{start:number;end:number}|null=null
+
 
 function bgmBus(ctx: AudioContext): AudioNode | null {
   const m = masterOut()
@@ -99,9 +113,59 @@ function bgmBus(ctx: AudioContext): AudioNode | null {
 
 export const bgm = {
   get playing(): SongName | '' { return currentName },
+  get localMusicActive():boolean {return !!localAudio},
+  /** Playback is a device-local opt-in; no user MP3 is included in the public app. */
+  useLocalFile(file:File):boolean {
+    if(!file || !(file.type.startsWith('audio/') || /\\.(mp3|m4a|ogg|wav)$/i.test(file.name)))return false
+    const ctx=audio(),bus=ctx&&bgmBus(ctx)
+    if(!ctx||!bus)return false
+    const selected=currentName || 'title'
+    localAudio?.pause()
+    if(localAudio){localAudio.removeAttribute('src');localAudio.load()}
+    if(localBlobUrl)URL.revokeObjectURL(localBlobUrl)
+    localBlobUrl=URL.createObjectURL(file)
+    const player=new Audio(localBlobUrl)
+    const node=ctx.createMediaElementSource(player)
+    node.connect(bus)
+    localAudio=player
+    player.preload='auto'
+    player.addEventListener('timeupdate',()=>{
+      if(!activeLocalCue)return
+      const t=player.currentTime
+      if(t>=activeLocalCue.end-0.06||t<activeLocalCue.start-1)
+        player.currentTime=activeLocalCue.start
+    })
+    current?.fadeOut(0.2);current=null;currentName=''
+    this.play(selected)
+    return true
+  },
+  disableLocalFile() {
+    const previous=currentName || 'title'
+    localAudio?.pause()
+    if(localAudio){localAudio.removeAttribute('src');localAudio.load()}
+    localAudio=null;activeLocalCue=null
+    if(localBlobUrl)URL.revokeObjectURL(localBlobUrl)
+    localBlobUrl=null;currentName=''
+    this.play(previous)
+  },
   /** 배경음악을 바꾼다. 이미 같은 곡이면 그대로 둔다. */
   play(name: SongName) {
-    if (currentName === name && current) return
+    if (currentName === name && (current || localAudio))return
+    if(localAudio){
+      const cue=LOCAL_CUES[name]
+      activeLocalCue=cue
+      current?.fadeOut(0.15);current=null
+      const player=localAudio
+      const seek=()=>{
+        if(localAudio===player && activeLocalCue===cue)
+          player.currentTime=Math.min(cue.start,Math.max(0,(player.duration||4524)-1))
+      }
+      if(player.readyState>=1)seek()
+      else player.addEventListener('loadedmetadata',seek,{once:true})
+      void player.play().catch(()=>{/* browsers may require a new user gesture */})
+      currentName=name
+      return
+    }
     const ctx = audio()
     const bus = ctx && bgmBus(ctx)
     if (!ctx || !bus) return
@@ -110,6 +174,7 @@ export const bgm = {
     currentName = name
   },
   stop() {
+    localAudio?.pause()
     current?.fadeOut(0.3)
     current = null
     currentName = ''
