@@ -35,7 +35,17 @@ function playStep(song: Song, ctx: BaseAudioContext, trackOut: GainNode[], pos: 
 }
 
 function makeTrackBus(song: Song, ctx: BaseAudioContext, dest: AudioNode): GainNode[] {
-  return song.tracks.map(tr => { const g = ctx.createGain(); g.gain.value = tr.vol; g.connect(dest); return g })
+  return song.tracks.map((tr,idx) => {
+    const g=ctx.createGain()
+    g.gain.value=tr.vol
+    // 악기별 스테레오 위치. 리드와 킥은 중앙, 나머지는 양쪽에 고르게 펼친다.
+    if (typeof ctx.createStereoPanner === 'function') {
+      const pan=ctx.createStereoPanner()
+      pan.pan.value=tr.kind==='drum' && tr.inst==='kick'?0:[-0.38,0.2,0,0.33,-0.2,0.4,-0.35,0.25][idx%8]
+      g.connect(pan).connect(dest)
+    } else g.connect(dest)
+    return g
+  })
 }
 
 // ---------- 실시간 재생 ----------
@@ -93,7 +103,24 @@ let duckGain: GainNode | null = null
 function bgmBus(ctx: AudioContext): AudioNode | null {
   const m = masterOut()
   if (!m) return null
-  if (!duckGain) { duckGain = ctx.createGain(); duckGain.gain.value = 0.62; duckGain.connect(m) }
+  if (!duckGain) {
+    duckGain=ctx.createGain();duckGain.gain.value=0.62;duckGain.connect(m)
+    // 산뜻한 공간 잔향. 사운드 파일 없이 감쇠 임펄스를 결정적으로 합성한다.
+    const seconds=0.9, len=Math.floor(ctx.sampleRate*seconds)
+    const impulse=ctx.createBuffer(2,len,ctx.sampleRate)
+    for(let ch=0;ch<2;ch++){
+      const d=impulse.getChannelData(ch)
+      let seed=13579+ch*2345
+      for(let i=0;i<len;i++){
+        seed=(Math.imul(seed,1664525)+1013904223)>>>0
+        const decay=Math.pow(1-i/len,2.1)
+        d[i]=((seed/4294967296)*2-1)*decay
+      }
+    }
+    const verb=ctx.createConvolver();verb.buffer=impulse
+    const wet=ctx.createGain();wet.gain.value=0.1
+    duckGain.connect(verb).connect(wet).connect(m)
+  }
   return duckGain
 }
 

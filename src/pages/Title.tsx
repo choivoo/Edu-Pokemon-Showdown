@@ -43,6 +43,7 @@ export default function Title() {
           <Btn color="gray" onClick={toggleMute} className="flex items-center gap-2 text-base"><Icon n={save.muted ? 'mute' : 'sound'} s={22} />{save.muted ? '소리 꺼짐' : '소리 켜짐'}</Btn>
         </div>
       </div>
+      <p className="absolute right-3 top-3 border-2 border-[#2b2838] bg-[#fff3c8] px-3 py-1 text-sm font-bold text-[#6c4720]">FAN EDITION · 1.0 REMAKE</p>
       <p className="absolute inset-x-0 bottom-2 text-center text-[11px] leading-snug text-white/90" style={{ textShadow: '0 1px 2px #000' }}>
         비공식 팬게임 · 포켓몬은 Nintendo/Game Freak/The Pokémon Company의 상표입니다. 비상업 개인 프로젝트이며 스프라이트는 PokeAPI에서 불러옵니다.
       </p>

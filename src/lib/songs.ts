@@ -294,7 +294,148 @@ const cookSong: Song = {
   ],
 }
 
-export const SONGS = { title, camp, map, battle, boss, story } as const
+
+/**
+ * 별모래섬 여섯 지역만을 위해 작곡한 원곡 모음.
+ * 모방 멜로디 / 원작 MIDI / 샘플을 사용하지 않고 음악적 어휘(주제·전개·배음·리듬)를 공유한다.
+ * 각 곡 16마디(8마디 주제 + 8마디 변주), 최소 8성부의 풍부한 편곡.
+ */
+interface RegionScore {
+  chords: string[]
+  theme: string[]
+  answer: string[]
+  bpm: number
+  leadInst: NoteInstName
+  color: NoteInstName
+  bass: BassStyle
+  groove: string[]
+}
+const REGION_SCORES: Record<'beach'|'forest'|'cave'|'gorge'|'volcano'|'altar', RegionScore> = {
+  beach: {
+    chords:['D','Bm','G','A','D','G','Em','A'],
+    bpm:116,leadInst:'ocarina',color:'kalimba',bass:'walk',
+    theme:[
+      'A4/2 D5/2 F#5/4 E5/2 D5/2 A4/4',
+      'F#5/4 D5/2 B4/2 D5/4 F#5/4',
+      'G5/4 F#5/2 D5/2 B4/4 D5/4',
+      'C#5/2 E5/2 A5/4 G5/2 E5/2 C#5/4',
+      'A4/2 D5/2 F#5/4 A5/2 F#5/2 D5/4',
+      'B4/4 D5/4 G5/4 F#5/4',
+      'E5/2 G5/2 B5/2 A5/2 G5/4 E5/4',
+      'C#5/4 E5/4 A5/6 r/2',
+    ],
+    answer:[
+      'D5/4 F#5/4 A5/4 D6/4','B5/4 F#5/4 D5/4 F#5/4','G5/2 B5/2 D6/4 B5/4 G5/4','A5/4 E5/4 C#5/4 E5/4',
+      'F#5/2 A5/2 D6/4 C#6/4 A5/4','B5/4 D6/4 G5/4 B5/4','G5/4 E5/4 B4/4 D5/4','A4/2 C#5/2 E5/4 A5/4 E5/4',
+    ],
+    groove:['x...x...x...x...','x.......x...x...'],
+  },
+  forest: {
+    chords:['F','C','Dm','Bb','F','Gm','C','F'],
+    bpm:100,leadInst:'kalimba',color:'harp',bass:'root5',
+    theme:[
+      'A4/4 C5/2 F5/2 G5/4 A5/4','G5/4 E5/4 C5/4 G4/4',
+      'A4/2 D5/2 F5/4 E5/2 D5/2 A4/4','Bb4/4 D5/4 F5/4 D5/4',
+      'C5/2 F5/2 A5/4 C6/2 A5/2 F5/4','G5/4 D5/4 Bb4/4 D5/4',
+      'E5/2 G5/2 C6/4 G5/2 E5/2 C5/4','F5/8 A5/4 C6/4',
+    ],
+    answer:[
+      'F5/4 A5/4 C6/4 A5/4','G5/2 E5/2 C5/4 E5/4 G5/4','A5/4 F5/4 D5/4 A4/4','Bb4/2 D5/2 F5/4 D5/4 Bb4/4',
+      'A4/4 C5/4 F5/4 A5/4','Bb5/2 G5/2 D5/4 Bb4/4 G4/4','C5/4 E5/4 G5/4 C6/4','A5/4 F5/4 C5/4 r/4',
+    ],groove:['x.......x.......','x...o...x.......'],
+  },
+  cave: {
+    chords:['Am','Em','F','G','Am','Dm','E','Am'],
+    bpm:86,leadInst:'crystal',color:'ocarina',bass:'half',
+    theme:[
+      'E5/8 A5/4 G5/4','B4/4 E5/4 G5/8',
+      'A4/2 C5/2 F5/4 E5/2 C5/2 A4/4','G4/4 B4/4 D5/4 G5/4',
+      'A4/4 C5/4 E5/4 B5/4','A5/4 F5/4 D5/4 A4/4',
+      'B4/2 E5/2 G#5/4 B5/4 G#5/4','E5/4 A5/4 C6/4 r/4',
+    ],
+    answer:[
+      'C6/8 A5/4 E5/4','G5/4 E5/4 B4/4 E5/4',
+      'F5/4 E5/4 C5/4 A4/4','D5/2 B4/2 G4/4 B4/4 D5/4',
+      'E5/8 A5/8','F5/4 A5/4 D6/4 C6/4','B5/4 G#5/4 E5/4 B4/4','A4/8 E5/4 A5/4',
+    ],groove:['x.......x.......','x...............'],
+  },
+  gorge: {
+    chords:['Em','G','D','A','Em','C','D','B'],
+    bpm:138,leadInst:'horn',color:'kalimba',bass:'offbeat',
+    theme:[
+      'E5/2 G5/2 B5/4 E6/2 B5/2 G5/4','D6/4 B5/2 G5/2 D5/4 G5/4',
+      'F#5/2 A5/2 D6/4 C#6/2 A5/2 F#5/4','E5/4 A5/4 C#6/4 A5/4',
+      'G5/2 B5/2 E6/4 B5/2 G5/2 E5/4','G5/4 E5/4 C5/4 E5/4',
+      'A5/2 D6/2 F#6/4 D6/4 A5/4','B5/4 D#6/4 F#6/4 D#6/4',
+    ],
+    answer:[
+      'E6/4 B5/2 G5/2 E5/4 B5/4','D6/2 B5/2 G5/4 B5/4 D6/4',
+      'F#6/4 D6/4 A5/4 F#5/4','C#6/2 E6/2 A5/4 E6/2 C#6/2 A5/4',
+      'B5/4 E6/4 G6/4 E6/4','G5/2 E5/2 C5/4 E5/2 G5/2 C6/4',
+      'D6/2 F#6/2 A6/4 F#6/4 D6/4','D#6/4 B5/4 F#5/4 r/4',
+    ],groove:['x...x...x...x...','x..xx...x...x...'],
+  },
+  volcano: {
+    chords:['Dm','Bb','C','A','Dm','F','Gm','A'],
+    bpm:158,leadInst:'horn',color:'strings',bass:'gallop',
+    theme:[
+      'D5/2 F5/2 A5/2 D6/2 A5/4 F5/4','Bb4/2 D5/2 F5/4 D5/2 Bb4/2 F4/4',
+      'C5/4 E5/4 G5/4 Bb5/4','A5/4 G5/2 E5/2 C#5/4 E5/4',
+      'D5/2 A5/2 D6/4 F6/2 D6/2 A5/4','F5/2 A5/2 C6/4 A5/2 F5/2 C5/4',
+      'G5/4 Bb5/4 D6/4 Bb5/4','C#6/4 E6/4 A5/4 E5/4',
+    ],
+    answer:[
+      'A5/2 D6/2 F6/4 E6/2 D6/2 A5/4','Bb5/4 D6/4 F6/4 D6/4',
+      'C6/4 E6/4 G6/4 E6/4','E6/4 C#6/4 A5/4 E5/4',
+      'F6/2 D6/2 A5/4 F5/4 D5/4','C6/2 A5/2 F5/4 C6/4 A5/4',
+      'Bb5/2 G5/2 D5/4 G5/4 Bb5/4','A5/4 C#6/4 E6/4 r/4',
+    ],groove:['x...x...x...x...','x..xx..xx...x...'],
+  },
+  altar: {
+    chords:['C','Em','Am','F','Dm','G','Em','C'],
+    bpm:122,leadInst:'ocarina',color:'crystal',bass:'root5',
+    theme:[
+      'G4/2 C5/2 E5/2 G5/2 C6/4 E6/4','B5/4 G5/4 E5/4 B4/4',
+      'C5/2 E5/2 A5/4 B5/2 A5/2 E5/4','A5/4 F5/4 C5/4 F5/4',
+      'D5/4 F5/4 A5/4 D6/4','G5/2 B5/2 D6/4 B5/4 G5/4',
+      'B5/2 G5/2 E5/4 D5/2 B4/2 G4/4','E5/4 G5/4 C6/8',
+    ],
+    answer:[
+      'E6/4 C6/4 G5/4 E5/4','G5/4 B5/4 E6/4 B5/4',
+      'A5/2 C6/2 E6/4 C6/2 A5/2 E5/4','F5/4 A5/4 C6/4 A5/4',
+      'A5/4 D6/4 F6/4 D6/4','B5/2 D6/2 G6/4 F6/2 D6/2 B5/4',
+      'G5/4 B5/4 E6/4 D6/4','C6/8 G5/4 E5/4',
+    ],groove:['x.......x.......','x.......x...x...'],
+  },
+}
+function regionMusic(name: string, r:RegionScore): Song {
+  const chords=[...r.chords,...r.chords]
+  const melodyLine=[...r.theme,...r.answer]
+  return {
+    name,bpm:r.bpm,bars:16,swing:name==='forest'?0.13:0,loop:true,
+    tracks:[
+      melody(melodyLine,r.leadInst,0.74),
+      melody(r.answer,r.color,0.38,0.8,8),
+      bassLine(chords,r.bass,name==='cave'?'subBass':'pluck',0.63),
+      chordHold(chords,name==='volcano'?'strings':'pad',0.58,0,name==='cave'?50:55),
+      arpeggio(chords,2,name==='cave'?'crystal':name==='gorge'?'kalimba':'harp',0.25,0,67,[0,2,1,2,3,1]),
+      stabs(chords,name==='cave'?[0]:[0,8],name==='volcano'?'horn':'strings',0.21,3,0,57),
+      drum('kick',r.groove,16,name==='cave'?0.3:0.64),
+      drum('rim',['....x.......x...'],16,name==='cave'?0.15:0.4),
+      drum('shaker',['x.o.x.o.x.o.x.o.'],16,0.34),
+      drum('hat',['..o...o...o...o.'],16,name==='cave'?0.12:0.35),
+    ],
+  }
+}
+const beach=regionMusic('beach',REGION_SCORES.beach)
+const forest=regionMusic('forest',REGION_SCORES.forest)
+const cave=regionMusic('cave',REGION_SCORES.cave)
+const gorge=regionMusic('gorge',REGION_SCORES.gorge)
+const volcano=regionMusic('volcano',REGION_SCORES.volcano)
+const altar=regionMusic('altar',REGION_SCORES.altar)
+export const REGION_SONG_NAMES=['beach','forest','cave','gorge','volcano','altar'] as const
+
+export const SONGS = { title, camp, map, battle, boss, story, beach, forest, cave, gorge, volcano, altar } as const
 export const JINGLES = { win, lose, levelup, cook: cookSong } as const
 export type SongName = keyof typeof SONGS
 export type JingleName = keyof typeof JINGLES

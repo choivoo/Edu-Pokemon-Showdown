@@ -6,6 +6,7 @@ import { AREAS, AREA_BONUS_MUL, buildWaves, hasAreaBonus } from '../lib/stages'
 import { getSpecies } from '../lib/roster'
 import { moveFxOf, partyMons, statsOf } from '../lib/party'
 import { bgm, sfx } from '../lib/sound'
+import { REGION_SONG_NAMES } from '../lib/songs'
 import { TYPE_COLOR } from '../lib/typeChart'
 import { Btn, Portrait } from '../ui/kit'
 import Icon from '../ui/Icon'
@@ -57,7 +58,7 @@ export default function Battle() {
     const b = createBattle(allies, waves)
     battle.current = b
     setHud(snapshot(b))
-    bgm.play(stage.boss ? 'boss' : 'battle')
+    bgm.play(stage.boss ? 'boss' : (REGION_SONG_NAMES[stage.area] ?? 'battle'))
 
     const ctx = canvas.current!.getContext('2d')!
     const theme = stage.area >= 0 ? AREAS[stage.area].theme : (['beach', 'forest', 'cave', 'gorge', 'volcano', 'altar'] as const)[stage.index % 6]

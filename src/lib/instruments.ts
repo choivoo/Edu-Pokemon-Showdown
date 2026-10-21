@@ -221,7 +221,72 @@ export const tom: DrumInst = (ctx, dest, t, vel) => {
   o.connect(g); o.start(t); o.stop(t + 0.3)
 }
 
-export const NOTE_INSTS = { marimba, pluck, subBass, lead, flute, pad, brass, bell } as const
+
+/** 관을 부드럽게 울리는 오카리나 음색 — 홀수 배음과 느린 비브라토. */
+export const ocarina: NoteInst = (ctx, dest, t, midi, dur, vel) => {
+  const f=hz(midi), len=Math.max(0.2,dur)
+  const g=ctx.createGain(); g.connect(dest)
+  env(g,t,0.2*vel,0.065,Math.max(0,len-0.15),0.16)
+  const o=osc(ctx,'sine',f,t,t+len+0.4,g)
+  const vibr=ctx.createOscillator();vibr.frequency.value=5.2
+  const depth=ctx.createGain();depth.gain.setValueAtTime(0,t);depth.gain.linearRampToValueAtTime(f*0.004,t+0.25)
+  vibr.connect(depth).connect(o.frequency);vibr.start(t);vibr.stop(t+len+0.4)
+  const third=ctx.createGain();third.gain.value=0.12;third.connect(g)
+  osc(ctx,'sine',f*3,t,t+len+0.3,third)
+}
+/** 칼림바: 탄성 있는 목재 울림을 위해 서로 다른 배음의 감쇠 시간을 따로 준다. */
+export const kalimba: NoteInst = (ctx,dest,t,midi,dur,vel) => {
+  const f=hz(midi),len=Math.max(0.3,Math.min(dur+0.25,1.25))
+  for(const [ratio,amp,decay] of [[1,0.3,1],[2.01,0.1,0.35],[5.8,0.055,0.12]]){
+    const g=ctx.createGain();g.connect(dest)
+    env(g,t,amp*vel,0.002,0,len*decay)
+    osc(ctx,'sine',f*ratio,t,t+len*decay+0.04,g)
+  }
+}
+/** 하프: 밝게 뜯는 시작음과 저역 공명, 음이 내려가며 잔향이 남는다. */
+export const harp: NoteInst = (ctx,dest,t,midi,dur,vel) => {
+  const f=hz(midi),len=Math.max(0.27,Math.min(1.15,dur*1.7))
+  const lp=ctx.createBiquadFilter();lp.type='lowpass';lp.frequency.setValueAtTime(Math.min(8000,f*12),t)
+  lp.frequency.exponentialRampToValueAtTime(Math.max(350,f*1.5),t+len)
+  const g=ctx.createGain();lp.connect(g).connect(dest)
+  env(g,t,0.17*vel,0.002,0,len)
+  osc(ctx,'triangle',f,t,t+len+0.09,lp)
+  const high=ctx.createGain();high.connect(g)
+  env(high,t,0.38,0.002,0,Math.min(0.2,len))
+  osc(ctx,'sine',f*2.002,t,t+0.3,high)
+}
+/** 현악기: 움직이는 저역통과 필터와 약한 디튠으로 현의 울림 표현. */
+export const strings: NoteInst = (ctx,dest,t,midi,dur,vel) => {
+  const f=hz(midi),len=Math.max(0.4,dur)
+  const lp=ctx.createBiquadFilter();lp.type='lowpass';lp.frequency.value=1900;lp.Q.value=0.8
+  const g=ctx.createGain();lp.connect(g).connect(dest)
+  env(g,t,0.10*vel,0.16,Math.max(0,len-0.24),0.36)
+  osc(ctx,'sawtooth',f,t,t+len+0.6,lp,-6)
+  osc(ctx,'sawtooth',f,t,t+len+0.6,lp,6)
+  const body=ctx.createGain();body.gain.value=0.28;body.connect(lp)
+  osc(ctx,'triangle',f/2,t,t+len+0.55,body)
+}
+/** 수정종: 맑고 낮은 울림이 고르게 퍼지는 잔향 악기. */
+export const crystal: NoteInst = (ctx,dest,t,midi,dur,vel) => {
+  const f=hz(midi),len=Math.max(0.8,Math.min(2.3,dur+0.85))
+  for(const [harm,amp,dec] of [[1,0.15,1],[2.01,0.075,0.65],[2.68,0.035,0.4],[5.38,0.021,0.2]]){
+    const g=ctx.createGain();g.connect(dest)
+    env(g,t,amp*vel,0.004,0,len*dec)
+    osc(ctx,'sine',f*harm,t,t+len*dec+0.05,g)
+  }
+}
+/** 부드러운 금관: 음 시작이 찢어지지 않도록 필터가 단계적으로 열린다. */
+export const horn: NoteInst = (ctx,dest,t,midi,dur,vel) => {
+  const f=hz(midi),len=Math.max(0.2,dur)
+  const lp=ctx.createBiquadFilter();lp.type='lowpass';lp.Q.value=1.5
+  lp.frequency.setValueAtTime(430,t);lp.frequency.linearRampToValueAtTime(1550,t+0.12)
+  const g=ctx.createGain();lp.connect(g).connect(dest)
+  env(g,t,0.17*vel,0.06,Math.max(0,len-0.19),0.2)
+  osc(ctx,'sawtooth',f,t,t+len+0.4,lp)
+  osc(ctx,'triangle',f*2,t,t+len+0.4,lp,3)
+}
+
+export const NOTE_INSTS = { marimba, pluck, subBass, lead, flute, pad, brass, bell, ocarina, kalimba, harp, strings, crystal, horn } as const
 export const DRUM_INSTS = { kick, snare, clap, hat, openHat, shaker, rim, tom } as const
 export type NoteInstName = keyof typeof NOTE_INSTS
 export type DrumInstName = keyof typeof DRUM_INSTS
