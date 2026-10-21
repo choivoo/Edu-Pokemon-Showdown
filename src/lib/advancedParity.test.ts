@@ -93,7 +93,7 @@ describe('sourced stage enemy sets and transparent cooking estimates',()=>{
   expect(verifiedWaves(9,2,10,()=>0)![2][0].species).toBe(78)
   expect(verifiedWaves(9,3,10,()=>0)![2][0].species).toBe(59)
   expect(verifiedWaves(9,4,10,()=>0)![2][0].species).toBe(68)
-  expect(verifiedWaves(10,0,10,()=>0)![2]).toHaveLength(0)
+  expect(verifiedWaves(10,0,10,()=>0)).toHaveLength(2)
   expect(verifiedWaves(10,1,10,()=>0)![2].map(x=>x.species)).toEqual([42,41])
   expect(verifiedWaves(10,2,10,()=>0)![2][0].species).toBe(95)
   expect(verifiedWaves(10,3,10,()=>0)![2].map(x=>x.species)).toEqual([105,105,105])
