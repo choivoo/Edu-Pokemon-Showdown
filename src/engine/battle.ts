@@ -26,6 +26,9 @@ export interface Unit {
   crit: number
   basic: Move
   special: Move
+  secondary: Move | null
+  spCd2: number
+  spMax2: number
   boss: boolean
   ownedId?: string
   /** 아군의 파티 순서(0~2). 빨강/초록/파랑 표시 색을 정한다 */
@@ -80,7 +83,7 @@ interface Pending { at: number; from: number; to: number; amount: number; eff: n
 
 export type Phase = 'fight' | 'advance' | 'won' | 'lost'
 
-interface Queued { at: number; uid: number; mul: number }
+interface Queued { at: number; uid: number; mul: number; slot: 0 | 1 }
 
 export interface Battle {
   /** 웨이브 도중에 합류하는 적 (동료 호출 / 새로운 무리 / 포위) */
@@ -104,7 +107,7 @@ export interface Battle {
   rng: Rng
 }
 
-export interface AllyInput { ownedId: string; speciesId: number; level: number; stats: Stats; fx?: MoveFx; move?: string }
+export interface AllyInput { ownedId: string; speciesId: number; level: number; stats: Stats; fx?: MoveFx; move?: string; move2?: string }
 
 export const ADVANCE_TIME = 1.7
 export const AOE_TYPES: PokemonType[] = ['electric', 'ground', 'ice', 'psychic', 'ghost']
@@ -125,7 +128,7 @@ export const FORMATION = [{ x: 280, y: 320 }, { x: 205, y: 395 }, { x: 205, y: 2
 const attackInterval = (spe: number) => 2.3 / (1 + spe / 130)
 const dist = (a: Unit, b: Unit) => Math.hypot(a.x - b.x, a.y - b.y)
 
-interface MakeOpts { ownedId?: string; fx?: MoveFx; move?: string; elite?: boolean; pos?: { x: number; y: number } }
+interface MakeOpts { ownedId?: string; fx?: MoveFx; move?: string; move2?: string; elite?: boolean; pos?: { x: number; y: number } }
 
 function makeUnit(b: Battle, side: Side, speciesId: number, level: number, stats: Stats, slot: number, boss: boolean, o: MakeOpts = {}): Unit {
   const { ownedId, fx = NO_FX, elite = false } = o
@@ -134,6 +137,7 @@ function makeUnit(b: Battle, side: Side, speciesId: number, level: number, stats
   const atkMul = side === 'enemy' ? m.atk * ENEMY_ATK : m.atk
   const maxHp = Math.floor(stats.maxHp * m.hp)
   const special = getMove(o.move ?? sp.special)
+  const secondary = o.move2 ? getMove(o.move2) : null
   const basic = getMove(sp.basic)
   const ranged = RANGED_TYPES.includes(basic.type) && !boss
   const home = FORMATION[slot] ?? FORMATION[0]
@@ -142,7 +146,9 @@ function makeUnit(b: Battle, side: Side, speciesId: number, level: number, stats
   return {
     uid: b.nextUid++, side, speciesId, name: sp.name, types: sp.types, level, maxHp, hp: maxHp,
     atk: Math.floor(stats.atk * atkMul), def: Math.floor(stats.def * m.def), spe: stats.spe, crit: stats.crit,
-    basic, special, boss, ownedId, slot, x, y, face: side === 'ally' ? 1 : -1, moving: false,
+    basic, special, secondary, spCd2: secondary ? 4 : 0,
+    spMax2: secondary ? Math.max(3, (secondary.power >= 100 ? 10 : 8) * (1 - stats.spCd)) : 0,
+    boss, ownedId, slot, x, y, face: side === 'ally' ? 1 : -1, moving: false,
     range: boss ? 96 : ranged ? RANGED_RANGE : MELEE_RANGE,
     speed: Math.min(190, Math.min(150, 62 + stats.spe * 0.55) * (1 + stats.moveSpd)),
     radius: boss ? 62 : elite ? 36 : 28,
@@ -199,7 +205,7 @@ export function createBattle(allies: AllyInput[], waves: WaveEnemy[][], rng: Rng
     late: [], scatterCd: 0, surrounded: false, waveKills: 0, t: 0, units: [], waves, wave: 0, phase: 'fight', phaseT: 0, pending: [], queue: [], events: [],
     auto: false, kills: 0, nextUid: 1, rng,
   }
-  allies.forEach((a, i) => b.units.push(makeUnit(b, 'ally', a.speciesId, a.level, a.stats, i, false, { ownedId: a.ownedId, fx: a.fx, move: a.move })))
+  allies.forEach((a, i) => b.units.push(makeUnit(b, 'ally', a.speciesId, a.level, a.stats, i, false, { ownedId: a.ownedId, fx: a.fx, move: a.move, move2: a.move2 })))
   spawnWave(b)
   return b
 }
@@ -254,8 +260,7 @@ function applyStatus(b: Battle, to: Unit, kind: StatusKind, secs = STATUS_SECS[k
 }
 
 /** 버프/디버프/상태이상 기술: 피해 없이 효과만 준다 */
-function castSupport(b: Battle, u: Unit): boolean {
-  const mv = u.special
+function castSupport(b: Battle, u: Unit, mv: Move = u.special): boolean {
   const fx = mv.fx ?? {}
   const foes = alive(b, u.side === 'ally' ? 'enemy' : 'ally')
   const friends = alive(b, u.side)
@@ -294,12 +299,12 @@ function castSupport(b: Battle, u: Unit): boolean {
 }
 
 /** 필살기 한 번(대상 고르기 + 피해 예약). 리피트/늘리기 스톤으로 이어지는 발사에도 쓴다. */
-function castSpecial(b: Battle, u: Unit, extraMul = 1) {
-  if (u.special.role) return castSupport(b, u)
+function castSpecial(b: Battle, u: Unit, extraMul = 1, mv: Move = u.special) {
+  if (mv.role) return castSupport(b, u, mv)
   const main = nearest(b, u)
   if (!main) return false
   const foes = alive(b, u.side === 'ally' ? 'enemy' : 'ally')
-  const aoe = u.boss || AOE_TYPES.includes(u.special.type)
+  const aoe = u.boss || AOE_TYPES.includes(mv.type)
   const { widen, multiply } = u.fx
   let targets: Unit[]
   if (u.boss) targets = foes
@@ -314,19 +319,21 @@ function castSpecial(b: Battle, u: Unit, extraMul = 1) {
   const mul = base * Math.pow(0.85, multiply) * extraMul
   u.lunge = 0.35
   u.face = main.x >= u.x ? 1 : -1
-  b.events.push({ k: 'attack', from: u.uid, to: targets.map(t => t.uid), type: u.special.type, special: true, ranged: true })
-  for (const t of targets) strike(b, u, t, u.special, true, mul, travel(u, t))
+  b.events.push({ k: 'attack', from: u.uid, to: targets.map(t => t.uid), type: mv.type, special: true, ranged: true })
+  for (const t of targets) strike(b, u, t, mv, true, mul, travel(u, t))
   // 넓히기: 한 명만 맞히던 필살기도 주변까지 번진다
   if (!aoe && !u.boss && widen > 0) {
     const radius = 20 + 50 * widen
-    for (const f of foes) if (!targets.includes(f) && Math.hypot(f.x - main.x, f.y - main.y) <= radius) strike(b, u, f, u.special, true, mul * 0.5, travel(u, f))
+    for (const f of foes) if (!targets.includes(f) && Math.hypot(f.x - main.x, f.y - main.y) <= radius) strike(b, u, f, mv, true, mul * 0.5, travel(u, f))
   }
   return true
 }
 
-function doSpecial(b: Battle, u: Unit): boolean {
-  if (!castSpecial(b, u)) return false
-  u.spCd = u.spMax
+function doSpecial(b: Battle, u: Unit, slot: 0 | 1 = 0): boolean {
+  const mv = slot === 1 ? u.secondary : u.special
+  if (!mv || !castSpecial(b, u, 1, mv)) return false
+  if (slot === 1) u.spCd2 = u.spMax2
+  else u.spCd = u.spMax
   // 필살기를 쓰면 공격력 기합이 붙는다. 결속스톤이 있으면 동료도 나눠 받고, 오래가기스톤이 있으면 더 오래 간다.
   const secs = SPIRIT_SECONDS * (1 + 0.25 * u.fx.lasting)
   u.spirit = { mul: SPIRIT_ATK, until: b.t + secs }
@@ -338,16 +345,18 @@ function doSpecial(b: Battle, u: Unit): boolean {
     }
   }
   // 리피트: 연달아 한 번 더 / 늘리기: 범위기는 한 번 더 때린다
-  const repeats = u.fx.repeat + (AOE_TYPES.includes(u.special.type) || u.boss ? u.fx.multiply : 0)
-  for (let i = 1; i <= repeats; i++) b.queue.push({ at: b.t + 0.45 * i, uid: u.uid, mul: i <= u.fx.repeat ? 1 : 0.85 })
+  const repeats = u.fx.repeat + (AOE_TYPES.includes(mv.type) || u.boss ? u.fx.multiply : 0)
+  for (let i = 1; i <= repeats; i++) b.queue.push({ at: b.t + 0.45 * i, uid: u.uid, mul: i <= u.fx.repeat ? 1 : 0.85, slot })
   return true
 }
 
 /** 플레이어가 아군의 필살기를 직접 발동 */
-export function useSpecial(b: Battle, uid: number): boolean {
+export function useSpecial(b: Battle, uid: number, slot: 0 | 1 = 0): boolean {
   const u = unitById(b, uid)
-  if (!u || u.side !== 'ally' || !u.alive || b.phase !== 'fight' || u.spCd > 0) return false
-  return doSpecial(b, u)
+  if (!u || u.side !== 'ally' || !u.alive || b.phase !== 'fight') return false
+  if (slot === 1 ? !u.secondary || u.spCd2 > 0 : u.spCd > 0) return false
+  return doSpecial(b, u, slot)
+}
 }
 
 export const SCATTER_SECS = 2
@@ -464,7 +473,13 @@ export function step(b: Battle, dt: number): void {
       if (stunned(u)) { u.moving = false; continue }
       u.atkCd -= u.status?.kind === 'paralyze' ? dt * 0.5 : dt
       u.spCd = Math.max(0, u.spCd - dt)
-      if (u.spCd <= 0 && (u.boss || (u.side === 'ally' && b.auto) || u.side === 'enemy' && u.special.role) && u.scatterT <= 0) doSpecial(b, u)
+      u.spCd2 = Math.max(0, u.spCd2 - dt)
+      const automated = u.boss || (u.side === 'ally' && b.auto) || u.side === 'enemy' && u.special.role
+      if (automated && u.scatterT <= 0) {
+        const primary = u.spCd <= 0
+        const secondary = !!u.secondary && u.spCd2 <= 0 && u.side === 'ally'
+        if (primary || secondary) doSpecial(b, u, primary && secondary ? (b.rng() < 0.5 ? 0 : 1) : secondary && !primary ? 1 : 0)
+      }
       // 흩어지기: 가장 가까운 적에게서 멀어지는 쪽으로 달아난다
       if (u.scatterT > 0) {
         const foe = nearest(b, u)
@@ -511,7 +526,7 @@ export function step(b: Battle, dt: number): void {
     const dueQ = b.queue.filter(q => q.at <= b.t)
     if (dueQ.length) {
       b.queue = b.queue.filter(q => q.at > b.t)
-      for (const q of dueQ) { const u = unitById(b, q.uid); if (u && u.alive && b.phase === 'fight') castSpecial(b, u, q.mul) }
+      for (const q of dueQ) { const u = unitById(b, q.uid); if (u && u.alive && b.phase === 'fight') castSpecial(b, u, q.mul, q.slot === 1 ? u.secondary ?? u.special : u.special) }
     }
   }
 
