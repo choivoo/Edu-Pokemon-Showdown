@@ -75,6 +75,7 @@ describe('상태이상과 보조기', () => {
   it('상태이상은 한 번에 하나만 걸린다', () => {
     const { b, foes } = setup('toxic')
     const f = foes[0]
+    f.maxHp = f.hp = 100000 // isolate status stacking from much stronger original Quest stats
     f.status = { kind: 'burn', until: 999, tick: 0 }
     b.auto = true
     run(b, 2)
@@ -123,6 +124,7 @@ describe('상태이상과 보조기', () => {
 describe('흩어지기', () => {
   it('쿨타임 5초 동안 다시 쓸 수 없고 지나면 다시 쓴다', () => {
     const b = createBattle([ally(150, 30, 0)], [[{ species: 19, level: 30 }]], seq(9))
+    for (const u of b.units) { u.hp = u.maxHp = 100000 } // protect timer test from early KOs
     expect(scatter(b)).toBe(true)
     expect(scatter(b)).toBe(false)
     run(b, 5.2)
