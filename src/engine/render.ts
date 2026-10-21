@@ -34,20 +34,23 @@ interface Proj { x0: number; y0: number; x1: number; y1: number; t0: number; dur
 interface Particle { x: number; y: number; vx: number; vy: number; life: number; max: number; color: string; size: number }
 interface Floater { x: number; y: number; text: string; color: string; t0: number; big: boolean }
 interface Slash { x: number; y: number; t0: number; color: string }
+interface Explosion {x:number;y:number;t0:number;boss:boolean}
 
 export interface Visual {
   scroll: number
+  scrollY: number
   shake: number
+  explosions: Explosion[]
   projs: Proj[]
   parts: Particle[]
   floats: Floater[]
   slashes: Slash[]
   banner: { text: string; t0: number; tone?: 'info' | 'warn' | 'boss' } | null
 }
-export const newVisual = (): Visual => ({ scroll: 0, shake: 0, projs: [], parts: [], floats: [], slashes: [], banner: null })
+export const newVisual = (): Visual => ({ scroll: 0, scrollY:0, shake: 0, explosions:[], projs: [], parts: [], floats: [], slashes: [], banner: null })
 
 /** 엔진이 쌓아 둔 이벤트를 시각 효과로 바꾼다 */
-export function consumeEvents(b: Battle, v: Visual, now: number, hooks: { hit: (e: Extract<FxEvent, { k: 'hit' }>) => void; special: () => void; faint: () => void; wave: (boss: boolean) => void }) {
+export function consumeEvents(b: Battle, v: Visual, now: number, hooks: { hit: (e: Extract<FxEvent, { k: 'hit' }>) => void; special: () => void; faint: () => void; wave: (boss: boolean) => void; finisher?:()=>void }) {
   for (const e of b.events) {
     if (e.k === 'attack') {
       const from = b.units.find(u => u.uid === e.from)
@@ -75,6 +78,19 @@ export function consumeEvents(b: Battle, v: Visual, now: number, hooks: { hit: (
       v.floats.push({ x: cx + (Math.random() * 20 - 10), y: cy - 40, text: txt, color: e.crit ? '#ffe14d' : e.eff > 1 ? '#ff7a45' : e.eff < 1 ? '#c9c9d9' : '#ffffff', t0: now, big: e.crit || e.eff > 1 })
       if (e.special || to.boss) v.shake = Math.max(v.shake, e.special ? 7 : 3)
       hooks.hit(e)
+    } else if (e.k === 'finisher') {
+      const y=e.y-55
+      v.explosions.push({x:e.x,y,t0:now,boss:e.boss})
+      v.shake=Math.max(v.shake,e.boss?26:19)
+      const colors=['#ffffff','#ffef82','#f7bb46','#ff784e','#8ddfff','#ffc1d8']
+      for(let i=0;i<(e.boss?110:72);i++){
+        const angle=Math.PI*2*i/(e.boss?110:72)+Math.random()*.12
+        const speed=95+Math.random()*(e.boss?340:260)
+        v.parts.push({x:e.x,y,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed-45,
+          life:0.55+Math.random()*.65,max:1.2,color:colors[i%colors.length],size:4+Math.floor(Math.random()*12)})
+      }
+      v.banner={text:'대단해! 탐험 성공!',t0:now,tone:'boss'}
+      hooks.finisher?.()
     } else if (e.k === 'faint') {
       hooks.faint()
     } else if (e.k === 'heal') {
@@ -176,14 +192,41 @@ export function drawBattle(ctx: CanvasRenderingContext2D, b: Battle, v: Visual, 
   v.projs = v.projs.filter(p => now - p.t0 < p.dur + 0.02)
   v.floats = v.floats.filter(f => now - f.t0 < 0.9)
   v.slashes = v.slashes.filter(s => now - s.t0 < 0.25)
+  v.explosions = v.explosions.filter(e => now-e.t0<1.35)
+  const allies=b.units.filter(u=>u.side==='ally'&&u.alive)
+  const cy=allies.length?allies.reduce((sum,u)=>sum+u.y,0)/allies.length:325
+  v.scrollY += ((cy-325)*.4-v.scrollY)*Math.min(1,dt*1.4)
 
   ctx.save()
   if (v.shake > 0) ctx.translate(Math.round((Math.random() - 0.5) * v.shake), Math.round((Math.random() - 0.5) * v.shake))
-  drawBattleWorld(theme, v.scroll, now)
+  drawBattleWorld(theme, v.scroll, now, v.scrollY)
   flush(ctx)
 
   for (const u of [...b.units].sort((a, c) => a.y - c.y)) drawUnit(ctx, b, u, now)
 
+  for(const e of v.explosions){
+    const age=Math.max(0,now-e.t0)
+    const k=age/1.35
+    ctx.save()
+    ctx.globalAlpha=Math.max(0,1-k)
+    for(let ring=0;ring<3;ring++){
+      const radius=18+age*(e.boss?180:135)+ring*24
+      ctx.lineWidth=Math.max(2,11-age*6)
+      ctx.strokeStyle=['#fff5a4','#ffb848','#ffffff'][ring]
+      ctx.beginPath();ctx.ellipse(e.x,e.y,radius,radius*.65,0,0,Math.PI*2);ctx.stroke()
+    }
+    if(age<.23){
+      const radius=80*(1-age/.23)
+      ctx.fillStyle='rgba(255,250,203,0.75)'
+      ctx.fillRect(e.x-radius,e.y-radius,radius*2,radius*2)
+    }
+    ctx.restore()
+  }
+  if(b.rally){
+    ctx.save();ctx.strokeStyle='#ffe966';ctx.lineWidth=5;ctx.setLineDash([12,7]);
+    ctx.beginPath();ctx.ellipse(b.rally.x,b.rally.y,33,17,0,0,Math.PI*2);ctx.stroke();
+    ctx.setLineDash([]);ctx.restore()
+  }
   for (const s of v.slashes) {
     const k = (now - s.t0) / 0.25
     ctx.globalAlpha = 1 - k
