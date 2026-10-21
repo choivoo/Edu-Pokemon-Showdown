@@ -15,7 +15,7 @@ import { defaultSave, loadSave, resetSave, type SaveData, writeSave } from '../l
 import { setMuted } from '../lib/sound'
 import { recall, recallPool, trainExp, TRAIN_MAX, type RecallResult } from '../lib/training'
 import { autoEvolve, canEvolve, targetOf } from '../lib/evolution'
-import { MEMBER_REWARD_TICKETS, memberRewardReady, buyableDecoration, ingredientBonus, maxBatteryBonus, moveSuccessBonus, recycledIngredientBonus, trainingExpBonus } from '../lib/decorations'
+import { MEMBER_REWARD_TICKETS, memberRewardReady, buyableDecoration, ingredientBonus, maxBatteryBonus, moveSuccessBonus, recycledIngredientBonus, trainingExpBonus, multipleMoveBonus, multipleCookingBonus } from '../lib/decorations'
 import { QUESTS, isClaimed, isDone, STATUE_MAX, statueCap, statueCost, statueMul } from '../lib/quests'
 
 export const BATTERY_ONE_COST = 150
@@ -129,10 +129,10 @@ export const useGame = create<GameState>((set, get) => {
       const first = pool[Math.floor(Math.random() * pool.length)]
       mon.move = first.id
       const second = pool.filter(m => m.id !== first.id)
-      if (second.length && Math.random() < 0.38) mon.move2 = second[Math.floor(Math.random() * second.length)].id
+      if (second.length && Math.random() < Math.min(0.95, 0.38 * multipleMoveBonus(save.decorations))) mon.move2 = second[Math.floor(Math.random() * second.length)].id
     } else {
       const options = recallPool(mon)
-      if (options.length && Math.random() < 0.38) mon.move2 = options[Math.floor(Math.random() * options.length)].id
+      if (options.length && Math.random() < Math.min(0.95, 0.38 * multipleMoveBonus(save.decorations))) mon.move2 = options[Math.floor(Math.random() * options.length)].id
     }
     return {
       mon,
@@ -196,7 +196,8 @@ export const useGame = create<GameState>((set, get) => {
       const visitor = cook(sel)
       // Original cooking: 4.3% chance to attract two Pokémon, 0.5% for three.
       const roll = Math.random()
-      const extras = roll < 0.005 ? [cook(sel).id, cook(sel).id] : roll < 0.048 ? [cook(sel).id] : []
+      const boost = multipleCookingBonus(s.decorations)
+      const extras = roll < 0.005 * boost ? [cook(sel).id, cook(sel).id] : roll < 0.048 * boost ? [cook(sel).id] : []
       const total = cookingExpeditions(sel, tier)
       const recipe = recipeFor(sel).no
       commit({ ingredients, pot: { species: visitor.id, visitors: extras, remaining: total, total, recipe, ...(tier ? { tier } : {}) } })
