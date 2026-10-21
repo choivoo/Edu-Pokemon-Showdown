@@ -65,7 +65,7 @@ interface GameState {
   buyBattery: (full: boolean) => boolean
   equipMoveStone: (monId: string, stoneId: string) => boolean
   unequipMoveStone: (monId: string, stoneId: string) => void
-  finishBattle: (win: boolean, stage: Stage, kills?: number) => void
+  finishBattle: (win: boolean, stage: Stage, kills?: number, timeSec?: number) => void
   /** 특훈: 경험치(exp) 또는 기술 떠올리기(move). 재료로 쓴 포켓몬은 사라진다 */
   train: (targetId: string, foodIds: string[], mode: 'exp' | 'move') => { ok: boolean; exp?: number; recall?: RecallResult } | null
   evolve: (monId: string, choice?: string) => number | null
@@ -345,7 +345,7 @@ export const useGame = create<GameState>((set, get) => {
       if (s.themes.includes(id)) commit({ theme: id })
     },
 
-    finishBattle: (win, stage, kills = 0) => {
+    finishBattle: (win, stage, kills = 0, timeSec) => {
       const s = get().save
       if (!win) {
         if (s.pot && s.pot.remaining > 0) commit({ pot: { ...s.pot, remaining: s.pot.remaining - 1 } })
@@ -386,7 +386,9 @@ export const useGame = create<GameState>((set, get) => {
         if (!dex.includes(stage.recruit)) dex = [...dex, stage.recruit]
       }
       const pot = s.pot && s.pot.remaining > 0 ? { ...s.pot, remaining: s.pot.remaining - 1 } : s.pot
-      commit({ coins: s.coins + rewards.coins, ingredients, owned, stones, moveStones, cleared, endlessBest, uid, dex, pot, clearsSinceExport: s.clearsSinceExport + 1, counters: bump(bump(bump(s.counters, 'clears'), 'kills', kills), 'bosses', stage.boss ? 1 : 0) })
+      const clearTimes = stage.timeLimitSec && timeSec && timeSec > 0 && timeSec <= stage.timeLimitSec && (!s.clearTimes[stage.id] || timeSec < s.clearTimes[stage.id])
+        ? { ...s.clearTimes, [stage.id]: Math.round(timeSec * 10) / 10 } : s.clearTimes
+      commit({ coins: s.coins + rewards.coins, ingredients, owned, stones, moveStones, cleared, clearTimes, endlessBest, uid, dex, pot, clearsSinceExport: s.clearsSinceExport + 1, counters: bump(bump(bump(s.counters, 'clears'), 'kills', kills), 'bosses', stage.boss ? 1 : 0) })
       set({
         result: { win: true, stage, rewards, firstClear, recruited, levelUps, stone, moveStone, outroArea: firstClear && stage.boss && stage.area >= 0 ? stage.area : null },
         screen: 'result',
