@@ -142,23 +142,27 @@ export function flush(ctx: CanvasRenderingContext2D) {
 const drawObj = (c: HTMLCanvasElement, x: number, y: number) => screen.g.drawImage(c, Math.floor(x), Math.floor(y))
 
 /** 전투 바닥. scroll 은 화면 픽셀 단위 가로 이동량 */
-export function drawBattleWorld(theme: Theme, scroll: number, t: number) {
+export function drawBattleWorld(theme: Theme, scroll: number, t: number, depthScroll = 0) {
   const pal = PAL[theme]
   const sd = Math.floor(scroll / DOT)
   const col0 = Math.floor(sd / TILE)
   const ox = -(((sd % TILE) + TILE) % TILE)
+  const vertical = Math.floor(depthScroll / DOT)
+  const row0 = Math.floor(vertical / TILE)
+  const oy = -(((vertical % TILE) + TILE) % TILE)
   const frame = Math.floor(t * 2) % 4
   const g = screen.g
   g.fillStyle = pal.a
   g.fillRect(0, 0, ENV_W, ENV_H)
 
   // 바닥 타일
-  for (let ty = 0; ty < Math.ceil(ENV_H / TILE); ty++) {
+  for (let ty = -1; ty <= Math.ceil(ENV_H / TILE); ty++) {
     for (let tx = -1; tx <= ENV_W / TILE + 1; tx++) {
       const wc = col0 + tx
-      const h = hash(wc, ty, 7)
-      const kind = (wc + ty) % 2 === 0 ? (h > 0.9 ? 4 : h > 0.5 ? 2 : 0) : h > 0.9 ? 5 : h > 0.5 ? 3 : 1
-      drawObj(floorTile(theme, kind), ox + tx * TILE, ty * TILE)
+      const wy=row0+ty
+      const h = hash(wc, wy, 7)
+      const kind = (wc + wy) % 2 === 0 ? (h > 0.9 ? 4 : h > 0.5 ? 2 : 0) : h > 0.9 ? 5 : h > 0.5 ? 3 : 1
+      drawObj(floorTile(theme, kind), ox + tx * TILE, oy + ty * TILE)
     }
   }
   // 길(타원 모양으로 타일 덮기)
