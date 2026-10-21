@@ -7,6 +7,7 @@
  */
 import type { Rng } from '../types'
 import type { WaveEnemy } from '../lib/stages'
+import sourceTable from './originalEncounterTable.json'
 type Choice = {id:number; weight:number}
 type Group = readonly Choice[]
 type Segment = readonly Group[]
@@ -169,8 +170,28 @@ function pick(group:Group,rng:Rng):number{
  return group[group.length-1].id
 }
 /** The 2D engine uses three encounter waves; retain segments as wave groups. */
+export interface OriginalStageEntry {
+ segments: Array<Array<Array<{id:number;weight:number}>>>
+ bossSets: Array<Array<{id:number;weight:number}>>
+ recommended?:number
+ source:string
+}
+export const IMPORTED_ORIGINAL_ENCOUNTERS = sourceTable as Record<string,OriginalStageEntry>
+export const sourcedStageCount = () => new Set([...Object.keys(VERIFIED_ENCOUNTERS), ...Object.keys(IMPORTED_ORIGINAL_ENCOUNTERS)]).size
 export function verifiedWaves(area:number,index:number,level:number,rng:Rng):WaveEnemy[][]|undefined{
- const route=VERIFIED_ENCOUNTERS[`${area}-${index}`]
+ const key=`${area}-${index}`
+ const imported=IMPORTED_ORIGINAL_ENCOUNTERS[key]
+ // Keep gentler v2.4 versions of the first nine stages so one starter can win.
+ const verified=VERIFIED_ENCOUNTERS[key]
+ if(!verified && imported){
+   const segments=imported.segments
+   const mid=segments.length<=2?1:Math.ceil(segments.length/2)
+   const early=segments.slice(0,mid).flatMap(seg=>seg.map(g=>({species:pick(g,rng),level})))
+   const middle=segments.slice(mid).flatMap(seg=>seg.map(g=>({species:pick(g,rng),level})))
+   const boss=imported.bossSets.flatMap((g,i)=>[{species:pick(g,rng),level,boss:i===0,elite:i>0}])
+   return segments.length===0 ? [boss] : [early,middle,boss]
+ }
+ const route=verified
  if(!route)return undefined
  // Preserve original per-segment encounter groups, with 2-segment courses split
  // into separate waves and 3/4-segment courses compacted for the 2D battle UI.
