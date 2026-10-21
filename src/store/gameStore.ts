@@ -123,7 +123,7 @@ export const useGame = create<GameState>((set, get) => {
     const bonuses = [0, 50, 100, 300] as const
     const maxIV = [10, 50, 100, 100] as const
     const mon: OwnedMon = { id: `m${save.uid}`, species: speciesId, level, exp: 0, stones: [],
-      bonus: rollBonuses(), mstones: [], potBonus: bonuses[tier], ivHp: Math.floor(Math.random() * (maxIV[tier] + 1)), ivAtk: Math.floor(Math.random() * (maxIV[tier] + 1)), sockets: socketLayout(speciesId) }
+      bonus: rollBonuses(), mstones: [], potBonus: bonuses[tier], ivHp: Math.floor(Math.random() * (maxIV[tier] + 1)), ivAtk: Math.floor(Math.random() * (maxIV[tier] + 1)), sockets: socketLayout(speciesId, save.uid) }
     const pool = questLearnset(speciesId)
     if (pool.length) {
       const first = pool[Math.floor(Math.random() * pool.length)]
