@@ -357,7 +357,6 @@ export function useSpecial(b: Battle, uid: number, slot: 0 | 1 = 0): boolean {
   if (slot === 1 ? !u.secondary || u.spCd2 > 0 : u.spCd > 0) return false
   return doSpecial(b, u, slot)
 }
-}
 
 export const SCATTER_SECS = 2
 export const SCATTER_COOLDOWN = 5
