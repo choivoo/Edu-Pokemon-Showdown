@@ -51,6 +51,11 @@ export interface Unit {
   lifesteal: number
   regen: number
   waveHeal: number
+  koHeal: number
+  reviveSpeed: number
+  reviveHp: number
+  effectResist: number
+  statusResist: number
   /** 필살기로 얻은 공격력 기합 (until 까지 mul 배) */
   spirit: { mul: number; until: number }
   /** 보조기로 받은 증감 (until 까지) */
@@ -156,6 +161,8 @@ function makeUnit(b: Battle, side: Side, speciesId: number, level: number, stats
     fx,
     spMax: Math.max(1, (special.wait ?? (special.power >= 100 ? 10 : 8)) * (1 - 0.05 * fx.quick) * (1 + 0.5 * fx.repeat) * (1 - stats.spCd)),
     critDmg: stats.critDmg, atkCdCut: stats.atkCd, lifesteal: stats.lifesteal, regen: stats.regen, waveHeal: stats.waveHeal,
+    koHeal: stats.koHeal ?? 0, reviveSpeed: stats.reviveSpeed ?? 0, reviveHp: stats.reviveHp ?? 0,
+    effectResist: stats.effectResist ?? 0, statusResist: stats.statusResist ?? 0,
     spirit: { mul: 0, until: 0 },
     buff: { atk: 0, def: 0, speed: 0, until: 0 }, debuff: { atk: 0, def: 0, speed: 0, until: 0 }, status: null, scatterT: 0, elite,
     spCd: side === 'ally' ? 3.5 : 6 + b.rng() * 3,
@@ -254,7 +261,7 @@ const STATUS_SECS: Record<StatusKind, number> = { poison: 7, paralyze: 5, burn: 
 
 /** 상태이상은 한 번에 하나만 걸린다. 보스는 절반만 걸린다. */
 function applyStatus(b: Battle, to: Unit, kind: StatusKind, secs = STATUS_SECS[kind]) {
-  if (!to.alive || to.status) return
+  if (!to.alive || to.status || b.rng() < to.statusResist) return
   to.status = { kind, until: b.t + secs * (to.boss ? 0.5 : 1), tick: 0 }
   b.events.push({ k: 'status', uid: to.uid, kind })
 }
@@ -286,6 +293,7 @@ function castSupport(b: Battle, u: Unit, mv: Move = u.special): boolean {
     const targets = foes.filter(f => Math.hypot(f.x - main.x, f.y - main.y) <= AOE_RADIUS + 120)
     b.events.push({ k: 'attack', from: u.uid, to: targets.map(t => t.uid), type: mv.type, special: true, ranged: true })
     for (const t of targets) {
+      if (b.rng() < t.effectResist) continue
       t.debuff = { atk: fx.atk ?? 0, def: fx.def ?? 0, speed: fx.speed ?? 0, until: b.t + (fx.secs ?? 8) * (t.boss ? 0.6 : 1) }
       b.events.push({ k: 'buff', uid: t.uid, good: false })
     }
@@ -389,7 +397,14 @@ function applyHit(b: Battle, p: Pending) {
     to.alive = false
     to.deadT = 0
     to.status = null
-    if (to.side === 'enemy') { b.kills++; b.waveKills++ }
+    if (to.side === 'enemy') {
+      b.kills++; b.waveKills++
+      if (from && from.alive && from.side === 'ally' && from.koHeal > 0) {
+        const healed = Math.max(1, Math.floor(from.maxHp * from.koHeal))
+        from.hp = Math.min(from.maxHp, from.hp + healed)
+        b.events.push({ k:'heal', uid:from.uid, amount:healed })
+      }
+    }
     b.events.push({ k: 'faint', uid: to.uid })
     // 보스가 쓰러지면 부하들은 도망친다
     if (to.boss && to.side === 'enemy') {
@@ -426,11 +441,11 @@ export function step(b: Battle, dt: number): void {
   for (const u of b.units) {
     if (!u.alive) {
       u.deadT += dt
-      if (b.phase === 'fight' && u.side === 'ally' && u.deadT >= ALLY_REVIVE_SECONDS &&
+      if (b.phase === 'fight' && u.side === 'ally' && u.deadT >= ALLY_REVIVE_SECONDS * (1 - u.reviveSpeed) &&
           b.units.some(other => other !== u && other.side === 'ally' && other.alive)) {
         u.alive = true
         u.revives++
-        u.hp = Math.max(1, Math.floor(u.maxHp * Math.max(0.1, 0.5 / u.revives)))
+        u.hp = Math.max(1, Math.floor(u.maxHp * Math.min(1, Math.max(0.1, 0.5 / u.revives + u.reviveHp))))
         u.deadT = 0
         u.spCd = Math.min(u.spMax, 2)
         const home = FORMATION[u.slot] ?? FORMATION[0]
