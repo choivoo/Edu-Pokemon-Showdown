@@ -6,6 +6,7 @@ import { canPlace, socketAccepts, mergeCost, occupancy, type Stone, type ShapeId
 import { usedMoveStoneIds, usedStoneIds } from '../lib/party'
 import { type MoveStone, MOVE_SLOTS } from '../lib/moveStones'
 import { rollBonuses } from '../lib/bingo'
+import { DECORATIONS, DECOR_MAX, decorationBonus } from '../lib/decorations'
 import { BATTERY_MAX, batteryNow, charge, consume } from '../lib/battery'
 import { AREAS, rollRewards, stageCount, type Rewards, type Stage, stageId } from '../lib/stages'
 import { ORIGINAL_FIRST, ORIGINAL_LAST, ORIGINAL_BOSS_AREA, ORIGINAL_STATUE_COUNT, HAPPENSTANCE_AREA, originalUnlocked } from '../lib/originalCampaign'
@@ -72,6 +73,8 @@ interface GameState {
   upgradeStatue: () => boolean
   claimQuest: (id: string) => boolean
   setTheme: (id: string) => void
+  buyDecoration: (id: string) => boolean
+  toggleDecoration: (id: string) => boolean
 }
 
 /** 새로 합류하는 포켓몬의 레벨: 파티 평균보다 살짝 낮게 */
@@ -174,7 +177,7 @@ export const useGame = create<GameState>((set, get) => {
       const ingredients = { ...s.ingredients }
       for (const [id, n] of Object.entries(need) as [IngredientId, number][]) ingredients[id] -= n
       const visitor = cook(sel)
-      const total = cookingExpeditions(sel, tier)
+      const total = Math.max(1, cookingExpeditions(sel, tier) - decorationBonus(s.decorations).cook)
       const recipe = recipeFor(sel).no
       commit({ ingredients, pot: { species: visitor.id, remaining: total, total, recipe, ...(tier ? { tier } : {}) } })
       return true
@@ -219,7 +222,7 @@ export const useGame = create<GameState>((set, get) => {
     mergeStones: (kind, shape, star) => {
       const s = get().save
       const used = usedStoneIds(s)
-      const same = s.stones.filter(x => x.kind === kind && x.shape === shape && x.star === star && !used.has(x.id))
+      const same = s.stones.filter(x => x.kind === kind && x.shape === shape && x.star === star && x.value === undefined && !used.has(x.id))
       const cost = mergeCost({ star, shape })
       if (same.length < 2 || s.coins < cost) return false
       const [a, b] = same
@@ -344,6 +347,23 @@ export const useGame = create<GameState>((set, get) => {
       const s = get().save
       if (s.themes.includes(id)) commit({ theme: id })
     },
+    buyDecoration: id => {
+      const s = get().save
+      const decor = DECORATIONS.find(d => d.id === id)
+      if (!decor || s.decorations.includes(id) || s.coins < decor.cost) return false
+      const decorations = [...s.decorations, id]
+      commit({ coins: s.coins - decor.cost, decorations, placedDecorations: s.placedDecorations.length < DECOR_MAX ? [...s.placedDecorations, id] : s.placedDecorations })
+      return true
+    },
+    toggleDecoration: id => {
+      const s = get().save
+      if (!s.decorations.includes(id)) return false
+      const placedDecorations = s.placedDecorations.includes(id) ? s.placedDecorations.filter(d => d !== id)
+        : s.placedDecorations.length < DECOR_MAX ? [...s.placedDecorations, id] : null
+      if (!placedDecorations) return false
+      commit({ placedDecorations })
+      return true
+    },
 
     finishBattle: (win, stage, kills = 0, timeSec) => {
       const s = get().save
@@ -352,7 +372,7 @@ export const useGame = create<GameState>((set, get) => {
         set({ result: { win: false, stage, rewards: null, firstClear: false, recruited: null, levelUps: [], stone: null, moveStone: null, outroArea: null }, screen: 'result' })
         return
       }
-      const rewards = rollRewards(stage, Math.random, ((s.counters?.clears ?? 0) + 1) % 10 === 0)
+      const rewards = rollRewards(stage, Math.random, ((s.counters?.clears ?? 0) + 1) % 10 === 0, decorationBonus(s.decorations))
       const firstClear = stage.area >= 0 ? !s.cleared[stage.id] : stage.endlessFloor! > s.endlessBest
       // 파티 전원에게 경험치
       const levelUps: BattleResult['levelUps'] = []
