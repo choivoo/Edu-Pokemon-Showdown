@@ -56,7 +56,7 @@ export default function Battle() {
   // Track independent keys so WASD diagonals work at the same running speed.
   const held = useRef(new Set<string>())
   const setDirection = (x:number,y:number) => {
-    if (!battle.current || paused.current) return
+    if (!battle.current || (paused.current && (x!==0 || y!==0))) return
     steerParty(battle.current,x,y)
   }
   useEffect(() => {
@@ -75,7 +75,7 @@ export default function Battle() {
     const keydown=(e:KeyboardEvent)=>{
       if(e.target instanceof HTMLInputElement||e.target instanceof HTMLTextAreaElement)return
       const key=e.key.toLowerCase()
-      if(!directions[key]||!battle.current)return
+      if(!directions[key]||!battle.current||paused.current)return
       e.preventDefault()
       held.current.add(key)
       update()
@@ -177,7 +177,7 @@ export default function Battle() {
 
       {/* 좌상단: 일시정지 + 카운터 */}
       <div className="absolute left-3 top-3 flex items-center gap-2">
-        <button onClick={() => { paused.current = !paused.current; setUiPaused(paused.current) }} className="pq-btn pq-red flex h-12 w-12 items-center justify-center"><Icon n={uiPaused ? 'play' : 'pause'} s={30} /></button>
+        <button onClick={() => { paused.current = !paused.current; if(paused.current && battle.current)steerParty(battle.current,0,0); setUiPaused(paused.current) }} className="pq-btn pq-red flex h-12 w-12 items-center justify-center"><Icon n={uiPaused ? 'play' : 'pause'} s={30} /></button>
         <span className="hud-bar flex items-center gap-1 px-3 py-1 text-lg"><Icon n="sword" s={22} />{hud?.kills ?? 0}</span>
         <span className={`hud-bar flex items-center gap-1 px-3 py-1 text-lg ${stage.timeLimitSec && (stage.timeLimitSec - (hud?.time ?? 0)) <= 30 ? 'text-red-300 blink' : ''}`}><Icon n="clock" s={22} />{stage.timeLimitSec ? fmt(Math.max(0, stage.timeLimitSec - (hud?.time ?? 0))) : fmt(hud?.time ?? 0)}</span>
         <span className="hud-bar max-w-[260px] truncate px-3 py-1 text-base text-yellow-200">{stage.name}</span>
