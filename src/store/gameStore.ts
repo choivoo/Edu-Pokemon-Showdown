@@ -12,7 +12,7 @@ import { ORIGINAL_FIRST, ORIGINAL_LAST, ORIGINAL_BOSS_AREA, ORIGINAL_STATUE_COUN
 import { defaultSave, loadSave, resetSave, type SaveData, writeSave } from '../lib/storage'
 import { setMuted } from '../lib/sound'
 import { recall, trainExp, TRAIN_MAX, type RecallResult } from '../lib/training'
-import { canEvolve, targetOf } from '../lib/evolution'
+import { autoEvolve, canEvolve, targetOf } from '../lib/evolution'
 import { MEMBER_REWARD_TICKETS, memberRewardReady, buyableDecoration, ingredientBonus, maxBatteryBonus, moveSuccessBonus, recycledIngredientBonus, trainingExpBonus } from '../lib/decorations'
 import { QUESTS, isClaimed, isDone, STATUE_MAX, statueCap, statueCost, statueMul } from '../lib/quests'
 
@@ -70,6 +70,7 @@ interface GameState {
   /** 특훈: 경험치(exp) 또는 기술 떠올리기(move). 재료로 쓴 포켓몬은 사라진다 */
   train: (targetId: string, foodIds: string[], mode: 'exp' | 'move') => { ok: boolean; exp?: number; recall?: RecallResult } | null
   evolve: (monId: string, choice?: string) => number | null
+  toggleEverstone: (monId: string) => void
   upgradeStatue: () => boolean
   claimMemberTickets: () => number
   buyDecoration: (id: string) => boolean
@@ -245,8 +246,9 @@ export const useGame = create<GameState>((set, get) => {
       const cost = get().levelUpCost(monId)
       const m = s.owned.find(o => o.id === monId)
       if (!m || cost === 0 || s.coins < cost) return false
-      const { mon } = addExp(m, expToNext(m.level) - m.exp)
-      commit({ coins: s.coins - cost, owned: s.owned.map(o => (o.id === monId ? mon : o)) })
+      const mon = autoEvolve(addExp(m, expToNext(m.level) - m.exp).mon, s.stones)
+      commit({ coins: s.coins - cost, owned: s.owned.map(o => (o.id === monId ? mon : o)),
+        dex: s.dex.includes(mon.species) ? s.dex : [...s.dex, mon.species] })
       return true
     },
 
@@ -302,8 +304,9 @@ export const useGame = create<GameState>((set, get) => {
       const counters = bump(s.counters, 'trained')
       if (mode === 'exp') {
         const exp = Math.round(trainExp(target, foods) * trainingExpBonus(s.decorations))
-        const { mon } = addExp(target, exp)
-        commit({ owned: rest.map(o => (o.id === targetId ? mon : o)), counters })
+        const mon = autoEvolve(addExp(target, exp).mon, s.stones)
+        commit({ owned: rest.map(o => (o.id === targetId ? mon : o)), counters,
+          dex: s.dex.includes(mon.species) ? s.dex : [...s.dex, mon.species] })
         return { ok: true, exp }
       }
       const r = recall(target, foods, Date.now(), Math.random, moveSuccessBonus(s.decorations))
@@ -311,10 +314,16 @@ export const useGame = create<GameState>((set, get) => {
       return { ok: r.ok, recall: r }
     },
 
+    toggleEverstone: monId => {
+      const s = get().save
+      if (!s.owned.some(m => m.id === monId)) return
+      commit({ owned: s.owned.map(m => m.id === monId ? { ...m, everstone: !m.everstone } : m) })
+    },
     evolve: (monId, choice) => {
       const s = get().save
       const m = s.owned.find(o => o.id === monId)
       if (!m || !canEvolve(m)) return null
+      if (m.everstone) return null
       const to = targetOf(m.species, choice)
       if (!to) return null
       // 새 종은 기본 필살기로 돌아간다 (떠올린 기술은 유지)
@@ -393,8 +402,9 @@ export const useGame = create<GameState>((set, get) => {
         // 번영의 석상: 아직 레벨이 낮은 포켓몬은 경험치를 더 받는다
         const mul = Math.max(o.level <= originalStatueExpCap(s) ? 1.5 : 1, o.level < statueCap(s.statue) ? statueMul(s.statue) : 1)
         const r = addExp(o, Math.round(rewards.exp * mul))
-        if (r.gained > 0) levelUps.push({ name: getSpecies(o.species).name, from: o.level, to: r.mon.level })
-        return r.mon
+        const grown = autoEvolve(r.mon, s.stones)
+        if (r.gained > 0) levelUps.push({ name: grown.species !== o.species ? getSpecies(o.species).name + ' → ' + getSpecies(grown.species).name : getSpecies(o.species).name, from: o.level, to: grown.level })
+        return grown
       })
       const ingredients = { ...s.ingredients }
       for (const [id, n] of Object.entries(rewards.ingredients) as [IngredientId, number][]) ingredients[id] += ingredientBonus(id, n, s.decorations)
@@ -411,7 +421,7 @@ export const useGame = create<GameState>((set, get) => {
       else endlessBest = Math.max(endlessBest, stage.endlessFloor!)
 
       let recruited: OwnedMon | null = null
-      let dex = s.dex
+      let dex = [...new Set([...s.dex, ...owned.map(o => o.species)])]
       if (firstClear && stage.recruit) {
         recruited = { id: `m${uid++}`, species: stage.recruit, level: Math.max(newcomerLevel(s), stage.level - 3), exp: 0, stones: [], bonus: rollBonuses(), mstones: [] }
         owned = [...owned, recruited]
