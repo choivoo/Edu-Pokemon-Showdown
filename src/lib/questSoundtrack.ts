@@ -1,5 +1,5 @@
 /** Original 2D island-adventure soundtrack v3. No Pokémon Quest melody or game audio is sampled. */
-import type { Song, NoteEv, DrumEv, Track } from './songs'
+import type { Song, NoteEv, Track } from './songs'
 import type { NoteInstName, DrumInstName } from './instruments'
 const keys = {
   title: { bpm:132, root:0, scale:[0,2,4,5,7,9,11], chords:['C','G','Am','F','C','G','F','G','C','Em','Am','F','Dm','G','C','G'], lead:'marimba', energy:3 },
