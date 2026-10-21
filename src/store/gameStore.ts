@@ -428,7 +428,7 @@ export const useGame = create<GameState>((set, get) => {
         return
       }
       const clearsSoFar = s.counters.clears ?? 0
-      const expeditionBonus = clearsSoFar > 0 && clearsSoFar % 10 === 0
+      const expeditionBonus = (clearsSoFar + 1) % 10 === 0
       const rewards = rollRewards(stage, Math.random, expeditionBonus)
       const firstClear = stage.area >= 0 ? !s.cleared[stage.id] : stage.endlessFloor! > s.endlessBest
       // 파티 전원에게 경험치
