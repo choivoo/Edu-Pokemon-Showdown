@@ -124,6 +124,8 @@ export interface Battle {
   balance: EncounterBalance
   /** Optional user-commanded free-roam waypoint in the 2D island world. */
   manualPoint: {x:number;y:number}|null
+  /** Continuous omnidirectional motion from keyboard or touch pad. */
+  manualDirection: {x:number;y:number}|null
 }
 
 export interface AllyInput { ownedId: string; speciesId: number; level: number; stats: Stats; fx?: MoveFx; fx2?: MoveFx; move?: string; move2?: string }
@@ -249,7 +251,7 @@ function joinLate(b: Battle, kind: 'call' | 'new' | 'bossHp') {
 export function createBattle(allies: AllyInput[], waves: WaveEnemy[][], rng: Rng = Math.random, stage?: Pick<Stage,'area'|'index'>): Battle {
   const b: Battle = {
     late: [], scatterCd: 0, surrounded: false, waveKills: 0, t: 0, units: [], waves, wave: 0, phase: 'fight', phaseT: 0, pending: [], queue: [], events: [],
-    auto: false, kills: 0, nextUid: 1, rng, manualPoint: null, balance: stage ? encounterBalance(stage) : { hp: 1, attack: 1, defense: 1, allyHeal: 0.1, bossHp: 1 },
+    auto: false, kills: 0, nextUid: 1, rng, manualPoint: null, manualDirection: null, balance: stage ? encounterBalance(stage, allies.length) : { hp: 1, attack: 1, defense: 1, allyHeal: 0.1, bossHp: 1 },
   }
   allies.forEach((a, i) => b.units.push(makeUnit(b, 'ally', a.speciesId, a.level, a.stats, i, false, { ownedId: a.ownedId, fx: a.fx, move: a.move, move2: a.move2, fx2: a.fx2 })))
   spawnWave(b)
@@ -500,9 +502,16 @@ export function movePartyTo(b:Battle,x:number,y:number):boolean {
  if(b.phase!=='fight'&&b.phase!=='advance')return false
  if(!Number.isFinite(x)||!Number.isFinite(y))return false
  b.manualPoint={x:Math.max(FIELD.x0,Math.min(FIELD.x1,x)),y:Math.max(FIELD.y0,Math.min(FIELD.y1,y))}
+ b.manualDirection=null // tap-to-waypoint overrides held motion
  return true
 }
 export function clearPartyWaypoint(b:Battle):void {b.manualPoint=null}
+/** A held button controls motion at a consistent speed, including diagonals. */
+export function steerParty(b:Battle,dx:number,dy:number):void {
+  const length=Math.hypot(dx,dy)
+  b.manualDirection=length<.01 ? null : {x:dx/length,y:dy/length}
+  if(b.manualDirection)b.manualPoint=null
+}
 export const ALLY_REVIVE_SECONDS = 25
 export function step(b: Battle, dt: number): void {
   if (b.phase === 'won' || b.phase === 'lost') return
@@ -575,6 +584,17 @@ export function step(b: Battle, dt: number): void {
           u.y += ((u.y - foe.y) / d) * k + Math.cos(u.uid * 1.7 + b.t * 3) * k * 0.7
           u.moving = true
         }
+        continue
+      }
+      if(u.side==='ally'&&b.manualDirection&&!u.status){
+        const dir=b.manualDirection
+        // All three allies follow the same freely chosen direction; there
+        // is no compulsory left-to-right scroll or lane-locked movement.
+        const velocity=Math.max(125,speedOf(b,u))*1.8*dt
+        u.x=Math.min(FIELD.x1,Math.max(FIELD.x0,u.x+dir.x*velocity))
+        u.y=Math.min(FIELD.y1,Math.max(FIELD.y0,u.y+dir.y*velocity))
+        if(Math.abs(dir.x)>.02)u.face=dir.x>=0?1:-1
+        u.moving=true
         continue
       }
       if(u.side==='ally'&&b.manualPoint&&!u.status){

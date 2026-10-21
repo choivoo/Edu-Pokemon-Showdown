@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useGame } from '../store/gameStore'
-import { type AllyInput, type Battle as BattleState, createBattle, movePartyTo, scatter, step, useSpecial, waveCenter } from '../engine/battle'
+import { type AllyInput, type Battle as BattleState, createBattle, movePartyTo, scatter, steerParty, step, useSpecial, waveCenter } from '../engine/battle'
 import { consumeEvents, drawBattle, H, newVisual, preload, SLOT_COLORS, W } from '../engine/render'
 import { AREAS, AREA_BONUS_MUL, buildWaves, hasAreaBonus, type Theme } from '../lib/stages'
 import { HAPPENSTANCE_AREA } from '../lib/originalCampaign'
@@ -52,26 +52,50 @@ export default function Battle() {
   const [uiPaused, setUiPaused] = useState(false)
   const [auto, setAuto] = useState(false)
   const [quit, setQuit] = useState(false)
+  // Keyboard direction is held, not a fixed 165px jump per key repeat.
+  // Track independent keys so WASD diagonals work at the same running speed.
+  const held = useRef(new Set<string>())
+  const setDirection = (x:number,y:number) => {
+    if (!battle.current || (paused.current && (x!==0 || y!==0))) return
+    steerParty(battle.current,x,y)
+  }
   useEffect(() => {
-    const keymove=(e:KeyboardEvent)=>{
-      if(e.target instanceof HTMLInputElement||e.target instanceof HTMLTextAreaElement)return
-      const d:Record<string,[number,number]>={
-        ArrowLeft:[-1,0],a:[-1,0],A:[-1,0],
-        ArrowRight:[1,0],d:[1,0],D:[1,0],
-        ArrowUp:[0,-1],w:[0,-1],W:[0,-1],
-        ArrowDown:[0,1],s:[0,1],S:[0,1],
-      }
-      const v=d[e.key],b=battle.current
-      if(!v||!b||paused.current)return
-      e.preventDefault()
-      const allies=b.units.filter(x=>x.side==='ally'&&x.alive)
-      if(!allies.length)return
-      const x=allies.reduce((n,x)=>n+x.x,0)/allies.length
-      const y=allies.reduce((n,x)=>n+x.y,0)/allies.length
-      movePartyTo(b,(b.manualPoint?.x??x)+v[0]*165,(b.manualPoint?.y??y)+v[1]*165)
+    const directions:Record<string,[number,number]>={
+      arrowleft:[-1,0],a:[-1,0],arrowright:[1,0],d:[1,0],
+      arrowup:[0,-1],w:[0,-1],arrowdown:[0,1],s:[0,1],
     }
-    window.addEventListener('keydown',keymove)
-    return()=>window.removeEventListener('keydown',keymove)
+    const update=()=>{
+      let dx=0,dy=0
+      for (const key of held.current) {
+        const vector=directions[key]
+        if(vector){dx+=vector[0];dy+=vector[1]}
+      }
+      steerParty(battle.current!,dx,dy)
+    }
+    const keydown=(e:KeyboardEvent)=>{
+      if(e.target instanceof HTMLInputElement||e.target instanceof HTMLTextAreaElement)return
+      const key=e.key.toLowerCase()
+      if(!directions[key]||!battle.current||paused.current)return
+      e.preventDefault()
+      held.current.add(key)
+      update()
+    }
+    const keyup=(e:KeyboardEvent)=>{
+      const key=e.key.toLowerCase()
+      if(!directions[key]||!battle.current)return
+      held.current.delete(key)
+      update()
+    }
+    const unfocus=()=>{held.current.clear();if(battle.current)steerParty(battle.current,0,0)}
+    window.addEventListener('keydown',keydown)
+    window.addEventListener('keyup',keyup)
+    window.addEventListener('blur',unfocus)
+    return()=>{
+      window.removeEventListener('keydown',keydown)
+      window.removeEventListener('keyup',keyup)
+      window.removeEventListener('blur',unfocus)
+      unfocus()
+    }
   },[])
 
   useEffect(() => {
@@ -153,7 +177,7 @@ export default function Battle() {
 
       {/* 좌상단: 일시정지 + 카운터 */}
       <div className="absolute left-3 top-3 flex items-center gap-2">
-        <button onClick={() => { paused.current = !paused.current; setUiPaused(paused.current) }} className="pq-btn pq-red flex h-12 w-12 items-center justify-center"><Icon n={uiPaused ? 'play' : 'pause'} s={30} /></button>
+        <button onClick={() => { paused.current = !paused.current; if(paused.current && battle.current)steerParty(battle.current,0,0); setUiPaused(paused.current) }} className="pq-btn pq-red flex h-12 w-12 items-center justify-center"><Icon n={uiPaused ? 'play' : 'pause'} s={30} /></button>
         <span className="hud-bar flex items-center gap-1 px-3 py-1 text-lg"><Icon n="sword" s={22} />{hud?.kills ?? 0}</span>
         <span className={`hud-bar flex items-center gap-1 px-3 py-1 text-lg ${stage.timeLimitSec && (stage.timeLimitSec - (hud?.time ?? 0)) <= 30 ? 'text-red-300 blink' : ''}`}><Icon n="clock" s={22} />{stage.timeLimitSec ? fmt(Math.max(0, stage.timeLimitSec - (hud?.time ?? 0))) : fmt(hud?.time ?? 0)}</span>
         <span className="hud-bar max-w-[260px] truncate px-3 py-1 text-base text-yellow-200">{stage.name}</span>
@@ -177,6 +201,26 @@ export default function Battle() {
           <span className="absolute bottom-0 right-1 text-[9px] text-[#426744]">● 팀  ■ 적</span>
         </div>
       </div>}
+      {/* 2D 자유 방향 이동: 터치/펜/마우스로 누르는 동안 계속 이동 */}
+      <div className="absolute bottom-[122px] left-3 z-20 grid h-[126px] w-[126px] grid-cols-3 grid-rows-3 gap-1 select-none touch-none" aria-label="상하좌우 방향 이동 패드">
+        {([
+          {x:0,y:-1,label:'위',column:2,row:1,arrow:'▲'},
+          {x:-1,y:0,label:'왼쪽',column:1,row:2,arrow:'◀'},
+          {x:1,y:0,label:'오른쪽',column:3,row:2,arrow:'▶'},
+          {x:0,y:1,label:'아래',column:2,row:3,arrow:'▼'},
+        ] as const).map(d=><button key={d.label}
+          aria-label={d.label+'으로 이동'}
+          style={{gridColumn:d.column,gridRow:d.row,touchAction:'none'}}
+          onPointerDown={e=>{e.preventDefault();e.currentTarget.setPointerCapture(e.pointerId);setDirection(d.x,d.y)}}
+          onPointerUp={()=>setDirection(0,0)}
+          onPointerCancel={()=>setDirection(0,0)}
+          onLostPointerCapture={()=>setDirection(0,0)}
+          className="rounded border-[3px] border-[#654a2e] bg-[#f6d476]/90 text-lg font-black text-[#6a4a28] shadow-[2px_3px_0_#4e4734] active:bg-[#ffeb8b]">
+          {d.arrow}
+        </button>)}
+        <div style={{gridColumn:2,gridRow:2}} className="grid place-items-center rounded border-2 border-[#8f8251] bg-[#f5ebac]/80 text-[9px] font-bold text-[#645b35]">이동</div>
+      </div>
+
       {/* 좌하단: 배속/자동 */}
       <div className="absolute bottom-3 left-3 flex flex-col gap-2">
         <Btn color="yellow" onClick={() => { speed.current = speed.current === 1 ? 2 : speed.current === 2 ? 3 : 1; setUiSpeed(speed.current) }} className="h-[52px] w-[96px] px-0 py-0 text-xl">×{uiSpeed}</Btn>
