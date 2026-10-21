@@ -6,14 +6,14 @@ import { getSpecies, getMove, SPECIES } from './roster'
 import { EVOLUTIONS, EVOLUTION_ONLY, canEvolve, targetOf } from './evolution'
 import { ALL_RECIPES } from './cooking'
 
-describe('46장면 스토리 · 기존 세이브 호환', () => {
+describe('원작 본편 + 46장면 추가 스토리 · 기존 세이브 호환', () => {
   it('지역 6개, 메인 30개, 외전 12개, 후일담 4개', () => {
-    expect(STORY_CHAPTERS).toHaveLength(6)
-    expect(STORY_CHAPTERS.flatMap(x => x.scenes).filter(x => x.kind === 'main')).toHaveLength(30)
+    expect(STORY_CHAPTERS).toHaveLength(17)
+    expect(STORY_CHAPTERS.flatMap(x => x.scenes).filter(x => x.kind === 'main')).toHaveLength(84)
     expect(STORY_CHAPTERS.flatMap(x => x.scenes).filter(x => x.kind === 'side')).toHaveLength(12)
     expect(EPILOGUE_SCENES).toHaveLength(4)
-    expect(ALL_STORY_SCENES).toHaveLength(46)
-    expect(new Set(ALL_STORY_SCENES.map(x => x.id)).size).toBe(46)
+    expect(ALL_STORY_SCENES).toHaveLength(100)
+    expect(new Set(ALL_STORY_SCENES.map(x => x.id)).size).toBe(100)
   })
   it('6개 지역 모든 스테이지에 최초 클리어 장면이 있다', () => {
     for (let area = 0; area < 6; area++) for (let stage = 0; stage < 5; stage++) {
@@ -27,7 +27,7 @@ describe('46장면 스토리 · 기존 세이브 호환', () => {
     const save = defaultSave()
     const intro = fieldScene(0, 0)!
     expect(storyUnlocked(save, intro)).toBe(false)
-    expect(storyProgress(save)).toEqual({ unlocked: 0, total: 46 })
+    expect(storyProgress(save)).toEqual({ unlocked: 0, total: 100 })
     save.cleared['a0-s0'] = true
     expect(storyUnlocked(save, intro)).toBe(true)
     expect(storyUnlocked(save, fieldScene(0, 1)!)).toBe(false)
@@ -36,7 +36,7 @@ describe('46장면 스토리 · 기존 세이브 호환', () => {
   it('외전은 지역별 진행 단계에 따라 열리고 마지막 후일담은 결말 뒤에 열린다', () => {
     const save = defaultSave()
     save.cleared['a0-s2'] = true
-    expect(STORY_CHAPTERS[0].scenes.filter(scene => storyUnlocked(save, scene))).toHaveLength(2)
+    expect(STORY_CHAPTERS[11].scenes.filter(scene => storyUnlocked(save, scene))).toHaveLength(2)
     expect(EPILOGUE_SCENES.some(s => storyUnlocked(save, s))).toBe(false)
     save.cleared['a5-s4'] = true
     expect(EPILOGUE_SCENES.every(s => storyUnlocked(save, s))).toBe(true)
