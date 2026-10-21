@@ -1,5 +1,4 @@
 import type { PokemonType, Rng } from '../types'
-import { typeMultiplier } from './typeChart'
 
 export interface DamageInput {
   level: number
@@ -20,11 +19,10 @@ export interface DamageResult {
 
 export const CRIT_MULTIPLIER = 1.5
 
-/** ((2*Lv/5+2) * 위력 * 공격/방어 / 50 + 2) * 상성 * 랜덤(0.85~1) [* 급소] */
+/** Quest uses no defending-type resistance, weakness or immunity. STAB still applies in engine/battle.ts. */
 export function calcDamage(i: DamageInput): DamageResult {
-  const effectiveness = typeMultiplier(i.moveType, i.defenderTypes)
+  const effectiveness = 1
   const crit = !!i.crit
-  if (effectiveness === 0) return { damage: 0, effectiveness, crit }
   const base = ((2 * i.level) / 5 + 2) * i.power * (i.atk / i.def) / 50 + 2
   const random = 0.85 + i.rng() * 0.15
   const raw = base * effectiveness * random * (crit ? CRIT_MULTIPLIER : 1)
