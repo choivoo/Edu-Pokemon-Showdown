@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { cook, cookingExpeditions, recipeFor, type IngredientId, getIngredient, DISH_SIZE } from '../lib/cooking'
+import { cook, cookingExpeditions, COOKING_TIERS, recipeFor, type CookingTier, type IngredientId, getIngredient, DISH_SIZE } from '../lib/cooking'
 import { getSpecies } from '../lib/roster'
 import { addExp, expToNext, MAX_LEVEL, type OwnedMon } from '../lib/stats'
 import { canPlace, findSpot, mergeCost, occupancy, type Stone, type ShapeId, type StoneKind } from '../lib/stones'
@@ -49,7 +49,7 @@ interface GameState {
   hardReset: () => void
   toggleMute: () => void
   markStory: (key: string) => void
-  startCooking: (sel: IngredientId[]) => boolean
+  startCooking: (sel: IngredientId[], tier?: CookingTier) => boolean
   collectCooked: () => OwnedMon | null
   setParty: (ids: string[]) => void
   placeStone: (monId: string, stoneId: string, x: number, y: number, rot: number) => boolean
@@ -162,26 +162,28 @@ export const useGame = create<GameState>((set, get) => {
       if (!s.seenStory.includes(key)) commit({ seenStory: [...s.seenStory, key] })
     },
 
-    startCooking: sel => {
+    startCooking: (sel, tier: CookingTier = 0) => {
       const s = get().save
       if (s.pot || sel.length !== DISH_SIZE) return false
+      const pot = COOKING_TIERS[tier]
+      if (!pot || (pot.unlockArea >= 0 && !areaCleared(s, pot.unlockArea))) return false
       const need: Partial<Record<IngredientId, number>> = {}
-      for (const id of sel) need[id] = (need[id] ?? 0) + 1
+      for (const id of sel) need[id] = (need[id] ?? 0) + pot.perSlot
       for (const [id, n] of Object.entries(need) as [IngredientId, number][])
         if ((s.ingredients[id] ?? 0) < n) return false
       const ingredients = { ...s.ingredients }
       for (const [id, n] of Object.entries(need) as [IngredientId, number][]) ingredients[id] -= n
       const visitor = cook(sel)
-      const total = cookingExpeditions(sel)
+      const total = cookingExpeditions(sel, tier)
       const recipe = recipeFor(sel).no
-      commit({ ingredients, pot: { species: visitor.id, remaining: total, total, recipe } })
+      commit({ ingredients, pot: { species: visitor.id, remaining: total, total, recipe, ...(tier ? { tier } : {}) } })
       return true
     },
 
     collectCooked: () => {
       const s = get().save
       if (!s.pot || s.pot.remaining > 0) return null
-      const { mon, patch } = newMon(s, s.pot.species, newcomerLevel(s))
+      const { mon, patch } = newMon(s, s.pot.species, Math.min(100, Math.max(newcomerLevel(s), COOKING_TIERS[s.pot.tier ?? 0]?.minLevel ?? 5)))
       commit({ ...patch, pot: null, counters: bump(s.counters, 'cooked') })
       return mon
     },
