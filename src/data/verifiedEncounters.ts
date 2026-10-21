@@ -366,6 +366,8 @@ export const VERIFIED_ENCOUNTERS: Readonly<Record<string,Encounter>> = {
   [g(129)],
  ],boss:w([130,97.5],[149,2.5]),bossExtra:[w([130,97.5],[149,2.5])]},
 
+ '16-0':{segments:[],boss:g(150)},
+
 }
 function pick(group:Group,rng:Rng):number{
  let total=group.reduce((n,e)=>n+e.weight,0),r=rng()*total
@@ -376,6 +378,7 @@ function pick(group:Group,rng:Rng):number{
 export function verifiedWaves(area:number,index:number,level:number,rng:Rng):WaveEnemy[][]|undefined{
  const route=VERIFIED_ENCOUNTERS[`${area}-${index}`]
  if(!route)return undefined
+ if(route.segments.length===0)return [[{species:pick(route.boss,rng),level,boss:true}]]
  // Preserve original per-segment encounter groups, with 2-segment courses split
  // into separate waves and 3/4-segment courses compacted for the 2D battle UI.
  const midpoint=route.segments.length<=2?1:2
