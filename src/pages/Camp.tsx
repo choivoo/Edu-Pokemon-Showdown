@@ -21,7 +21,7 @@ export default function Camp() {
   const ids = [...party.map(m => m.species), ...others]
   const key = ids.join(',')
   preload(ids)
-  useEffect(() => { bgm.play('camp') }, [])
+  useEffect(() => { bgm.play('camp','camp') }, [])
   const decorKey = save.decorations.join(',')
   useCanvas(canvas, (ctx, t) => drawCamp(ctx, t, ids, false, save.decorations), [key, decorKey])
 

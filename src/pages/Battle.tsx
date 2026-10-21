@@ -4,6 +4,7 @@ import { type AllyInput, type Battle as BattleState, createBattle, movePartyTo, 
 import { consumeEvents, drawBattle, H, newVisual, preload, SLOT_COLORS, W } from '../engine/render'
 import { AREAS, AREA_BONUS_MUL, buildWaves, hasAreaBonus, type Theme } from '../lib/stages'
 import { HAPPENSTANCE_AREA } from '../lib/originalCampaign'
+import { cueForExpedition } from '../lib/questAlbum'
 import { getSpecies } from '../lib/roster'
 import { moveFxOf, partyMons, statsOf } from '../lib/party'
 import { bgm, sfx } from '../lib/sound'
@@ -112,7 +113,7 @@ export default function Battle() {
     battle.current = b
     setHud(snapshot(b))
     const regionMusic = (['tide', 'grove', 'echo', 'spark', 'ember', 'astral'] as const)[stage.area] ?? 'battle'
-    bgm.play(stage.boss ? 'boss' : regionMusic)
+    bgm.play(stage.boss ? 'boss' : regionMusic, cueForExpedition(stage.area,stage.index,stage.boss))
     if (stage.boss && stage.area >= 0) sfx.cry(waves.flat().find(w => w.boss)?.species ?? AREAS[stage.area].boss)
 
     const ctx = canvas.current!.getContext('2d')!
@@ -128,7 +129,7 @@ export default function Battle() {
       special: () => sfx.special(),
       faint: () => sfx.faint(),
       wave: (boss: boolean) => (boss ? sfx.crit() : sfx.step()),
-      bossDefeated: () => { sfx.bossFinale() },
+      bossDefeated: () => { bgm.duck(2.5); sfx.bossFinale() },
     }
     const loop = (nowMs: number) => {
       const real = Math.min(0.1, (nowMs - last) / 1000)
@@ -152,7 +153,7 @@ export default function Battle() {
       if (hudT > 0.1) { hudT = 0; setHud(snapshot(b)) }
       if ((b.phase === 'won' || b.phase === 'lost') && !finished.current) {
         endT += real
-        if (endT > (stage.area===6 && [0,1,3].includes(stage.index) ? 2.45 : 1.3)) { finished.current = true; setHud(snapshot(b)); finishBattle(b.phase === 'won', stage, b.kills) }
+        if (endT > (b.phase === 'won' && b.finaleFired ? 2.65 : 1.3)) { finished.current = true; setHud(snapshot(b)); finishBattle(b.phase === 'won', stage, b.kills) }
       }
       raf = requestAnimationFrame(loop)
     }

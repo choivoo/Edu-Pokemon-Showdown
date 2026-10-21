@@ -15,8 +15,9 @@ export default function Title(){
  const {save,go,openPanel,toggleMute}=useGame()
  const canvas=useRef<HTMLCanvasElement>(null)
  const [localSound,setLocalSound]=useState(bgm.localMusicActive)
+ const [bundledSound,setBundledSound]=useState(bgm.bundledMusicActive)
  const [musicMessage,setMusicMessage]=useState('')
- useEffect(()=>{preload(HEROES);bgm.play('title')},[])
+ useEffect(()=>{preload(HEROES);bgm.play('title','title');void bgm.autoUseBundledAlbum().then(ok=>setBundledSound(ok))},[])
  useCanvas(canvas,(ctx,t)=>{
    drawTitleWorld(ctx,t)
    HEROES.forEach((id,i)=>{
@@ -69,14 +70,14 @@ export default function Title(){
        <label className="cursor-pointer border-2 border-[#fff0b8] bg-[#518b71] px-2 py-1 font-bold">
          <input className="sr-only" type="file" accept="audio/*,.mp3" aria-label="내 기기의 BGM 파일 선택"
           onChange={e=>{const file=e.target.files?.[0];if(!file)return
-            const ok=bgm.useLocalFile(file);setLocalSound(ok);setMusicMessage(ok?'내 기기 음악 재생 중':'오디오 파일을 열 수 없습니다')
+            const ok=bgm.useLocalFile(file);setLocalSound(ok);setBundledSound(false);setMusicMessage(ok?'선택한 MP3 앨범의 27개 구간을 자동 재생합니다':'오디오 파일을 열 수 없습니다')
           }} />
          개인 MP3 음악 선택
        </label>
        {localSound && <button className="border-2 border-white bg-[#4f665c] px-2 py-1" onClick={()=>{
-         bgm.disableLocalFile();setLocalSound(false);setMusicMessage('새로 만든 게임 음악')
+         bgm.disableLocalFile();setLocalSound(false);setBundledSound(bgm.bundledMusicActive);setMusicMessage(bgm.bundledMusicActive?'배포된 앨범을 자동 재생합니다':'기본 창작 BGM으로 복귀')
        }}>기본 음악 복원</button>}
-       <span>{musicMessage || '선택 파일은 서버로 전송하지 않습니다'}</span>
+       <span>{musicMessage || (bundledSound?'공개 배포된 앨범 자동 재생 중 · 모든 기기':'내 MP3를 고르거나 기본 BGM으로 플레이')}</span>
      </div>
    </div>
    <footer className="quest-title-footer">비공식 · 비상업 2D 팬게임  |  Pokémon 관련 권리는 원권리자 소유  |  PokéAPI 도트 사용</footer>
