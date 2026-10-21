@@ -43,7 +43,7 @@ export default function Camp() {
         <Coins n={save.coins} className="text-yellow-300" />
         <span className="inline-flex items-center gap-1 text-purple-200"><Icon n="gem" s={22} />석상 {originalStatueCount(save)}/{ORIGINAL_STATUE_COUNT} {allCleared(save) && <span className="text-yellow-200">· 프리즘 {shardCount(save)}/6</span>}</span>
         <BatteryMeter compact />
-        <span className="text-sm" title="탐험을 열 번 성공하면 다음 성공 시 금빛 P스톤 확정">탐험 보너스 {(save.counters.clears ?? 0) % 10}/10{(save.counters.clears ?? 0) % 10 === 9 ? ' ★ 다음 탐험 보너스' : ''}</span>
+        <span className="text-sm" title="탐험을 열 번 성공하면 다음 성공 시 금빛 P스톤 확정">탐험 보너스 {(save.counters.clears ?? 0) % 10}/10{(save.counters.clears ?? 0) > 0 && (save.counters.clears ?? 0) % 10 === 0 ? ' ★ 다음 탐험 보너스' : ''}</span>
       </div>
       <div className="absolute right-3 top-3 flex gap-2">
         <Btn color={needBackup ? 'red' : 'blue'} onClick={() => openPanel('save')} className="relative flex items-center gap-1 px-3 py-1 text-base">
