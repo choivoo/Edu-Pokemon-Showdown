@@ -210,5 +210,5 @@ export function verifiedWaves(area:number,index:number,level:number,rng:Rng):Wav
  const middle=route.segments.slice(midpoint).flatMap(s=>s.map(group=>({species:pick(group,rng),level})))
  const final=route.noBoss
     ? [] : [{species:pick(route.boss,rng),level,boss:true},...((route.bossExtra??[]).map((set,i)=>({species:pick(set,rng),level,elite:i<3})))]
- return [early,middle,final]
+ return route.noBoss ? [early,middle] : [early,middle,final]
 }
