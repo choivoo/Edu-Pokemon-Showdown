@@ -67,7 +67,7 @@ describe('2D soundtrack and move geometry',()=>{
 })
 describe('sourced stage enemy sets and transparent cooking estimates',()=>{
  it('matches Serebii first-steppe weighted boss sets and Gloomy Grove',()=>{
-  expect(Object.keys(VERIFIED_ENCOUNTERS)).toHaveLength(19)
+  expect(Object.keys(VERIFIED_ENCOUNTERS)).toHaveLength(24)
   for(let s=0;s<4;s++){
    const waves=verifiedWaves(6,s,20,()=>0.5)!
    expect(waves).toHaveLength(3)
@@ -93,7 +93,12 @@ describe('sourced stage enemy sets and transparent cooking estimates',()=>{
   expect(verifiedWaves(9,2,10,()=>0)![2][0].species).toBe(78)
   expect(verifiedWaves(9,3,10,()=>0)![2][0].species).toBe(59)
   expect(verifiedWaves(9,4,10,()=>0)![2][0].species).toBe(68)
-  expect(verifiedWaves(10,0,10,()=>0)).toBeUndefined()
+  expect(verifiedWaves(10,0,10,()=>0)![2]).toHaveLength(0)
+  expect(verifiedWaves(10,1,10,()=>0)![2].map(x=>x.species)).toEqual([42,41])
+  expect(verifiedWaves(10,2,10,()=>0)![2][0].species).toBe(95)
+  expect(verifiedWaves(10,3,10,()=>0)![2].map(x=>x.species)).toEqual([105,105,105])
+  expect(verifiedWaves(10,4,10,()=>0)![2][0].species).toBe(76)
+  expect(verifiedWaves(11,0,10,()=>0)).toBeUndefined()
  })
  it('normalizes each recipe’s probability distribution to 100%',()=>{
   const sample=['mushroomRed','mushroomRed','rootRed','rootRed','rootRed'] as const
