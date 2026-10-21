@@ -113,6 +113,8 @@ export interface Battle {
   /** 리피트/늘리기 스톤으로 이어서 나가는 필살기 */
   queue: Queued[]
   events: FxEvent[]
+  /** Player-issued free-direction 2D rally point, in world coordinates. */
+  rally: {x:number;y:number;expires:number}|null
   auto: boolean
   kills: number
   nextUid: number
@@ -221,7 +223,7 @@ function joinLate(b: Battle, kind: 'call' | 'new' | 'bossHp') {
 export function createBattle(allies: AllyInput[], waves: WaveEnemy[][], rng: Rng = Math.random): Battle {
   const b: Battle = {
     late: [], scatterCd: 0, surrounded: false, waveKills: 0, t: 0, units: [], waves, wave: 0, phase: 'fight', phaseT: 0, pending: [], queue: [], events: [],
-    auto: false, kills: 0, nextUid: 1, rng,
+    rally: null, auto: false, kills: 0, nextUid: 1, rng,
   }
   allies.forEach((a, i) => b.units.push(makeUnit(b, 'ally', a.speciesId, a.level, a.stats, i, false, { ownedId: a.ownedId, fx: a.fx, move: a.move, move2: a.move2, fx2: a.fx2 })))
   spawnWave(b)
@@ -230,6 +232,14 @@ export function createBattle(allies: AllyInput[], waves: WaveEnemy[][], rng: Rng
 
 const alive = (b: Battle, side: Side) => b.units.filter(u => u.side === side && u.alive)
 export const unitById = (b: Battle, uid: number) => b.units.find(u => u.uid === uid)
+
+/** Tap/click any direction on the 2D field to redirect the whole party. */
+export function rallyParty(b:Battle,x:number,y:number):boolean {
+  if(b.phase!=='fight')return false
+  b.rally={x:Math.max(FIELD.x0+35,Math.min(FIELD.x1-35,x)),y:Math.max(FIELD.y0+35,Math.min(FIELD.y1-35,y)),expires:b.t+5}
+  b.events.push({k:'banner',text:'이동 지시!',tone:'info'})
+  return true
+}
 
 function nearest(b: Battle, u: Unit): Unit | undefined {
   let best: Unit | undefined
@@ -490,6 +500,7 @@ export function step(b: Battle, dt: number): void {
   }
 
   if (b.phase === 'fight') {
+    if(b.rally&&b.t>=b.rally.expires)b.rally=null
     for (const u of b.units) {
       if (!u.alive) continue
       if (u.regen > 0 && u.hp < u.maxHp) u.hp = Math.min(u.maxHp, u.hp + u.maxHp * u.regen * dt)
@@ -534,6 +545,19 @@ export function step(b: Battle, dt: number): void {
           u.moving = true
         }
         continue
+      }
+      if(u.side==='ally' && b.rally){
+        const d=Math.hypot(b.rally.x-u.x,b.rally.y-u.y)
+        if(d>u.radius+10){
+          const k=Math.min(speedOf(b,u)*dt,d)
+          u.x+=((b.rally.x-u.x)/d)*k
+          u.y+=((b.rally.y-u.y)/d)*k
+          u.x=Math.max(FIELD.x0+u.radius,Math.min(FIELD.x1-u.radius,u.x))
+          u.y=Math.max(FIELD.y0+u.radius,Math.min(FIELD.y1-u.radius,u.y))
+          u.face=b.rally.x>=u.x?1:-1
+          u.moving=true
+          continue
+        }
       }
       let t = nearest(b, u)
       // 혼란: 가끔 엉뚱한 상대(동료 포함)를 노린다
@@ -595,6 +619,7 @@ export function step(b: Battle, dt: number): void {
     }
     if (!alive(b, 'enemy').length && !b.pending.length) {
       b.phase = 'advance'
+      b.rally = null
       b.phaseT = ADVANCE_TIME
       for (const a of alive(b, 'ally')) {
         a.status = null
