@@ -33,6 +33,8 @@ export interface OwnedMon {
   ivAtk?: number
   /** Per-mon nine-slot P Charm layout, omitted on legacy saves. */
   sockets?: Array<'hp' | 'atk' | 'any'>
+  /** Chosen 0/1/2 option for each species-specific Bingo row. */
+  bingoChoices?: [number,number,number]
 }
 
 export interface Stats {
@@ -54,6 +56,12 @@ export interface Stats {
   reviveHp?: number
   effectResist?: number
   statusResist?: number
+  typeMoveAtk?: Record<string,number>
+  typeMoveWait?: Record<string,number>
+  typeDamageResist?: Record<string,number>
+  statusTypeResist?: Record<string,number>
+  critTakenResist?: number
+  bodySize?: number
 }
 
 export const BASE_CRIT = 0.06
