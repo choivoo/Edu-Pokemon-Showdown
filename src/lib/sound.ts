@@ -101,6 +101,22 @@ export const sfx = {
   superHit: () => { noise(0, 0.095, 0.085); beep(420, 0, 0.20, 'sawtooth', 0.055, 85); beep(620, 0.012, 0.12, 'sine', 0.04, 200) },
   crit: () => { sparkle([784, 988]); beep(250, 0.06, 0.14, 'triangle', 0.060, 150) },
   faint: () => { beep(460, 0, 0.42, 'triangle', 0.07, 104); beep(590, 0.04, 0.27, 'sine', 0.032, 120) },
+  /** Original *feel*, new melody/sound: PAM! PAM! pa-pa-pa-pa PAM! PAM-PA!
+   * Crisp rhythmic impact cue layered with descending noise and a finishing
+   * major-chord flourish. No sound sample, transcription or lifted melody.
+   */
+  bossFinale: () => {
+    const beat=[0,.24,.45,.56,.67,.78,.91,1.14,1.38,1.61]
+    const pitch=[220,260,390,440,495,560,740,820,990,1175]
+    beat.forEach((time,i)=>{
+      const long=i>=7
+      beep(pitch[i],time,long?.32:.085,i>=6?'triangle':'square',long?.064:.037,pitch[i]*(long?1.12:.77))
+      beep(pitch[i]*2,time+.008,long?.23:.07,'sine',long?.018:.012)
+      if(i===0||i===1||i>=7)noise(time,long?.24:.065,long?.045:.025)
+    })
+    ;[784,988,1175,1568].forEach((p,i)=>beep(p,1.63+i*.025,.72-i*.08,'triangle',.032,p*1.015))
+    noise(1.64,.64,.038)
+  },
   tick: () => beep(1100, 0, 0.018, 'sine', 0.023),
   coin: () => sparkle([988, 1319]),
   special: () => { beep(350, 0, 0.18, 'sine', 0.07, 660); beep(700, 0.075, 0.25, 'triangle', 0.065, 1200); sparkle([880, 1175]) },

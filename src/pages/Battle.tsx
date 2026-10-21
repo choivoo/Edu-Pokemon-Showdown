@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useGame } from '../store/gameStore'
-import { type AllyInput, type Battle as BattleState, createBattle, scatter, step, useSpecial } from '../engine/battle'
+import { type AllyInput, type Battle as BattleState, createBattle, scatter, step, useSpecial, waveCenter } from '../engine/battle'
 import { consumeEvents, drawBattle, H, newVisual, preload, SLOT_COLORS, W } from '../engine/render'
 import { AREAS, AREA_BONUS_MUL, buildWaves, hasAreaBonus, type Theme } from '../lib/stages'
 import { HAPPENSTANCE_AREA } from '../lib/originalCampaign'
@@ -18,12 +18,20 @@ interface Hud {
   time: number
   phase: BattleState['phase']
   scatterLeft: number
+  partyX: number
+  partyY: number
+  targetX: number
+  targetY: number
   allies: { uid: number; id: number; name: string; level: number; hp: number; maxHp: number; cd: number; max: number; alive: boolean; slot: number; move: string; type: string; move2?: string; type2?: string; cd2?: number; max2?: number }[]
 }
 
 const snapshot = (b: BattleState): Hud => ({
   wave: Math.min(b.wave + 1, b.waves.length), waves: b.waves.length, kills: b.kills, time: b.t, phase: b.phase,
   scatterLeft: Math.max(0, b.scatterCd - b.t),
+  partyX: b.units.filter(x => x.side==='ally' && x.alive).reduce((n,x)=>n+x.x,0)/Math.max(1,b.units.filter(x=>x.side==='ally'&&x.alive).length),
+  partyY: b.units.filter(x => x.side==='ally' && x.alive).reduce((n,x)=>n+x.y,0)/Math.max(1,b.units.filter(x=>x.side==='ally'&&x.alive).length),
+  targetX: waveCenter(Math.min(b.wave,b.waves.length-1),b.waves.length).x,
+  targetY: waveCenter(Math.min(b.wave,b.waves.length-1),b.waves.length).y,
   allies: b.units.filter(u => u.side === 'ally').sort((a, c) => a.slot - c.slot).map(u => ({
     uid: u.uid, id: u.speciesId, name: u.name, level: u.level, hp: u.hp, maxHp: u.maxHp, cd: u.spCd, max: u.spMax, alive: u.alive, slot: u.slot, move: u.special.name, type: u.special.type, ...(u.secondary ? { move2: u.secondary.name, type2: u.secondary.type, cd2: u.spCd2, max2: u.spMax2 } : {}),
   })),
@@ -55,7 +63,7 @@ export default function Battle() {
     })
     const waves = buildWaves(stage)
     preload([...allies.map(a => a.speciesId), ...waves.flat().map(w => w.species)])
-    const b = createBattle(allies, waves)
+    const b = createBattle(allies, waves, Math.random, stage)
     battle.current = b
     setHud(snapshot(b))
     const regionMusic = (['tide', 'grove', 'echo', 'spark', 'ember', 'astral'] as const)[stage.area] ?? 'battle'
@@ -75,6 +83,7 @@ export default function Battle() {
       special: () => sfx.special(),
       faint: () => sfx.faint(),
       wave: (boss: boolean) => (boss ? sfx.crit() : sfx.step()),
+      bossDefeated: () => { sfx.bossFinale() },
     }
     const loop = (nowMs: number) => {
       const real = Math.min(0.1, (nowMs - last) / 1000)
@@ -128,6 +137,15 @@ export default function Battle() {
         ))}
       </div>
 
+      {/* 2.5D 광역 필드의 현 위치 및 다음 교전 지점 */}
+      {hud && <div className="absolute right-3 top-12 z-10 w-[152px] border-[3px] border-[#604e32] bg-[#d4edb6]/95 p-1 shadow-[3px_4px_0_#392a1b]">
+        <div className="mb-0.5 text-center text-[10px] font-black text-[#486146]">섬 탐험 · 자유 이동</div>
+        <div className="relative h-[66px] overflow-hidden border-2 border-[#85b27c] bg-[repeating-linear-gradient(40deg,#afdc9e_0px,#afdc9e_12px,#a2d493_12px,#a2d493_24px)]">
+          <span className="absolute h-2.5 w-2.5 rounded-sm border border-white bg-red-500 shadow" style={{left:`${hud.targetX/3220*100}%`,top:`${hud.targetY/1460*100}%`}} title="이번 웨이브 전투 지역" />
+          <span className="absolute h-2.5 w-2.5 rounded-full border-2 border-white bg-blue-600 shadow" style={{left:`${hud.partyX/3220*100}%`,top:`${hud.partyY/1460*100}%`}} title="우리 포켓몬 위치" />
+          <span className="absolute bottom-0 right-1 text-[9px] text-[#426744]">● 팀  ■ 적</span>
+        </div>
+      </div>}
       {/* 좌하단: 배속/자동 */}
       <div className="absolute bottom-3 left-3 flex flex-col gap-2">
         <Btn color="yellow" onClick={() => { speed.current = speed.current === 1 ? 2 : speed.current === 2 ? 3 : 1; setUiSpeed(speed.current) }} className="h-[52px] w-[96px] px-0 py-0 text-xl">×{uiSpeed}</Btn>

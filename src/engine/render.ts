@@ -1,8 +1,8 @@
-import { type Battle, type FxEvent, isBuffed, type Unit } from './battle'
+import { type Battle, type FxEvent, isBuffed, type Unit, waveCenter } from './battle'
 import { backSprite, frontSprite, fallbackSpriteOnError } from '../data/sprites'
 import { TYPE_COLOR } from '../lib/typeChart'
 import type { Theme } from '../lib/stages'
-import { drawBattleWorld, flush } from '../art/world'
+import { drawOpenField } from '../art/openField'
 import { iconCanvas } from '../art/icons'
 import { STATUS_INFO } from '../lib/moveSet'
 import { H, rect, W } from './draw'
@@ -37,6 +37,9 @@ interface Slash { x: number; y: number; t0: number; color: string }
 
 export interface Visual {
   scroll: number
+  cameraX: number
+  cameraY: number
+  bossBurst: {x:number;y:number;t0:number}|null
   shake: number
   projs: Proj[]
   parts: Particle[]
@@ -44,10 +47,10 @@ export interface Visual {
   slashes: Slash[]
   banner: { text: string; t0: number; tone?: 'info' | 'warn' | 'boss' } | null
 }
-export const newVisual = (): Visual => ({ scroll: 0, shake: 0, projs: [], parts: [], floats: [], slashes: [], banner: null })
+export const newVisual = (): Visual => ({ scroll: 0, cameraX: 560, cameraY: 640, bossBurst:null, shake: 0, projs: [], parts: [], floats: [], slashes: [], banner: null })
 
 /** 엔진이 쌓아 둔 이벤트를 시각 효과로 바꾼다 */
-export function consumeEvents(b: Battle, v: Visual, now: number, hooks: { hit: (e: Extract<FxEvent, { k: 'hit' }>) => void; special: () => void; faint: () => void; wave: (boss: boolean) => void }) {
+export function consumeEvents(b: Battle, v: Visual, now: number, hooks: { hit: (e: Extract<FxEvent, { k: 'hit' }>) => void; special: () => void; faint: () => void; wave: (boss: boolean) => void; bossDefeated?: () => void }) {
   for (const e of b.events) {
     if (e.k === 'attack') {
       const from = b.units.find(u => u.uid === e.from)
@@ -75,6 +78,18 @@ export function consumeEvents(b: Battle, v: Visual, now: number, hooks: { hit: (
       v.floats.push({ x: cx + (Math.random() * 20 - 10), y: cy - 40, text: txt, color: e.crit ? '#ffe14d' : e.eff > 1 ? '#ff7a45' : e.eff < 1 ? '#c9c9d9' : '#ffffff', t0: now, big: e.crit || e.eff > 1 })
       if (e.special || to.boss) v.shake = Math.max(v.shake, e.special ? 7 : 3)
       hooks.hit(e)
+    } else if (e.k === 'bossDefeated') {
+      hooks.bossDefeated?.()
+      v.bossBurst={x:e.x,y:e.y,t0:now}
+      v.shake=Math.max(v.shake,20)
+      v.banner={text:'강적 격파! 탐험 성공!',t0:now,tone:'boss'}
+      for(let i=0;i<92;i++){
+        const angle=i*Math.PI*2/92
+        const speed=80+(i%8)*26
+        v.parts.push({x:e.x,y:e.y-55,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed-55,
+          life:.9+(i%3)*.25,max:.9+(i%3)*.25,
+          color:['#fff4a8','#ffca42','#ffffff','#ff8b4d','#8ae7fc'][i%5],size:5+(i%4)*4})
+      }
     } else if (e.k === 'faint') {
       hooks.faint()
     } else if (e.k === 'heal') {
@@ -170,7 +185,18 @@ function drawUnit(ctx: CanvasRenderingContext2D, b: Battle, u: Unit, t: number) 
 export function drawBattle(ctx: CanvasRenderingContext2D, b: Battle, v: Visual, theme: Theme, now: number, dt: number) {
   ctx.imageSmoothingEnabled = false
   v.shake = Math.max(0, v.shake - dt * 30)
-  v.scroll += (b.phase === 'advance' ? 240 : 0) * dt
+  // Camera follows the 2D party as it circles foes and travels to new islands.
+  const allies=b.units.filter(u=>u.side==='ally'&&u.alive)
+  if(allies.length){
+    const mx=allies.reduce((n,u)=>n+u.x,0)/allies.length
+    const my=allies.reduce((n,u)=>n+u.y,0)/allies.length
+    const node=waveCenter(b.phase==='advance'?b.wave+1:b.wave,b.waves.length)
+    const targetX=mx*.82+node.x*.18
+    const targetY=my*.82+node.y*.18
+    const follow=Math.min(1,dt*3.5)
+    v.cameraX+=(targetX-v.cameraX)*follow
+    v.cameraY+=(targetY-v.cameraY)*follow
+  }
   for (const p of v.parts) { p.life -= dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 220 * dt }
   v.parts = v.parts.filter(p => p.life > 0)
   v.projs = v.projs.filter(p => now - p.t0 < p.dur + 0.02)
@@ -179,10 +205,26 @@ export function drawBattle(ctx: CanvasRenderingContext2D, b: Battle, v: Visual, 
 
   ctx.save()
   if (v.shake > 0) ctx.translate(Math.round((Math.random() - 0.5) * v.shake), Math.round((Math.random() - 0.5) * v.shake))
-  drawBattleWorld(theme, v.scroll, now)
-  flush(ctx)
-
+  ctx.translate(Math.round(W/2-v.cameraX),Math.round(H/2-v.cameraY))
+  drawOpenField(ctx,theme,v.cameraX,v.cameraY,now)
   for (const u of [...b.units].sort((a, c) => a.y - c.y)) drawUnit(ctx, b, u, now)
+  if(v.bossBurst){
+    const age=now-v.bossBurst.t0
+    if(age<1.65){
+      ctx.save()
+      const radius=age*240
+      ctx.strokeStyle=age<.6?'#fff9c4':'#ffb83b'
+      ctx.lineWidth=Math.max(2,24-age*13)
+      ctx.globalAlpha=Math.max(0,1-age/1.65)
+      ctx.beginPath();ctx.ellipse(v.bossBurst.x,v.bossBurst.y-38,radius,radius*.48,0,0,Math.PI*2);ctx.stroke()
+      ctx.fillStyle='#ffffff'
+      for(let j=0;j<16;j++){
+        const a=j*Math.PI/8+age*.8,rr=radius*.85
+        ctx.fillRect(v.bossBurst.x+Math.cos(a)*rr-3,v.bossBurst.y-40+Math.sin(a)*rr*.6-3,8,8)
+      }
+      ctx.restore()
+    } else v.bossBurst=null
+  }
 
   for (const s of v.slashes) {
     const k = (now - s.t0) / 0.25

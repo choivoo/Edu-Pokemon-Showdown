@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { cook, cookingExpeditions, COOKING_TIERS, recipeFor, type CookingTier, type IngredientId, getIngredient, DISH_SIZE } from '../lib/cooking'
 import { getSpecies, getMove } from '../lib/roster'
 import { questLearnset } from '../data/questSpecies'
+import { ensureDualMoves } from '../lib/dualMoves'
 import { rollQuestBingo } from '../lib/questBingo'
 import { acceptsSocket, socketLayout } from '../lib/pCharm'
 import { addExp, expToNext, MAX_LEVEL, type OwnedMon } from '../lib/stats'
@@ -16,7 +17,7 @@ import { defaultSave, loadSave, resetSave, type SaveData, writeSave } from '../l
 import { setMuted } from '../lib/sound'
 import { recall, recallPool, trainExp, TRAIN_MAX, type RecallResult } from '../lib/training'
 import { autoEvolve, canEvolve, targetOf } from '../lib/evolution'
-import { MEMBER_REWARD_TICKETS, memberRewardReady, buyableDecoration, ingredientBonus, maxBatteryBonus, moveSuccessBonus, recycledIngredientBonus, trainingExpBonus, multipleMoveBonus, multipleCookingBonus } from '../lib/decorations'
+import { MEMBER_REWARD_TICKETS, memberRewardReady, buyableDecoration, ingredientBonus, maxBatteryBonus, moveSuccessBonus, recycledIngredientBonus, trainingExpBonus, multipleCookingBonus } from '../lib/decorations'
 import { QUESTS, isClaimed, isDone, STATUE_MAX, statueCap, statueCost, statueMul } from '../lib/quests'
 
 export const BATTERY_ONE_COST = 150
@@ -130,18 +131,21 @@ export const useGame = create<GameState>((set, get) => {
       const first = pool[Math.floor(Math.random() * pool.length)]
       mon.move = first.id
       const second = pool.filter(m => m.id !== first.id)
-      if (second.length && Math.random() < Math.min(0.95, 0.38 * multipleMoveBonus(save.decorations))) mon.move2 = second[Math.floor(Math.random() * second.length)].id
+      if (second.length) mon.move2 = second[Math.floor(Math.random() * second.length)].id
     } else {
       const options = recallPool(mon)
-      if (options.length && Math.random() < Math.min(0.95, 0.38 * multipleMoveBonus(save.decorations))) mon.move2 = options[Math.floor(Math.random() * options.length)].id
+      if (options.length) mon.move2 = options[Math.floor(Math.random() * options.length)].id
     }
+    const ready = ensureDualMoves(mon)
     return {
-      mon,
-      patch: { owned: [...save.owned, mon], uid: save.uid + 1, dex: save.dex.includes(speciesId) ? save.dex : [...save.dex, speciesId] },
+      mon: ready,
+      patch: { owned: [...save.owned, ready], uid: save.uid + 1, dex: save.dex.includes(speciesId) ? save.dex : [...save.dex, speciesId] },
     }
   }
 
-  const initial = loadSave()
+  const stored = loadSave()
+  const initial = { ...stored, owned: stored.owned.map(ensureDualMoves) }
+  if(initial.owned.some((mon,i)=>mon!==stored.owned[i])) writeSave(initial)
   setMuted(initial.muted)
 
   return {
@@ -154,9 +158,10 @@ export const useGame = create<GameState>((set, get) => {
     go: screen => set({ screen }),
     openPanel: panel => set({ panel }),
     importSave: save => {
-      writeSave(save)
-      setMuted(save.muted)
-      set({ save, panel: null, screen: 'camp' })
+      const upgraded = { ...save, owned: save.owned.map(ensureDualMoves) }
+      writeSave(upgraded)
+      setMuted(upgraded.muted)
+      set({ save: upgraded, panel: null, screen: 'camp' })
     },
     markExported: () => commit({ exportedAt: Date.now(), clearsSinceExport: 0 }),
 
@@ -459,7 +464,7 @@ export const useGame = create<GameState>((set, get) => {
       let recruited: OwnedMon | null = null
       let dex = [...new Set([...s.dex, ...owned.map(o => o.species)])]
       if (firstClear && stage.recruit) {
-        recruited = { id: `m${uid++}`, species: stage.recruit, level: Math.max(newcomerLevel(s), stage.level - 3), exp: 0, stones: [], bonus: rollBonuses(), mstones: [] }
+        recruited = ensureDualMoves({ id: `m${uid++}`, species: stage.recruit, level: Math.max(newcomerLevel(s), stage.level - 3), exp: 0, stones: [], bonus: rollBonuses(), mstones: [] })
         owned = [...owned, recruited]
         if (!dex.includes(stage.recruit)) dex = [...dex, stage.recruit]
       }
