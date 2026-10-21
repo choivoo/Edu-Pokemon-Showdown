@@ -26,7 +26,7 @@ function ShapePreview({ stone, size = 16 }: { stone: Stone; size?: number }) {
 }
 
 export default function TeamPanel() {
-  const { save, openPanel, setParty, placeStone, removeStone, levelUpCost, levelUpWithCoins, release, equipMoveStone, unequipMoveStone, evolve } = useGame()
+  const { save, openPanel, setParty, placeStone, removeStone, levelUpCost, levelUpWithCoins, release, equipMoveStone, unequipMoveStone, evolve, toggleEverstone } = useGame()
   const [selId, setSelId] = useState(save.party[0] ?? save.owned[0]?.id)
   const [right, setRight] = useState<'mons' | 'stones' | 'moves' | 'bingo'>('mons')
   const [hold, setHold] = useState<{ id: string; rot: number } | null>(null)
@@ -213,7 +213,13 @@ export default function TeamPanel() {
               </div>
             )}
           </div>
-          {canEvolve(mon) && (
+          <div className="flex items-center justify-between gap-2 rounded border-2 border-[#d7bc7a] bg-[#fff5d7] px-2 py-1 text-xs">
+            <span>레벨에 도달하면 자동 진화해요. 진화를 원치 않으면 변함없는돌을 켜세요.</span>
+            <Btn color={mon.everstone ? 'red' : 'gray'} onClick={() => { toggleEverstone(mon.id); sfx.select() }} className="shrink-0 px-2 py-1 text-xs">
+              변함없는돌 {mon.everstone ? 'ON' : 'OFF'}
+            </Btn>
+          </div>
+          {canEvolve(mon) && !mon.everstone && (
             <div className="flex items-center gap-2 border-4 border-[#e8524a] bg-[#fff0b8] px-2 py-1">
               <span className="flex-1 text-base font-bold text-[#c03a30]">{getSpecies(mon.species).name}이(가) 진화할 수 있어요! (레벨 {evolutionOf(mon.species)!.level})</span>
               {(mon.species === 133 ? [['fire', '불꽃'], ['water', '물'], ['electric', '번개']] : [['', '진화']]).map(([c, label]) => (
