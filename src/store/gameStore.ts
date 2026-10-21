@@ -12,7 +12,7 @@ import { rollBonuses } from '../lib/bingo'
 import { BATTERY_MAX, batteryNow, charge, consume } from '../lib/battery'
 import { AREAS, rollRewards, stageCount, type Rewards, type Stage, stageId } from '../lib/stages'
 import { ORIGINAL_FIRST, ORIGINAL_LAST, ORIGINAL_BOSS_AREA, ORIGINAL_STATUE_COUNT, HAPPENSTANCE_AREA, originalUnlocked } from '../lib/originalCampaign'
-import { defaultSave, loadSave, resetSave, type SaveData, writeSave } from '../lib/storage'
+import { defaultSave, loadSave, migrate, resetSave, type SaveData, writeSave } from '../lib/storage'
 import { setMuted } from '../lib/sound'
 import { recall, recallPool, trainExp, TRAIN_MAX, type RecallResult } from '../lib/training'
 import { autoEvolve, canEvolve, targetOf } from '../lib/evolution'
@@ -130,10 +130,10 @@ export const useGame = create<GameState>((set, get) => {
       const first = pool[Math.floor(Math.random() * pool.length)]
       mon.move = first.id
       const second = pool.filter(m => m.id !== first.id)
-      if (second.length) mon.move2 = second[Math.floor(Math.random() * second.length)].id
+      mon.move2 = (second.length ? second[Math.floor(Math.random() * second.length)] : first).id
     } else {
       const options = recallPool(mon)
-      if (options.length) mon.move2 = options[Math.floor(Math.random() * options.length)].id
+      mon.move2 = options[Math.floor(Math.random() * options.length)]?.id ?? getSpecies(speciesId).basic
     }
     return {
       mon,
@@ -154,9 +154,10 @@ export const useGame = create<GameState>((set, get) => {
     go: screen => set({ screen }),
     openPanel: panel => set({ panel }),
     importSave: save => {
-      writeSave(save)
-      setMuted(save.muted)
-      set({ save, panel: null, screen: 'camp' })
+      const repaired=migrate(save)
+      writeSave(repaired)
+      setMuted(repaired.muted)
+      set({ save: repaired, panel: null, screen: 'camp' })
     },
     markExported: () => commit({ exportedAt: Date.now(), clearsSinceExport: 0 }),
 
