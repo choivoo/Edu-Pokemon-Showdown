@@ -67,6 +67,6 @@ export function findSpot(level: number, occ: Map<string, number>, shape: ShapeId
 }
 
 export const stoneCells = (s: Stone) => SHAPES[s.shape].length
-export const stoneName = (s: Stone) => `${STONE_INFO[s.kind].name} ${s.star}성`
+export const stoneName = (s: Stone) => `${STONE_INFO[s.kind].name} ${s.value !== undefined ? '+' + s.value : s.star + '성'}`
 /** 같은 종류·모양·별 2개를 합성하면 별 +1 (최대 3). 비용은 별 × 칸 수 × 40 코인 */
 export const mergeCost = (s: Pick<Stone, 'star' | 'shape'>) => s.star * SHAPES[s.shape].length * 40
