@@ -47,6 +47,11 @@ export interface Stats {
   waveHeal: number
   lifesteal: number
   regen: number
+  koHeal?: number
+  reviveSpeed?: number
+  reviveHp?: number
+  effectResist?: number
+  statusResist?: number
 }
 
 export const BASE_CRIT = 0.06
@@ -56,7 +61,9 @@ export function computeStats(sp: Species, level: number, stones: Stone[] = [], m
   const quest = questStats(sp.id)
   let hp = 1, atk = 1, def = 1, spd = 1, crit = BASE_CRIT
   let flatHp = 0, flatAtk = 0
+  const perks = { critRate:0, critDmg:0, regen:0, lifesteal:0, koHeal:0, reviveSpeed:0, reviveHp:0, effectResist:0, statusResist:0, moveSpd:0 }
   for (const s of stones) {
+    for (const [key,value] of Object.entries(s.perks ?? {})) if (key in perks) perks[key as keyof typeof perks] += value
     if (s.value !== undefined && (s.kind === 'hp' || s.kind === 'atk')) {
       if (s.kind === 'hp') flatHp += s.value
       else flatAtk += s.value
@@ -76,14 +83,16 @@ export function computeStats(sp: Species, level: number, stones: Stone[] = [], m
     atk: Math.floor(((quest ? quest.atk + level + (individual?.potBonus ?? 0) + (individual?.ivAtk ?? 0) : calcStat(sp.stats.atk, level)) + flatAtk) * atk),
     def: Math.floor(calcStat(sp.stats.def, level) * def),
     spe: Math.floor(calcStat(sp.stats.spe, level) * spd),
-    crit: crit + mods.critRate / 100,
-    critDmg: mods.critDmg / 100,
+    crit: crit + (mods.critRate + perks.critRate) / 100,
+    critDmg: (mods.critDmg + perks.critDmg) / 100,
     atkCd: Math.min(0.5, mods.atkCd / 100),
     spCd: Math.min(0.5, mods.spCd / 100),
-    moveSpd: mods.moveSpd / 100,
+    moveSpd: (mods.moveSpd + perks.moveSpd) / 100,
     waveHeal: mods.waveHeal / 100,
-    lifesteal: mods.lifesteal / 100,
-    regen: mods.regen / 100,
+    lifesteal: (mods.lifesteal + perks.lifesteal) / 100,
+    regen: (mods.regen + perks.regen) / 100,
+    koHeal: Math.min(1, perks.koHeal / 100), reviveSpeed: Math.min(0.9, perks.reviveSpeed / 100),
+    reviveHp: perks.reviveHp / 100, effectResist: Math.min(0.95, perks.effectResist / 100), statusResist: Math.min(0.95, perks.statusResist / 100),
   }
 }
 
