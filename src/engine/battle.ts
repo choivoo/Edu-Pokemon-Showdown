@@ -237,6 +237,14 @@ function nearest(b: Battle, u: Unit): Unit | undefined {
     const d = dist(u, f)
     if (d < bd) { bd = d; best = f }
   }
+  if (best && u.side==='enemy' && !u.boss) {
+    // Enemy pack coordination: focus a wounded nearby partner only when
+    // the diversion is close enough to avoid endless cross-field chasing.
+    const candidates=b.units.filter(x=>x.side==='ally'&&x.alive&&dist(u,x)<=bd*1.45)
+    const wounded=candidates.filter(x=>x.hp/x.maxHp<.4)
+      .sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp)
+    if(wounded.length) return wounded[0]
+  }
   return best
 }
 
