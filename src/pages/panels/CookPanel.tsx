@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useGame } from '../../store/gameStore'
 import {
   ALL_RECIPES, COLOR_LABEL, DISH_SIZE, getIngredient, GRADE_LABEL, gradeOf, INGREDIENTS, type IngredientId, KIND_LABEL, recipeFor, TEXTURE_LABEL,
-} from '../../lib/!!save.pot'
+} from '../../lib/cooking'
 import { getSpecies } from '../../lib/roster'
 import { frontSprite } from '../../data/sprites'
 import { Btn, Panel } from '../../ui/kit'
