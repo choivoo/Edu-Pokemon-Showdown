@@ -68,6 +68,31 @@ export const VERIFIED_ENCOUNTERS: Readonly<Record<string,Encounter>> = {
   ],
   boss:g(103),
  },
+ '7-2': {
+  segments: [
+   [w([69,85],[13,5],[43,10]),w([43,97.5],[69,2.5]),g(14)],
+   [g(13),g(48),g(69),w([43,95],[69,5])],
+   [g(13),w([43,95],[69,5])],
+   [g(13),w([43,85],[69,15])],
+  ],
+  boss:g(70),
+ },
+ '7-3': {
+  segments: [
+   [w([43,20],[69,30],[46,50])],
+   [w([23,85],[25,10],[1,5]),w([23,85],[48,15]),g(46)],
+  ],
+  boss:g(47),
+ },
+ '7-4': {
+  segments: [
+   [w([10,50],[13,40],[46,10]),g(11),g(14)],
+   [g(10),w([48,60],[102,40]),w([48,50],[46,50]),g(13)],
+   [g(10)],
+   [g(10)],
+  ],
+  boss:w([12,50],[15,50]),
+ },
 }
 function pick(group:Group,rng:Rng):number{
  let total=group.reduce((n,e)=>n+e.weight,0),r=rng()*total
@@ -78,9 +103,11 @@ function pick(group:Group,rng:Rng):number{
 export function verifiedWaves(area:number,index:number,level:number,rng:Rng):WaveEnemy[][]|undefined{
  const route=VERIFIED_ENCOUNTERS[`${area}-${index}`]
  if(!route)return undefined
- // Combine original segments 1/2 and 3/4 while retaining every independent spawn set.
- const early=route.segments.slice(0,2).flatMap(s=>s.map(group=>({species:pick(group,rng),level})))
- const middle=route.segments.slice(2).flatMap(s=>s.map(group=>({species:pick(group,rng),level})))
+ // Preserve original per-segment encounter groups, with 2-segment courses split
+ // into separate waves and 3/4-segment courses compacted for the 2D battle UI.
+ const midpoint=route.segments.length<=2?1:2
+ const early=route.segments.slice(0,midpoint).flatMap(s=>s.map(group=>({species:pick(group,rng),level})))
+ const middle=route.segments.slice(midpoint).flatMap(s=>s.map(group=>({species:pick(group,rng),level})))
  const final=[{species:pick(route.boss,rng),level,boss:true}]
  return [early,middle,final]
 }
