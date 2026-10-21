@@ -65,7 +65,7 @@ describe('관동 도감 · 공식 한국어 이름', () => {
     expect(EVOLUTIONS[75].to).toBe(76)
     expect(EVOLUTION_ONLY.has(76)).toBe(true)
     expect(canEvolve({species: 133, level: 19})).toBe(false)
-    expect(canEvolve({species: 133, level: 20})).toBe(true)
+    expect(canEvolve({species: 133, level: 36})).toBe(true)
     expect(targetOf(133, 'water')).toBe(134)
   })
 })
