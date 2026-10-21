@@ -2,8 +2,9 @@ import { create } from 'zustand'
 import { cook, cookingExpeditions, COOKING_TIERS, recipeFor, type CookingTier, type IngredientId, getIngredient, DISH_SIZE } from '../lib/cooking'
 import { getSpecies, getMove } from '../lib/roster'
 import { questLearnset } from '../data/questSpecies'
+import { acceptsSocket, socketLayout } from '../lib/pCharm'
 import { addExp, expToNext, MAX_LEVEL, type OwnedMon } from '../lib/stats'
-import { canPlace, findSpot, mergeCost, occupancy, type Stone, type ShapeId, type StoneKind } from '../lib/stones'
+import { canPlace, mergeCost, occupancy, type Stone, type ShapeId, type StoneKind } from '../lib/stones'
 import { usedMoveStoneIds, usedStoneIds } from '../lib/party'
 import { type MoveStone, MOVE_SLOTS } from '../lib/moveStones'
 import { rollBonuses } from '../lib/bingo'
@@ -122,7 +123,7 @@ export const useGame = create<GameState>((set, get) => {
     const bonuses = [0, 50, 100, 300] as const
     const maxIV = [10, 50, 100, 100] as const
     const mon: OwnedMon = { id: `m${save.uid}`, species: speciesId, level, exp: 0, stones: [],
-      bonus: rollBonuses(), mstones: [], potBonus: bonuses[tier], ivHp: Math.floor(Math.random() * (maxIV[tier] + 1)), ivAtk: Math.floor(Math.random() * (maxIV[tier] + 1)) }
+      bonus: rollBonuses(), mstones: [], potBonus: bonuses[tier], ivHp: Math.floor(Math.random() * (maxIV[tier] + 1)), ivAtk: Math.floor(Math.random() * (maxIV[tier] + 1)), sockets: socketLayout(speciesId) }
     const pool = questLearnset(speciesId)
     if (pool.length) {
       const first = pool[Math.floor(Math.random() * pool.length)]
@@ -215,6 +216,7 @@ export const useGame = create<GameState>((set, get) => {
       const stone = s.stones.find(t => t.id === stoneId)
       if (!mon || !stone || usedStoneIds(s).has(stoneId)) return false
       if (!canPlace(mon.level, occupancy(mon.stones, s.stones), stone.shape, rot, x, y)) return false
+      if (!acceptsSocket(mon.sockets, x, y, stone.kind)) return false
       commit({ owned: s.owned.map(o => (o.id === monId ? { ...o, stones: [...o.stones, { stone: stoneId, x, y, rot }] } : o)) })
       return true
     },
@@ -223,8 +225,11 @@ export const useGame = create<GameState>((set, get) => {
       const mon = s.owned.find(o => o.id === monId)
       const stone = s.stones.find(t => t.id === stoneId)
       if (!mon || !stone) return false
-      const spot = findSpot(mon.level, occupancy(mon.stones, s.stones), stone.shape)
-      return spot ? get().placeStone(monId, stoneId, spot.x, spot.y, spot.rot) : false
+      const occ = occupancy(mon.stones, s.stones)
+      for (let y = 0; y < 3; y++) for (let x = 0; x < 3; x++)
+        if (acceptsSocket(mon.sockets, x, y, stone.kind) && canPlace(mon.level, occ, stone.shape, 0, x, y))
+          return get().placeStone(monId, stoneId, x, y, 0)
+      return false
     },
     removeStone: (monId, stoneId) => {
       const s = get().save
