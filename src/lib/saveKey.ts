@@ -77,7 +77,7 @@ export function unpack(p: Packed): SaveData {
     name: String(p[2] ?? ''),
     coins: Number(p[3]) || 0,
     ingredients: ing,
-    stones: p[5].map(([id, kind, star, shape, value, perks]) => ({ id, kind, star, shape, ...(value !== undefined ? { value } : {}), ...(perks ? { perks } : {}) })) as SaveData['stones'],
+    stones: p[5].map(([id, kind, star, shape, value, perks]) => ({ id, kind, star, shape, ...(value != null ? { value } : {}), ...(perks ? { perks } : {}) })) as SaveData['stones'],
     owned: p[6].map(([id, species, level, exp, st, bonus, mstones, move, recalls, recallT, everstone, move2, potBonus, ivHp, ivAtk]) => ({
       id, species, level, exp,
       ...(move ? { move } : {}), ...(recalls ? { recalls, recallT } : {}), ...(everstone ? { everstone: true } : {}), ...(move2 ? { move2 } : {}), ...(potBonus ? { potBonus } : {}), ...(ivHp ? { ivHp } : {}), ...(ivAtk ? { ivAtk } : {}),
