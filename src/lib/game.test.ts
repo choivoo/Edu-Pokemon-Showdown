@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ALL_RECIPES, attractPool, cook, gradeOf, INGREDIENTS, type IngredientId, recipeFor, tally } from './cooking'
+import { ALL_RECIPES, attractPool, cook, cookingExpeditions, gradeOf, INGREDIENTS, type IngredientId, recipeFor, tally } from './cooking'
 import { addExp, computeStats, expToNext, MAX_LEVEL, type OwnedMon } from './stats'
 import { canPlace, cellsOf, findSpot, GRID_H, GRID_W, occupancy, type Stone, unlockedCount } from './stones'
 import { AREAS, buildWaves, getEndlessStage, getStage, rollRewards } from './stages'
@@ -66,6 +66,12 @@ describe('cooking', () => {
     const reachable = new Set(ALL_RECIPES.flatMap(r => attractPool(r).flatMap(s => s.types)))
     for (const t of TYPES) expect(reachable.has(t)).toBe(true)
   })
+  it('요리는 즉시 끝나지 않고 희귀도에 따라 2~5회 탐험을 요구한다', () => {
+    expect(cookingExpeditions(ids('fossil','fossil','fossil','fossil','fossil'))).toBe(2)
+    expect(cookingExpeditions(ids('honey','honey','honey','fossil','fossil'))).toBe(4)
+    expect(cookingExpeditions(ids('rainbow','rainbow','honey','fossil','fossil'))).toBe(5)
+  })
+
   it('레시피는 18가지이며 번호가 겹치지 않는다', () => {
     expect(ALL_RECIPES).toHaveLength(18)
     expect(new Set(ALL_RECIPES.map(r => r.no)).size).toBe(18)
