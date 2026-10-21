@@ -34,6 +34,7 @@ describe('2D 원작 진행 / 팬 후속편', () => {
     expect(useGame.getState().save.party).toHaveLength(1)
 
     const fossil = ['fossil', 'fossil', 'fossil', 'fossil', 'fossil'] as const
+    useGame.setState(s => ({ save: { ...s.save, ingredients: { ...s.save.ingredients, fossil: 18 } } }))
     expect(useGame.getState().startCooking([...fossil])).toBe(true)
     expect(useGame.getState().startCooking([...fossil])).toBe(false)
     expect(useGame.getState().save.pot).toMatchObject({ remaining: 2, total: 2 })
