@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useGame } from '../../store/gameStore'
+import { areaCleared, useGame } from '../../store/gameStore'
 import {
   ALL_RECIPES, COLOR_LABEL, COOKING_TIERS, DISH_SIZE, getIngredient, GRADE_LABEL, gradeOf, INGREDIENTS, type CookingTier, type IngredientId, KIND_LABEL, recipeFor, TEXTURE_LABEL,
 } from '../../lib/cooking'
@@ -52,7 +52,7 @@ export default function CookPanel() {
     <Panel title="요리 냄비" onClose={() => openPanel(null)} w={900}>
       <div className="mb-2 flex gap-1.5">
         {COOKING_TIERS.map((p, index) => {
-          const unlocked = p.unlockArea < 0 || !!save.cleared[`a${p.unlockArea}-s${[4,5,0][0]}`] || (p.unlockArea === 8 && !!save.cleared['a8-s4']) || (p.unlockArea === 11 && !!save.cleared['a11-s4']) || (p.unlockArea === 16 && !!save.cleared['a16-s0'])
+          const unlocked = p.unlockArea < 0 || areaCleared(save, p.unlockArea)
           return <Btn key={p.name} color={tier === index ? 'yellow' : 'gray'} disabled={!unlocked || !!save.pot}
             onClick={() => { setTier(index as CookingTier); setSel([]) }} className="flex-1 px-1 py-1 text-sm">
             {unlocked ? p.name : '잠김'} <span className="text-xs">×{p.perSlot}</span>
