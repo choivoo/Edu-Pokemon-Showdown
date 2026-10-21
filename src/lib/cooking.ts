@@ -125,7 +125,7 @@ export const RARITY_WEIGHTS: Record<Grade, [number, number, number]> = {
 export const LEGENDARY_SPECIES = [144, 145, 146, 150, 151] as const
 export function attractPool(recipe: Recipe): Species[] {
   if (recipe.no === 18) return SPECIES.filter(s => LEGENDARY_SPECIES.includes(s.id as typeof LEGENDARY_SPECIES[number]))
-  return SPECIES.filter(s => s.id <= 151 && s.rarity <= 3 && !EVOLUTION_ONLY.has(s.id) && !LEGENDARY_SPECIES.includes(s.id as typeof LEGENDARY_SPECIES[number]) && s.types.some(t => recipe.types.includes(t)))
+  return SPECIES.filter(s => s.rarity <= 3 && !EVOLUTION_ONLY.has(s.id) && !LEGENDARY_SPECIES.includes(s.id as typeof LEGENDARY_SPECIES[number]) && s.types.some(t => recipe.types.includes(t)))
 }
 
 /** 요리를 해서 찾아오는 포켓몬을 뽑는다 */
