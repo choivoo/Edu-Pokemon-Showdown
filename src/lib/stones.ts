@@ -2,7 +2,20 @@
 export type StoneKind = 'hp' | 'atk' | 'def' | 'spd' | 'crit'
 export type ShapeId = 'dot' | 'bar2' | 'bar3' | 'ell'
 
-export interface Stone { id: string; kind: StoneKind; star: 1 | 2 | 3; shape: ShapeId; /** Authentic P Stone gives flat ATK/HP; legacy custom stones use percentage. */ value?: number }
+export type StonePerk = 'critRate' | 'critDmg' | 'regen' | 'lifesteal' | 'koHeal' | 'reviveSpeed' | 'reviveHp' | 'effectResist' | 'statusResist' | 'moveSpd'
+export const STONE_PERKS: StonePerk[] = ['critRate','critDmg','regen','lifesteal','koHeal','reviveSpeed','reviveHp','effectResist','statusResist','moveSpd']
+export const STONE_PERK_LABEL: Record<StonePerk,string> = {
+  critRate:'급소 확률',critDmg:'급소 피해',regen:'자연 HP 회복',lifesteal:'타격 HP 회복',
+  koHeal:'기절시킨 뒤 HP 회복',reviveSpeed:'부활 시간 단축',reviveHp:'부활 HP 증가',
+  effectResist:'능력 저하 저항',statusResist:'상태이상 저항',moveSpd:'이동 속도',
+}
+export interface Stone {
+  id: string; kind: StoneKind; star: 1 | 2 | 3; shape: ShapeId
+  /** Authentic P Stone gives flat ATK/HP; legacy custom stones use percentage. */
+  value?: number
+  /** Rare Power Stones carry up to three extra passive bonuses. */
+  perks?: Partial<Record<StonePerk, number>>
+}
 export interface Placement { stone: string; x: number; y: number; rot: number }
 
 export const GRID_W = 3
