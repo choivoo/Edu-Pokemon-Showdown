@@ -17,7 +17,7 @@ const SCALES: Record<string, number[]> = {
   astral: [0, 2, 4, 5, 7, 9, 11],
 }
 
-const melodicTracks = (s: Song) => s.tracks.filter(t => t.kind === 'note' && (t.inst === 'marimba' || t.inst === 'flute' || t.inst === 'lead') && t.vol >= 0.9)
+const melodicTracks = (s: Song) => s.tracks.filter(t => t.kind === 'note' && (t.inst === 'marimba' || t.inst === 'flute' || t.inst === 'lead' || t.inst === 'bell' || t.inst === 'brass') && t.vol >= 0.9)
 
 describe('음악', () => {
   it('음이름 해석', () => {
