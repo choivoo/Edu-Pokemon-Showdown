@@ -13,6 +13,7 @@ import { defaultSave, loadSave, resetSave, type SaveData, writeSave } from '../l
 import { setMuted } from '../lib/sound'
 import { recall, trainExp, TRAIN_MAX, type RecallResult } from '../lib/training'
 import { canEvolve, targetOf } from '../lib/evolution'
+import { MEMBER_REWARD_TICKETS, memberRewardReady, buyableDecoration, ingredientBonus, maxBatteryBonus, moveSuccessBonus, recycledIngredientBonus, trainingExpBonus } from '../lib/decorations'
 import { QUESTS, isClaimed, isDone, STATUE_MAX, statueCap, statueCost, statueMul } from '../lib/quests'
 
 export const BATTERY_ONE_COST = 150
@@ -70,6 +71,9 @@ interface GameState {
   train: (targetId: string, foodIds: string[], mode: 'exp' | 'move') => { ok: boolean; exp?: number; recall?: RecallResult } | null
   evolve: (monId: string, choice?: string) => number | null
   upgradeStatue: () => boolean
+  claimMemberTickets: () => number
+  buyDecoration: (id: string) => boolean
+  recycleStone: (stoneId: string) => boolean
   claimQuest: (id: string) => boolean
   setTheme: (id: string) => void
 }
@@ -257,7 +261,8 @@ export const useGame = create<GameState>((set, get) => {
 
     startStage: stage => {
       const s = get().save
-      const next = consume(s.battery, Date.now())
+      if (stage.area >= 0 && (!areaUnlocked(s, stage.area) || (stage.area !== HAPPENSTANCE_AREA && stage.index > 0 && !isCleared(s, stage.area, stage.index - 1)))) return false
+      const next = consume(s.battery, Date.now(), BATTERY_MAX + maxBatteryBonus(s.decorations))
       if (!next) return false
       commit({ battery: next })
       set({ stage, result: null, screen: 'battle' })
@@ -267,10 +272,11 @@ export const useGame = create<GameState>((set, get) => {
     buyBattery: full => {
       const s = get().save
       const now = Date.now()
-      const have = batteryNow(s.battery, now).n
+      const cap = BATTERY_MAX + maxBatteryBonus(s.decorations)
+      const have = batteryNow(s.battery, now, cap).n
       const cost = full ? BATTERY_FULL_COST : BATTERY_ONE_COST
-      if (s.coins < cost || have >= BATTERY_MAX) return false
-      commit({ coins: s.coins - cost, battery: charge(s.battery, now, full ? BATTERY_MAX : 1) })
+      if (s.coins < cost || have >= cap) return false
+      commit({ coins: s.coins - cost, battery: charge(s.battery, now, full ? cap : 1, cap) })
       return true
     },
 
@@ -295,12 +301,12 @@ export const useGame = create<GameState>((set, get) => {
       const rest = s.owned.filter(o => !gone.has(o.id))
       const counters = bump(s.counters, 'trained')
       if (mode === 'exp') {
-        const exp = trainExp(target, foods)
+        const exp = Math.round(trainExp(target, foods) * trainingExpBonus(s.decorations))
         const { mon } = addExp(target, exp)
         commit({ owned: rest.map(o => (o.id === targetId ? mon : o)), counters })
         return { ok: true, exp }
       }
-      const r = recall(target, foods, Date.now(), Math.random)
+      const r = recall(target, foods, Date.now(), Math.random, moveSuccessBonus(s.decorations))
       commit({ owned: rest.map(o => (o.id === targetId ? r.mon : o)), counters: r.ok ? bump(counters, 'recalled') : counters })
       return { ok: r.ok, recall: r }
     },
@@ -314,6 +320,36 @@ export const useGame = create<GameState>((set, get) => {
       // 새 종은 기본 필살기로 돌아간다 (떠올린 기술은 유지)
       commit({ owned: s.owned.map(o => (o.id === monId ? { ...o, species: to } : o)), dex: s.dex.includes(to) ? s.dex : [...s.dex, to], counters: bump(s.counters, 'evolved') })
       return to
+    },
+
+    claimMemberTickets: () => {
+      const s = get().save
+      const now = Date.now()
+      if (!memberRewardReady(s, now)) return 0
+      commit({ pmTickets: s.pmTickets + MEMBER_REWARD_TICKETS, ticketClaimedAt: now })
+      return MEMBER_REWARD_TICKETS
+    },
+
+    buyDecoration: id => {
+      const s = get().save
+      const item = buyableDecoration(id)
+      if (!item || s.decorations.includes(id) || s.pmTickets < item.tickets) return false
+      commit({ pmTickets: s.pmTickets - item.tickets, decorations: [...s.decorations, id] })
+      return true
+    },
+
+    recycleStone: stoneId => {
+      const s = get().save
+      const stone = s.stones.find(x => x.id === stoneId)
+      if (!stone || usedStoneIds(s).has(stoneId)) return false
+      const ingredient: IngredientId = stone.kind === 'atk' ? 'mushroomRed' :
+        stone.kind === 'hp' ? 'berryBlue' : 'fossil'
+      const amount = Math.ceil((stone.star * 2 + 1) * recycledIngredientBonus(s.decorations))
+      commit({
+        stones: s.stones.filter(x => x.id !== stoneId),
+        ingredients: { ...s.ingredients, [ingredient]: s.ingredients[ingredient] + amount },
+      })
+      return true
     },
 
     upgradeStatue: () => {
@@ -361,7 +397,7 @@ export const useGame = create<GameState>((set, get) => {
         return r.mon
       })
       const ingredients = { ...s.ingredients }
-      for (const [id, n] of Object.entries(rewards.ingredients) as [IngredientId, number][]) ingredients[id] += n
+      for (const [id, n] of Object.entries(rewards.ingredients) as [IngredientId, number][]) ingredients[id] += ingredientBonus(id, n, s.decorations)
       let uid = s.uid
       let stones = s.stones
       let stone: Stone | null = null
