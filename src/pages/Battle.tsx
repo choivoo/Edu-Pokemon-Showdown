@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { useGame } from '../store/gameStore'
-import { type AllyInput, type Battle as BattleState, createBattle, step, useSpecial } from '../engine/battle'
+import { type AllyInput, type Battle as BattleState, createBattle, scatter, step, useSpecial } from '../engine/battle'
 import { consumeEvents, drawBattle, H, newVisual, preload, SLOT_COLORS, W } from '../engine/render'
-import { AREAS, buildWaves } from '../lib/stages'
+import { AREAS, AREA_BONUS_MUL, buildWaves, hasAreaBonus } from '../lib/stages'
+import { getSpecies } from '../lib/roster'
 import { moveFxOf, partyMons, statsOf } from '../lib/party'
 import { bgm, sfx } from '../lib/sound'
 import { TYPE_COLOR } from '../lib/typeChart'
@@ -15,11 +16,13 @@ interface Hud {
   kills: number
   time: number
   phase: BattleState['phase']
+  scatterLeft: number
   allies: { uid: number; id: number; name: string; level: number; hp: number; maxHp: number; cd: number; max: number; alive: boolean; slot: number; move: string; type: string }[]
 }
 
 const snapshot = (b: BattleState): Hud => ({
   wave: Math.min(b.wave + 1, b.waves.length), waves: b.waves.length, kills: b.kills, time: b.t, phase: b.phase,
+  scatterLeft: Math.max(0, b.scatterCd - b.t),
   allies: b.units.filter(u => u.side === 'ally').sort((a, c) => a.slot - c.slot).map(u => ({
     uid: u.uid, id: u.speciesId, name: u.name, level: u.level, hp: u.hp, maxHp: u.maxHp, cd: u.spCd, max: u.spMax, alive: u.alive, slot: u.slot, move: u.special.name, type: u.special.type,
   })),
@@ -43,7 +46,12 @@ export default function Battle() {
 
   useEffect(() => {
     if (!stage) return
-    const allies: AllyInput[] = partyMons(save).map(o => ({ ownedId: o.id, speciesId: o.species, level: o.level, stats: statsOf(save, o), fx: moveFxOf(save, o) }))
+    const allies: AllyInput[] = partyMons(save).map(o => {
+      let stats = statsOf(save, o)
+      // 지역 보너스 타입은 그 지역에서 더 강하다
+      if (hasAreaBonus(stage.area, getSpecies(o.species).types)) stats = { ...stats, maxHp: Math.round(stats.maxHp * AREA_BONUS_MUL), atk: Math.round(stats.atk * AREA_BONUS_MUL) }
+      return { ownedId: o.id, speciesId: o.species, level: o.level, stats, fx: moveFxOf(save, o), move: o.move }
+    })
     const waves = buildWaves(stage)
     preload([...allies.map(a => a.speciesId), ...waves.flat().map(w => w.species)])
     const b = createBattle(allies, waves)
@@ -77,7 +85,7 @@ export default function Battle() {
       if (hudT > 0.1) { hudT = 0; setHud(snapshot(b)) }
       if ((b.phase === 'won' || b.phase === 'lost') && !finished.current) {
         endT += real
-        if (endT > 1.3) { finished.current = true; setHud(snapshot(b)); finishBattle(b.phase === 'won', stage) }
+        if (endT > 1.3) { finished.current = true; setHud(snapshot(b)); finishBattle(b.phase === 'won', stage, b.kills) }
       }
       raf = requestAnimationFrame(loop)
     }
@@ -112,8 +120,11 @@ export default function Battle() {
         <Btn color="yellow" onClick={() => { speed.current = speed.current === 1 ? 2 : speed.current === 2 ? 3 : 1; setUiSpeed(speed.current) }} className="h-[52px] w-[96px] px-0 py-0 text-xl">×{uiSpeed}</Btn>
         <Btn color={auto ? 'green' : 'gray'} onClick={() => { const v = !auto; setAuto(v); if (b) b.auto = v }} className="h-[52px] w-[96px] px-0 py-0 text-sm">자동 {auto ? 'ON' : 'OFF'}</Btn>
       </div>
-      {/* 우하단: 포기 */}
-      <div className="absolute bottom-3 right-3">
+      {/* 우하단: 흩어지기 / 포기 */}
+      <div className="absolute bottom-3 right-3 flex flex-col gap-2">
+        <Btn color={hud && hud.scatterLeft <= 0 ? 'blue' : 'gray'} onClick={() => { if (b && scatter(b)) { sfx.step(); setHud(snapshot(b)) } }} className="h-[52px] w-[96px] px-0 py-0 text-sm">
+          {hud && hud.scatterLeft > 0 ? `흩어지기 ${Math.ceil(hud.scatterLeft)}` : '흩어지기'}
+        </Btn>
         <Btn color="yellow" onClick={() => setQuit(true)} className="h-[52px] w-[96px] px-0 py-0 text-base">포기</Btn>
       </div>
 

@@ -1,4 +1,4 @@
-import type { Rng } from '../types'
+import type { PokemonType, Rng } from '../types'
 import { type IngredientId } from './cooking'
 import { SPECIES } from './roster'
 import { computeStats, expToNext, powerRating } from './stats'
@@ -180,7 +180,17 @@ export function getEndlessStage(floor: number): Stage {
   }
 }
 
-export interface WaveEnemy { species: number; level: number; boss?: boolean }
+export interface WaveEnemy {
+  species: number
+  level: number
+  boss?: boolean
+  /** 강해 보이는 포켓몬 */
+  elite?: boolean
+  /** 웨이브 도중에 나타나는 적: call 동료 호출 / new 새로운 무리 / bossHp 보스 체력이 반쯤 깎이면 포위 */
+  late?: 'call' | 'new' | 'bossHp'
+  /** 처음부터 사방에서 몰려온다 */
+  surround?: boolean
+}
 
 const pick = <T,>(arr: T[], rng: Rng): T => arr[Math.floor(rng() * arr.length)]
 
@@ -188,14 +198,27 @@ const pick = <T,>(arr: T[], rng: Rng): T => arr[Math.floor(rng() * arr.length)]
 export function buildWaves(stage: Stage, rng: Rng = Math.random): WaveEnemy[][] {
   const area = stage.area >= 0 ? AREAS[stage.area] : null
   const pool = area ? area.pool : SPECIES.filter(s => s.rarity <= 3).map(s => s.id)
+  // 첫 두 판은 이벤트 없이 익숙해지도록 한다
+  const eventsOn = !(stage.area === 0 && stage.index < 2)
+  const mk = (level: number, extra: Partial<WaveEnemy> = {}): WaveEnemy => ({ species: pick(pool, rng), level, ...extra })
   return stage.wavePlan.map((count, wi) => {
     const last = wi === stage.wavePlan.length - 1
     if (stage.boss && last) {
       const bossId = area ? area.boss : pick(SPECIES.filter(s => s.rarity === 3).map(s => s.id), rng)
-      const minions = Array.from({ length: count - 1 }, () => ({ species: pick(pool, rng), level: Math.max(1, stage.level - 2) }))
-      return [{ species: bossId, level: stage.level, boss: true }, ...minions]
+      const minions = Array.from({ length: count - 1 }, () => mk(Math.max(1, stage.level - 2)))
+      // 보스 체력이 반쯤 깎이면 부하들이 사방에서 나타난다 (보스가 쓰러지면 모두 도망친다)
+      const rush = Array.from({ length: 2 }, () => mk(Math.max(1, stage.level - 2), { late: 'bossHp' as const }))
+      return [{ species: bossId, level: stage.level, boss: true }, ...minions, ...rush]
     }
-    return Array.from({ length: count }, () => ({ species: pick(pool, rng), level: stage.level - (last ? 0 : 1) }))
+    const lv = stage.level - (last ? 0 : 1)
+    const base = Array.from({ length: count }, () => mk(lv))
+    if (last && !stage.boss && eventsOn) base[0] = { ...base[0], elite: true, level: lv + 1 }
+    if (!eventsOn || (last && !stage.boss)) return base
+    const roll = rng()
+    if (roll < 0.22) return [...base, mk(lv - 1, { late: 'call' }), mk(lv - 1, { late: 'call' }), mk(lv - 1, { late: 'call' })]
+    if (roll < 0.40) return [...base, mk(lv, { late: 'new' }), mk(lv, { late: 'new' })]
+    if (roll < 0.52) return base.map(e => ({ ...e, surround: true }))
+    return base
   })
 }
 
@@ -239,3 +262,10 @@ export function rollRewards(stage: Stage, rng: Rng = Math.random): Rewards {
 const AVG: Species = { id: 0, name: '', types: ['normal'], stats: { hp: 60, atk: 60, def: 60, spe: 60 }, rarity: 2, basic: '', special: '' }
 /** 스테이지 추천 전투력 (파티 3마리 합계 기준, 원작처럼 숫자로 표시) */
 export const recommendedPower = (stage: Stage) => 3 * powerRating(computeStats(AVG, stage.level))
+
+/** 지역별 보너스 타입: 해당 타입 포켓몬은 그 지역에서 체력과 공격력이 늘어난다 */
+export const AREA_BONUS: PokemonType[][] = [
+  ['water', 'flying'], ['grass', 'bug'], ['rock', 'ghost'], ['electric', 'fighting'], ['fire', 'ground'], ['psychic', 'dragon'],
+]
+export const AREA_BONUS_MUL = 1.3
+export const hasAreaBonus = (area: number, types: PokemonType[]) => area >= 0 && types.some(t => AREA_BONUS[area]?.includes(t))

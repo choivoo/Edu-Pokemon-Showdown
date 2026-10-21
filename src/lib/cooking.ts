@@ -1,5 +1,6 @@
 import type { PokemonType, Rng, Species } from '../types'
 import { SPECIES } from './roster'
+import { EVOLUTION_ONLY } from './evolution'
 
 // 재료는 원작처럼 "색 / 식감 / 종류" 세 가지 성질을 가진다. 어떤 성질이 얼마나 들어갔는지로 레시피가 정해진다.
 export type IngredientId =
@@ -120,7 +121,7 @@ export const RARITY_WEIGHTS: Record<Grade, [number, number, number]> = {
 }
 
 export function attractPool(recipe: Recipe): Species[] {
-  return SPECIES.filter(s => s.rarity <= 3 && s.types.some(t => recipe.types.includes(t)))
+  return SPECIES.filter(s => s.rarity <= 3 && !EVOLUTION_ONLY.has(s.id) && s.types.some(t => recipe.types.includes(t)))
 }
 
 /** 요리를 해서 찾아오는 포켓몬을 뽑는다 */

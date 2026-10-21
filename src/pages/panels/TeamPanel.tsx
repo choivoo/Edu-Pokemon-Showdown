@@ -11,6 +11,7 @@ import TypeBadge from '../../components/TypeBadge'
 import { sfx } from '../../lib/sound'
 import { powerRating } from '../../lib/stats'
 import Icon, { Stars } from '../../ui/Icon'
+import { canEvolve, evolutionOf } from '../../lib/evolution'
 
 const CELL = 62
 
@@ -25,7 +26,7 @@ function ShapePreview({ stone, size = 16 }: { stone: Stone; size?: number }) {
 }
 
 export default function TeamPanel() {
-  const { save, openPanel, setParty, placeStone, removeStone, levelUpCost, levelUpWithCoins, release, equipMoveStone, unequipMoveStone } = useGame()
+  const { save, openPanel, setParty, placeStone, removeStone, levelUpCost, levelUpWithCoins, release, equipMoveStone, unequipMoveStone, evolve } = useGame()
   const [selId, setSelId] = useState(save.party[0] ?? save.owned[0]?.id)
   const [right, setRight] = useState<'mons' | 'stones' | 'moves' | 'bingo'>('mons')
   const [hold, setHold] = useState<{ id: string; rot: number } | null>(null)
@@ -96,7 +97,7 @@ export default function TeamPanel() {
               <span key={k as string} className="rounded-lg px-1 py-0.5 text-white" style={{ background: c as string }}>{k}<br /><b className="text-base">{v}</b></span>
             ))}
           </div>
-          <p className="flex items-center gap-1 text-sm"><Icon n="sword" s={18} />{powerRating(stats)} · {getMove(sp.basic).name}(자동) · <Icon n="star" s={16} />{getMove(sp.special).name}</p>
+          <p className="flex items-center gap-1 text-sm"><Icon n="sword" s={18} />{powerRating(stats)} · {getMove(sp.basic).name}(자동) · <Icon n="star" s={16} />{getMove(mon.move ?? sp.special).name}</p>
 
           <div className="flex gap-3">
             <div className="pq-dark relative p-2" style={{ width: GRID_W * CELL + 16 }} onMouseLeave={() => setHover(null)}>
@@ -212,6 +213,14 @@ export default function TeamPanel() {
               </div>
             )}
           </div>
+          {canEvolve(mon) && (
+            <div className="flex items-center gap-2 border-4 border-[#e8524a] bg-[#fff0b8] px-2 py-1">
+              <span className="flex-1 text-base font-bold text-[#c03a30]">{getSpecies(mon.species).name}이(가) 진화할 수 있어요! (레벨 {evolutionOf(mon.species)!.level})</span>
+              {(mon.species === 133 ? [['fire', '불꽃'], ['water', '물'], ['electric', '번개']] : [['', '진화']]).map(([c, label]) => (
+                <Btn key={c} color="red" onClick={() => { if (evolve(mon.id, c || undefined)) sfx.levelup() }} className="px-3 py-1 text-base">{label}</Btn>
+              ))}
+            </div>
+          )}
           <div className="flex gap-2">
             <Btn color={inParty ? 'gray' : 'green'} onClick={toggleParty} className="flex-1 py-1.5 text-base">{inParty ? '파티에서 빼기' : '파티에 넣기'}</Btn>
             <Btn color="blue" disabled={!lvCost || save.coins < lvCost} onClick={() => { if (levelUpWithCoins(mon.id)) sfx.levelup() }} className="flex-1 py-1.5 text-base">{lvCost ? <span className="flex items-center justify-center gap-1"><Icon n="coin" s={20} />{lvCost} 레벨업</span> : '최고 레벨'}</Btn>

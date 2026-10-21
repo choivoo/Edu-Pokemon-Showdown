@@ -17,6 +17,11 @@ export interface OwnedMon {
   bonus: Bonus[]
   /** 장착한 기술스톤 id (최대 3) */
   mstones: string[]
+  /** 특훈으로 떠올린 필살기 (없으면 기본 필살기) */
+  move?: string
+  /** 기술 떠올리기 피로도와 마지막 시도 시각 */
+  recalls?: number
+  recallT?: number
 }
 
 export interface Stats {

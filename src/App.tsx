@@ -11,6 +11,8 @@ import CookPanel from './pages/panels/CookPanel'
 import DexPanel from './pages/panels/DexPanel'
 import ShopPanel from './pages/panels/ShopPanel'
 import SavePanel from './pages/panels/SavePanel'
+import TrainPanel from './pages/panels/TrainPanel'
+import QuestPanel from './pages/panels/QuestPanel'
 import { enterLandscapeFullscreen } from './lib/fullscreen'
 import Icon from './ui/Icon'
 import { audio } from './lib/audio'
@@ -62,6 +64,8 @@ export default function App() {
         {panel === 'dex' && <DexPanel />}
         {panel === 'shop' && <ShopPanel />}
         {panel === 'save' && <SavePanel />}
+        {panel === 'train' && <TrainPanel />}
+        {panel === 'quest' && <QuestPanel />}
       </div>
       {portrait && (
         <div className="absolute inset-0 z-[100] flex flex-col items-center justify-center gap-4 bg-[#1b1b2f] p-6 text-center" onClick={goFull}>

@@ -11,6 +11,7 @@ import { Btn, PARTY_COLORS, Portrait } from '../ui/kit'
 import Icon, { Coins } from '../ui/Icon'
 import BatteryMeter from '../ui/BatteryMeter'
 import { bgm, sfx } from '../lib/sound'
+import { claimable, themeFilter } from '../lib/quests'
 
 export default function Camp() {
   const { save, go, openPanel, toggleMute } = useGame()
@@ -28,7 +29,7 @@ export default function Camp() {
 
   return (
     <div className="absolute inset-0">
-      <canvas ref={canvas} width={W} height={H} className="absolute inset-0 h-full w-full" />
+      <canvas ref={canvas} width={W} height={H} className="absolute inset-0 h-full w-full" style={{ filter: themeFilter(save.theme) }} />
 
       {/* 냄비 (눌러서 요리) */}
       <button onClick={() => { sfx.select(); openPanel('cook') }} className="absolute" style={{ left: POT.x, top: POT.y, width: POT.w, height: POT.h }} aria-label="요리 냄비">
@@ -58,8 +59,8 @@ export default function Camp() {
       {/* 하단 바: 메뉴 / 파티 / 탐험 */}
       <div className="absolute inset-x-0 bottom-0 flex h-[112px] items-center justify-between gap-3 px-4 pb-3 pt-4">
         <div className="flex gap-2">
-          {([['dex', 'book', '도감'], ['shop', 'cart', '상점'], ['cook', 'pot', '요리']] as const).map(([p, icon, label]) => (
-            <Btn key={p} onClick={() => openPanel(p)} className="flex h-[78px] w-[78px] flex-col items-center justify-center gap-1 px-0 py-0 text-sm"><Icon n={icon} s={36} />{label}</Btn>
+          {([['dex', 'book', '도감'], ['shop', 'cart', '상점'], ['train', 'sword', '특훈'], ['quest', 'flag', '퀘스트']] as const).map(([p, icon, label]) => (
+            <Btn key={p} onClick={() => openPanel(p)} className="flex h-[78px] w-[76px] flex-col items-center justify-center gap-1 whitespace-nowrap px-0 py-0 text-sm"><span className="relative"><Icon n={icon} s={34} />{p === 'quest' && claimable(save).length > 0 && <span className="blink absolute -right-3 -top-2 h-4 w-4 border-2 border-[#2b2838] bg-[#e8524a]" />}</span>{label}</Btn>
           ))}
         </div>
         <button onClick={() => { sfx.select(); openPanel('team') }} className="flex gap-1 p-1" aria-label="팀 편성">

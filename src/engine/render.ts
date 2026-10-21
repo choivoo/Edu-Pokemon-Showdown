@@ -4,6 +4,7 @@ import { TYPE_COLOR } from '../lib/typeChart'
 import type { Theme } from '../lib/stages'
 import { drawBattleWorld, flush } from '../art/world'
 import { iconCanvas } from '../art/icons'
+import { STATUS_INFO } from '../lib/moveSet'
 import { H, rect, W } from './draw'
 
 export { H, W }
@@ -37,7 +38,7 @@ export interface Visual {
   parts: Particle[]
   floats: Floater[]
   slashes: Slash[]
-  banner: { text: string; t0: number } | null
+  banner: { text: string; t0: number; tone?: 'info' | 'warn' | 'boss' } | null
 }
 export const newVisual = (): Visual => ({ scroll: 0, shake: 0, projs: [], parts: [], floats: [], slashes: [], banner: null })
 
@@ -75,6 +76,15 @@ export function consumeEvents(b: Battle, v: Visual, now: number, hooks: { hit: (
     } else if (e.k === 'heal') {
       const u = b.units.find(x => x.uid === e.uid)
       if (u) v.floats.push({ x: u.x, y: u.y - 90, text: `+${e.amount}`, color: '#6dff8a', t0: now, big: false })
+    } else if (e.k === 'banner') {
+      v.banner = { text: e.text, t0: now, tone: e.tone }
+      hooks.wave(e.tone === 'boss')
+    } else if (e.k === 'status') {
+      const u = b.units.find(x => x.uid === e.uid)
+      if (u) v.floats.push({ x: u.x, y: u.y - 100, text: STATUS_INFO[e.kind].name + '!', color: STATUS_INFO[e.kind].color, t0: now, big: true })
+    } else if (e.k === 'buff') {
+      const u = b.units.find(x => x.uid === e.uid)
+      if (u) v.floats.push({ x: u.x, y: u.y - 100, text: e.good ? '능력 UP' : '능력 DOWN', color: e.good ? '#7dffb0' : '#ff8a8a', t0: now, big: false })
     } else if (e.k === 'wave') {
       const boss = b.waves[e.index].some(x => x.boss)
       v.banner = { text: boss ? 'BOSS 출현!' : `WAVE ${e.index + 1} / ${b.waves.length}`, t0: now }
@@ -137,6 +147,17 @@ function drawUnit(ctx: CanvasRenderingContext2D, b: Battle, u: Unit, t: number) 
   const label = u.name
   ctx.strokeText(label, u.x, by - 6); ctx.fillText(label, u.x, by - 6)
   if (isBuffed(b, u)) ctx.drawImage(iconCanvas('up'), Math.floor(u.x + bw / 2 + 4), Math.floor(by - 8), 24, 24)
+  if (u.status) {
+    const info = STATUS_INFO[u.status.kind]
+    const w = 44
+    rect(ctx, u.x - w / 2 - 2, by + 12, w + 4, 18, '#1a1a2a')
+    rect(ctx, u.x - w / 2, by + 14, w, 14, info.color)
+    ctx.fillStyle = '#1a1a2a'; ctx.font = '12px Galmuri11, Galmuri9, monospace'
+    ctx.fillText(info.short, u.x, by + 25)
+  } else if (b.t < u.debuff.until) {
+    ctx.fillStyle = '#ff6a6a'; ctx.font = '14px Galmuri11, Galmuri9, monospace'
+    ctx.strokeText('DOWN', u.x, by + 24); ctx.fillText('DOWN', u.x, by + 24)
+  }
   if (ally && u.spCd <= 0 && b.phase === 'fight' && Math.floor(t * 4) % 2 === 0) {
     ctx.drawImage(iconCanvas('star'), Math.floor(u.x - 12), Math.floor(by - 44), 24, 24)
   }
@@ -195,9 +216,10 @@ export function drawBattle(ctx: CanvasRenderingContext2D, b: Battle, v: Visual, 
   if (v.banner && now - v.banner.t0 < 1.7) {
     const k = now - v.banner.t0
     ctx.globalAlpha = k < 0.2 ? k / 0.2 : k > 1.3 ? Math.max(0, (1.7 - k) / 0.4) : 1
-    rect(ctx, 0, 200, W, 64, 'rgba(255,170,0,0.85)')
+    const tone = v.banner.tone
+    rect(ctx, 0, 200, W, 64, tone === 'boss' ? 'rgba(200,30,50,0.88)' : tone === 'warn' ? 'rgba(230,110,20,0.88)' : tone === 'info' ? 'rgba(40,150,220,0.88)' : 'rgba(255,170,0,0.85)')
     rect(ctx, 0, 200, W, 4, '#fff3b0'); rect(ctx, 0, 260, W, 4, '#c97b00')
-    ctx.font = '32px Galmuri11, monospace'; ctx.textAlign = 'center'; ctx.lineWidth = 6; ctx.strokeStyle = '#8a4a00'
+    ctx.font = '32px Galmuri11, monospace'; ctx.textAlign = 'center'; ctx.lineWidth = 6; ctx.strokeStyle = tone === 'boss' ? '#5a0010' : '#6a3300'
     ctx.strokeText(v.banner.text, W / 2, 245); ctx.fillStyle = '#fff'; ctx.fillText(v.banner.text, W / 2, 245)
     ctx.globalAlpha = 1
   }

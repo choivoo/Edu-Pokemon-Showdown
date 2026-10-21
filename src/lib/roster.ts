@@ -1,9 +1,10 @@
 import type { Move, Species } from '../types'
 import speciesJson from '../data/pokemon.json'
 import movesJson from '../data/moves.json'
+import { SUPPORT_MOVES } from './moveSet'
 
 export const SPECIES = speciesJson as Species[]
-const MOVES = movesJson as Move[]
+export const MOVES = [...(movesJson as Move[]), ...SUPPORT_MOVES]
 const speciesMap = new Map(SPECIES.map(s => [s.id, s]))
 const moveMap = new Map(MOVES.map(m => [m.id, m]))
 
