@@ -67,11 +67,11 @@ interface GameState {
   /** 배터리를 1개 쓰고 탐험을 시작한다. 배터리가 없으면 false */
   startStage: (stage: Stage) => boolean
   buyBattery: (full: boolean) => boolean
-  equipMoveStone: (monId: string, stoneId: string) => boolean
+  equipMoveStone: (monId: string, stoneId: string, slot?: 0 | 1) => boolean
   unequipMoveStone: (monId: string, stoneId: string) => void
   finishBattle: (win: boolean, stage: Stage, kills?: number) => void
   /** 특훈: 경험치(exp) 또는 기술 떠올리기(move). 재료로 쓴 포켓몬은 사라진다 */
-  train: (targetId: string, foodIds: string[], mode: 'exp' | 'move') => { ok: boolean; exp?: number; recall?: RecallResult } | null
+  train: (targetId: string, foodIds: string[], mode: 'exp' | 'move', moveSlot?: 0 | 1) => { ok: boolean; exp?: number; recall?: RecallResult } | null
   evolve: (monId: string, choice?: string) => number | null
   toggleEverstone: (monId: string) => void
   upgradeStatue: () => boolean
@@ -312,25 +312,23 @@ export const useGame = create<GameState>((set, get) => {
       return true
     },
 
-    equipMoveStone: (monId, stoneId) => {
+    equipMoveStone: (monId, stoneId, slot = 0) => {
       const s = get().save
       const mon = s.owned.find(o => o.id === monId)
       const ms = s.moveStones.find(m => m.id === stoneId)
-      if (!mon || !ms || mon.mstones.length >= (mon.move2 ? 2 : MOVE_SLOTS) || usedMoveStoneIds(s).has(stoneId)) return false
-      const current = [mon.move, mon.move2].filter((x): x is string => !!x)
-      if (current.length && current.every(id => {
-        const move = getMove(id)
-        return move.stones && !move.stones.includes(ms.kind)
-      })) return false
-      commit({ owned: s.owned.map(o => (o.id === monId ? { ...o, mstones: [...o.mstones, stoneId] } : o)) })
+      if (!mon || !ms || (slot===1 && !mon.move2) || mon.mstones.length >= (mon.move2 ? 2 : MOVE_SLOTS) || usedMoveStoneIds(s).has(stoneId)) return false
+      if(mon.move2 && mon.mstones.some((_,i)=>(mon.moveStoneSlots?.[i]??0)===slot))return false
+      const move=getMove((slot===1 ? mon.move2 : mon.move) ?? getSpecies(mon.species).special)
+      if(move.stones && !move.stones.includes(ms.kind))return false
+      commit({ owned: s.owned.map(o => (o.id === monId ? { ...o, mstones: [...o.mstones, stoneId], moveStoneSlots:[...(o.moveStoneSlots??o.mstones.map(()=>0)),slot] } : o)) })
       return true
     },
     unequipMoveStone: (monId, stoneId) => {
       const s = get().save
-      commit({ owned: s.owned.map(o => (o.id === monId ? { ...o, mstones: o.mstones.filter(x => x !== stoneId) } : o)) })
+      commit({ owned: s.owned.map(o => (o.id === monId ? { ...o, mstones: o.mstones.filter(x => x !== stoneId), moveStoneSlots:(o.moveStoneSlots??o.mstones.map(()=>0)).filter((_,i)=>o.mstones[i]!==stoneId) as Array<0|1> } : o)) })
     },
 
-    train: (targetId, foodIds, mode) => {
+    train: (targetId, foodIds, mode, moveSlot = 0) => {
       const s = get().save
       const target = s.owned.find(o => o.id === targetId)
       const foods = [...new Set(foodIds)].map(id => s.owned.find(o => o.id === id)).filter((o): o is OwnedMon => !!o && o.id !== targetId && !s.party.includes(o.id))
@@ -345,7 +343,7 @@ export const useGame = create<GameState>((set, get) => {
           dex: s.dex.includes(mon.species) ? s.dex : [...s.dex, mon.species] })
         return { ok: true, exp }
       }
-      const r = recall(target, foods, Date.now(), Math.random, moveSuccessBonus(s.decorations))
+      const r = recall(target, foods, Date.now(), Math.random, moveSuccessBonus(s.decorations), moveSlot)
       commit({ owned: rest.map(o => (o.id === targetId ? r.mon : o)), counters: r.ok ? bump(counters, 'recalled') : counters })
       return { ok: r.ok, recall: r }
     },
