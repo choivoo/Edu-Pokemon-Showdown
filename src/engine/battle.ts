@@ -141,14 +141,14 @@ export const FORMATION = [{ x: 280, y: 320 }, { x: 205, y: 395 }, { x: 205, y: 2
 const attackInterval = (spe: number) => 2.3 / (1 + spe / 130)
 const dist = (a: Unit, b: Unit) => Math.hypot(a.x - b.x, a.y - b.y)
 
-interface MakeOpts { ownedId?: string; fx?: MoveFx; fx2?: MoveFx; move?: string; move2?: string; elite?: boolean; pos?: { x: number; y: number } }
+interface MakeOpts { ownedId?: string; fx?: MoveFx; fx2?: MoveFx; move?: string; move2?: string; elite?: boolean; difficulty?: number; pos?: { x: number; y: number } }
 
 function makeUnit(b: Battle, side: Side, speciesId: number, level: number, stats: Stats, slot: number, boss: boolean, o: MakeOpts = {}): Unit {
   const { ownedId, fx = NO_FX, fx2 = NO_FX, elite = false } = o
   const sp = getSpecies(speciesId)
   const m = boss ? BOSS : elite ? ELITE : { hp: 1, atk: 1, def: 1 }
   const atkMul = side === 'enemy' ? m.atk * ENEMY_ATK : m.atk
-  const maxHp = Math.floor(stats.maxHp * m.hp * (side==='enemy' ? 0.78 : 1))
+  const maxHp = Math.max(1, Math.floor(stats.maxHp * m.hp * (side==='enemy' ? 0.78 * (o.difficulty ?? 1) : 1)))
   const special = getMove(o.move ?? sp.special)
   const secondary = o.move2 ? getMove(o.move2) : null
   const basic = getMove(sp.basic)
@@ -158,7 +158,7 @@ function makeUnit(b: Battle, side: Side, speciesId: number, level: number, stats
   const y = o.pos?.y ?? (side === 'ally' ? home.y : boss ? 325 : FIELD.y0 + 35 + b.rng() * (FIELD.y1-FIELD.y0-70))
   return {
     uid: b.nextUid++, side, speciesId, name: sp.name, types: sp.types, level, maxHp, hp: maxHp,
-    atk: Math.floor(stats.atk * atkMul), def: Math.floor(stats.def * m.def), spe: stats.spe, crit: stats.crit,
+    atk: Math.max(1, Math.floor(stats.atk * atkMul * (o.difficulty ?? 1))), def: Math.floor(stats.def * m.def), spe: stats.spe, crit: stats.crit,
     basic, special, secondary, spCd2: secondary ? 4 : 0,
     spMax2: secondary ? Math.max(1, (secondary.wait ?? (secondary.power >= 100 ? 10 : 8)) * (1 - 0.05 * fx2.quick) * (1 + 0.5 * fx2.repeat) * (1 - stats.spCd) * (1 - (stats.typeMoveWait?.[secondary.type] ?? 0))) : 0,
     boss, ownedId, slot, x, y, face: side === 'ally' ? 1 : -1, moving: false,
@@ -189,7 +189,7 @@ function surroundPos(i: number, n: number) {
 }
 
 function addEnemy(b: Battle, e: WaveEnemy, i: number, pos?: { x: number; y: number }) {
-  b.units.push(makeUnit(b, 'enemy', e.species, e.level, computeStats(getSpecies(e.species), e.level), i, !!e.boss, { elite: !!e.elite, pos }))
+  b.units.push(makeUnit(b, 'enemy', e.species, e.level, computeStats(getSpecies(e.species), e.level), i, !!e.boss, { elite: !!e.elite, difficulty: e.difficulty, pos }))
 }
 
 function spawnWave(b: Battle) {
