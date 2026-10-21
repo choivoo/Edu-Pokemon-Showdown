@@ -10,17 +10,17 @@ describe('calcDamage', () => {
   it('랜덤 최솟값 0.85배', () => {
     expect(calcDamage({ ...base, rng: () => 0 }).damage).toBe(Math.floor(32.8 * 0.85))
   })
-  it('굉장한 상성은 2배, 별로는 0.5배', () => {
+  it('퀘스트에서는 공격 타입에 따른 유불리가 없다', () => {
     const n = calcDamage({ ...base, rng: () => 1 }).damage
     const s = calcDamage({ ...base, moveType: 'water', defenderTypes: ['fire'], rng: () => 1 })
     const r = calcDamage({ ...base, moveType: 'fire', defenderTypes: ['water'], rng: () => 1 })
-    expect(s.effectiveness).toBe(2)
-    expect(s.damage).toBe(Math.floor(32.8 * 2))
-    expect(r.damage).toBe(Math.floor(32.8 * 0.5))
-    expect(s.damage).toBeGreaterThan(n)
+    expect(s.effectiveness).toBe(1)
+    expect(s.damage).toBe(Math.floor(32.8))
+    expect(r.damage).toBe(Math.floor(32.8))
+    expect(s.damage).toBe(n)
   })
-  it('효과 없음은 0 데미지', () => {
-    expect(calcDamage({ ...base, defenderTypes: ['ghost'], rng: () => 1 }).damage).toBe(0)
+  it('고스트에도 노말 공격이 통하는 퀘스트 규칙', () => {
+    expect(calcDamage({ ...base, defenderTypes: ['ghost'], rng: () => 1 }).damage).toBeGreaterThan(0)
   })
   it('급소는 1.5배', () => {
     const r = calcDamage({ ...base, crit: true, rng: () => 1 })
