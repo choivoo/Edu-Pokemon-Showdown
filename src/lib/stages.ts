@@ -177,7 +177,7 @@ export function getStage(area: number, index: number): Stage {
   const boss = postgame || index === stageCount(area) - 1
   const level = a.levelBase + index * (postgame ? 5 : 1) + (boss ? 1 : 0)
   const firstSteppe = area === ORIGINAL_FIRST
-  const firstSteppeStrength = [200, 650, 750, 850] as const
+  const firstSteppeStrength = [140, 260, 390, 520] as const
   const firstSteppeBoss = [52, 11, 17] as const
   return {
     id: stageId(area, index), area, index,
