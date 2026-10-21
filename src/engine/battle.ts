@@ -122,6 +122,8 @@ export interface Battle {
   nextUid: number
   rng: Rng
   balance: EncounterBalance
+  /** Optional user-commanded free-roam waypoint in the 2D island world. */
+  manualPoint: {x:number;y:number}|null
 }
 
 export interface AllyInput { ownedId: string; speciesId: number; level: number; stats: Stats; fx?: MoveFx; fx2?: MoveFx; move?: string; move2?: string }
@@ -247,7 +249,7 @@ function joinLate(b: Battle, kind: 'call' | 'new' | 'bossHp') {
 export function createBattle(allies: AllyInput[], waves: WaveEnemy[][], rng: Rng = Math.random, stage?: Pick<Stage,'area'|'index'>): Battle {
   const b: Battle = {
     late: [], scatterCd: 0, surrounded: false, waveKills: 0, t: 0, units: [], waves, wave: 0, phase: 'fight', phaseT: 0, pending: [], queue: [], events: [],
-    auto: false, kills: 0, nextUid: 1, rng, balance: stage ? encounterBalance(stage) : { hp: 1, attack: 1, defense: 1, allyHeal: 0.1, bossHp: 1 },
+    auto: false, kills: 0, nextUid: 1, rng, manualPoint: null, balance: stage ? encounterBalance(stage) : { hp: 1, attack: 1, defense: 1, allyHeal: 0.1, bossHp: 1 },
   }
   allies.forEach((a, i) => b.units.push(makeUnit(b, 'ally', a.speciesId, a.level, a.stats, i, false, { ownedId: a.ownedId, fx: a.fx, move: a.move, move2: a.move2, fx2: a.fx2 })))
   spawnWave(b)
@@ -489,6 +491,14 @@ function separate(b: Battle) {
   }
 }
 
+/** Tap field or use keyboard to move as one 2D party in any direction. */
+export function movePartyTo(b:Battle,x:number,y:number):boolean {
+ if(b.phase!=='fight'&&b.phase!=='advance')return false
+ if(!Number.isFinite(x)||!Number.isFinite(y))return false
+ b.manualPoint={x:Math.max(FIELD.x0,Math.min(FIELD.x1,x)),y:Math.max(FIELD.y0,Math.min(FIELD.y1,y))}
+ return true
+}
+export function clearPartyWaypoint(b:Battle):void {b.manualPoint=null}
 export const ALLY_REVIVE_SECONDS = 25
 export function step(b: Battle, dt: number): void {
   if (b.phase === 'won' || b.phase === 'lost') return
@@ -563,6 +573,20 @@ export function step(b: Battle, dt: number): void {
         }
         continue
       }
+      if(u.side==='ally'&&b.manualPoint&&!u.status){
+        const dest=b.manualPoint
+        const spreadX=(u.slot-1)*42,spreadY=(u.slot===0?-34:u.slot===1?34:0)
+        const dx=dest.x+spreadX-u.x,dy=dest.y+spreadY-u.y
+        const d=Math.hypot(dx,dy)
+        if(d>18){
+          const k=Math.min(d,speedOf(b,u)*dt*1.65)
+          u.x+=dx/d*k;u.y+=dy/d*k
+          u.face=dx>=0?1:-1;u.moving=true
+          // Stay in the arena but keep existing battle and cooldown timers.
+          continue
+        }
+        if(u.slot===0)b.manualPoint=null
+      }
       let t = nearest(b, u)
       // 혼란: 가끔 엉뚱한 상대(동료 포함)를 노린다
       if (u.status?.kind === 'confuse' && b.rng() < 0.5) {
@@ -627,6 +651,7 @@ export function step(b: Battle, dt: number): void {
     }
     if (!alive(b, 'enemy').length && !b.pending.length) {
       b.phase = 'advance'
+      b.manualPoint=null
       b.phaseT = ADVANCE_TIME
       for (const a of alive(b, 'ally')) {
         a.status = null
@@ -653,6 +678,7 @@ export function step(b: Battle, dt: number): void {
       spawnWave(b)
       for (const a of alive(b, 'ally')) { a.atkCd = 0.3 + b.rng() * 0.6; a.moving = false }
       b.phase = 'fight'
+      b.manualPoint=null
     }
   }
 }
