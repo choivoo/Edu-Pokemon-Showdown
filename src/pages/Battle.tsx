@@ -64,7 +64,7 @@ export default function Battle() {
 
     const ctx = canvas.current!.getContext('2d')!
     const themes: Theme[] = ['beach', 'forest', 'cave', 'gorge', 'volcano', 'altar']
-    const theme = stage.area === HAPPENSTANCE_AREA ? themes[Math.floor(Math.random() * themes.length)] : stage.area >= 0 ? AREAS[stage.area].theme : themes[stage.index % 6]
+    const theme = stage.area === HAPPENSTANCE_AREA ? (stage.index === 8 ? 'altar' : themes[Math.floor(Math.random() * themes.length)]) : stage.area >= 0 ? AREAS[stage.area].theme : themes[stage.index % 6]
     let raf = 0
     let last = performance.now()
     let acc = 0
