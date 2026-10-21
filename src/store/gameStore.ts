@@ -379,7 +379,7 @@ export const useGame = create<GameState>((set, get) => {
       if (q.reward.shell) ingredients.shell += q.reward.shell
       if (q.reward.rainbow) ingredients.rainbow += q.reward.rainbow
       const themes = q.reward.theme && !s.themes.includes(q.reward.theme) ? [...s.themes, q.reward.theme] : s.themes
-      commit({ claimed: [...s.claimed, id], coins: s.coins + (q.reward.coins ?? 0), ingredients, themes })
+      commit({ claimed: [...s.claimed, id], coins: s.coins + (q.reward.coins ?? 0), pmTickets: s.pmTickets + (q.reward.tickets ?? 0), ingredients, themes })
       return true
     },
 
