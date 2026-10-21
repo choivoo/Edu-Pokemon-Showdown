@@ -50,7 +50,7 @@ async function pipe(bytes: Uint8Array, stream: CompressionStream | Decompression
 
 // ---------- 저장 데이터 압축 표현 (배열 기반으로 크기를 줄임) ----------
 type PackedMon = [string, number, number, number, Array<[string, number, number, number]>, Array<[string, number, number, number]>?, string[]?, string?, number?, number?]
-type Packed = [number, number, string, number, [string, number][], Array<[string, string, number, string]>, PackedMon[], string[], string[], number[], number, number, number, number, number, number?, number?, Array<[string, string]>?, Record<string, number>?, string[]?, number?, string[]?, string?, [number, number, number, number, number?]?]
+type Packed = [number, number, string, number, [string, number][], Array<[string, string, number, string]>, PackedMon[], string[], string[], number[], number, number, number, number, number, number?, number?, Array<[string, string]>?, Record<string, number>?, string[]?, number?, string[]?, string?, [number, number, number, number, number?]?, number?, number?, string[]?]
 
 export function pack(s: SaveData): Packed {
   return [
@@ -62,6 +62,7 @@ export function pack(s: SaveData): Packed {
     s.battery.n, s.battery.at, s.moveStones.map(m => [m.id, m.kind]),
     s.counters, s.claimed, s.statue, s.themes, s.theme,
     s.pot ? [s.pot.species, s.pot.remaining, s.pot.total, s.pot.recipe, ...(s.pot.tier ? [s.pot.tier] : [])] : undefined,
+    s.pmTickets, s.ticketClaimedAt, s.decorations,
   ] as unknown as Packed
 }
 
@@ -98,6 +99,8 @@ export function unpack(p: Packed): SaveData {
     moveStones: (p[17] ?? []).map(([id, kind]) => ({ id, kind })) as SaveData['moveStones'],
     counters: p[18] ?? {}, claimed: p[19] ?? [], statue: Number(p[20]) || 0, themes: p[21] ?? ['default'], theme: p[22] ?? 'default',
     pot: p[23] ? { species: p[23][0], remaining: p[23][1], total: p[23][2], recipe: p[23][3], ...(p[23][4] ? { tier: p[23][4] as 0 | 1 | 2 | 3 } : {}) } : null,
+    pmTickets: Math.max(0, Number(p[24]) || 0), ticketClaimedAt: Math.max(0, Number(p[25]) || 0),
+    decorations: Array.isArray(p[26]) ? p[26] : [],
   }
   return migrate(save)
 }
