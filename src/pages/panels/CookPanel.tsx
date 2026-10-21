@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { areaCleared, useGame } from '../../store/gameStore'
 import {
-  ALL_RECIPES, COLOR_LABEL, COOKING_TIERS, DISH_SIZE, getIngredient, GRADE_LABEL, gradeOf, INGREDIENTS, type CookingTier, type IngredientId, KIND_LABEL, recipeFor, TEXTURE_LABEL,
+  ALL_RECIPES, attractionOdds, COLOR_LABEL, COOKING_TIERS, DISH_SIZE, getIngredient, GRADE_LABEL, gradeOf, INGREDIENTS, type CookingTier, type IngredientId, KIND_LABEL, recipeFor, TEXTURE_LABEL,
 } from '../../lib/cooking'
 import { getSpecies } from '../../lib/roster'
 import { frontSprite, fallbackSpriteOnError } from '../../data/sprites'
@@ -28,6 +28,7 @@ export default function CookPanel() {
   const recipe = sel.length ? recipeFor(sel) : null
   const grade = sel.length ? gradeOf(sel) : null
   const owned = INGREDIENTS.filter(i => save.ingredients[i.id] >= pot.perSlot || used(i.id) > 0)
+  const predictedOdds = sel.length === DISH_SIZE ? attractionOdds(sel).sort((a,b)=>b.probability-a.probability).slice(0,4) : []
 
   const autoFill = () => {
     const best = INGREDIENTS.filter(i => i.rarity === 0).map(i => ({ id: i.id, n: save.ingredients[i.id] })).sort((a, b) => b.n - a.n)[0]
@@ -77,6 +78,10 @@ export default function CookPanel() {
               <p className="flex flex-wrap items-center justify-center gap-1 pt-1">
                 {recipe.no === 18 || recipe.no === 1 ? <span className="text-sm">여러 타입이 찾아와요</span> : recipe.types.map(t => <TypeBadge key={t} type={t} />)}
               </p>
+              {predictedOdds.length>0&&<div className="mt-1 flex flex-wrap justify-center gap-1 text-xs" title="공식 등장률이 아닌 추정치입니다">
+                {predictedOdds.map(o=><span key={o.species.id} className="border border-[#b87e4d] bg-[#fff4d6] px-1 text-[#70552f]">{o.species.name} {Math.round(o.probability*1000)/10}%</span>)}
+                <span className="text-[#a25a3a]">※ 예상 확률</span>
+              </div>}
             </>) : <p className="pt-3 text-sm">재료를 눌러 냄비에 넣어 보세요 (칸당 {pot.perSlot}개 소모)</p>}
           </div>
           <div className="mt-auto flex w-full gap-2">
