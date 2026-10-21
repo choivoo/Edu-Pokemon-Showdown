@@ -50,13 +50,13 @@ async function pipe(bytes: Uint8Array, stream: CompressionStream | Decompression
 
 // ---------- 저장 데이터 압축 표현 (배열 기반으로 크기를 줄임) ----------
 type PackedMon = [string, number, number, number, Array<[string, number, number, number]>, Array<[string, number, number, number]>?, string[]?, string?, number?, number?, number?, string?, number?, number?, number?]
-type Packed = [number, number, string, number, [string, number][], Array<[string, string, number, string, number?]>, PackedMon[], string[], string[], number[], number, number, number, number, number, number?, number?, Array<[string, string]>?, Record<string, number>?, string[]?, number?, string[]?, string?, [number, number, number, number, number?]?, number?, number?, string[]?]
+type Packed = [number, number, string, number, [string, number][], Array<[string, string, number, string, number?, Record<string,number>?]>, PackedMon[], string[], string[], number[], number, number, number, number, number, number?, number?, Array<[string, string]>?, Record<string, number>?, string[]?, number?, string[]?, string?, [number, number, number, number, number?]?, number?, number?, string[]?]
 
 export function pack(s: SaveData): Packed {
   return [
     s.version, s.started ? 1 : 0, s.name, s.coins,
     Object.entries(s.ingredients),
-    s.stones.map(t => [t.id, t.kind, t.star, t.shape, ...(t.value !== undefined ? [t.value] : [])]),
+    s.stones.map(t => [t.id, t.kind, t.star, t.shape, t.value, t.perks]),
     s.owned.map(o => [o.id, o.species, o.level, o.exp, o.stones.map(p => [p.stone, p.x, p.y, p.rot]), o.bonus.map(b => [b.kind, ...b.v]), o.mstones, o.move ?? '', o.recalls ?? 0, o.recallT ?? 0, ...([o.everstone ? 1 : 0, o.move2 ?? '', o.potBonus ?? 0, o.ivHp ?? 0, o.ivAtk ?? 0])]),
     s.party, Object.keys(s.cleared), s.dex, s.endlessBest, s.uid, s.muted ? 1 : 0, s.exportedAt, s.clearsSinceExport,
     s.battery.n, s.battery.at, s.moveStones.map(m => [m.id, m.kind]),
@@ -77,7 +77,7 @@ export function unpack(p: Packed): SaveData {
     name: String(p[2] ?? ''),
     coins: Number(p[3]) || 0,
     ingredients: ing,
-    stones: p[5].map(([id, kind, star, shape, value]) => ({ id, kind, star, shape, ...(value !== undefined ? { value } : {}) })) as SaveData['stones'],
+    stones: p[5].map(([id, kind, star, shape, value, perks]) => ({ id, kind, star, shape, ...(value !== undefined ? { value } : {}), ...(perks ? { perks } : {}) })) as SaveData['stones'],
     owned: p[6].map(([id, species, level, exp, st, bonus, mstones, move, recalls, recallT, everstone, move2, potBonus, ivHp, ivAtk]) => ({
       id, species, level, exp,
       ...(move ? { move } : {}), ...(recalls ? { recalls, recallT } : {}), ...(everstone ? { everstone: true } : {}), ...(move2 ? { move2 } : {}), ...(potBonus ? { potBonus } : {}), ...(ivHp ? { ivHp } : {}), ...(ivAtk ? { ivAtk } : {}),
