@@ -66,10 +66,10 @@ describe('cooking', () => {
     const reachable = new Set(ALL_RECIPES.flatMap(r => attractPool(r).flatMap(s => s.types)))
     for (const t of TYPES) expect(reachable.has(t)).toBe(true)
   })
-  it('요리는 즉시 끝나지 않고 희귀도에 따라 2~5회 탐험을 요구한다', () => {
+  it('요리는 즉시 끝나지 않고 희귀도와 냄비 등급에 따라 2~8회 탐험을 요구한다', () => {
     expect(cookingExpeditions(ids('fossil','fossil','fossil','fossil','fossil'))).toBe(2)
-    expect(cookingExpeditions(ids('honey','honey','honey','fossil','fossil'))).toBe(4)
-    expect(cookingExpeditions(ids('rainbow','rainbow','honey','fossil','fossil'))).toBe(5)
+    expect(cookingExpeditions(ids('honey','honey','honey','fossil','fossil'))).toBe(5)
+    expect(cookingExpeditions(ids('rainbow','rainbow','honey','fossil','fossil'))).toBe(6)
   })
 
   it('레시피는 18가지이며 번호가 겹치지 않는다', () => {
