@@ -19,10 +19,10 @@ export default function Camp() {
   const party = partyMons(save)
   const others = save.owned.filter(o => !save.party.includes(o.id)).slice(0, 5).map(o => o.species)
   const ids = [...party.map(m => m.species), ...others]
-  const key = ids.join(',')
+  const key = ids.join(',') + ':' + save.placedDecorations.join(',')
   preload(ids)
   useEffect(() => { bgm.play('camp') }, [])
-  useCanvas(canvas, (ctx, t) => drawCamp(ctx, t, ids, false), [key])
+  useCanvas(canvas, (ctx, t) => drawCamp(ctx, t, ids, false, save.placedDecorations), [key])
 
   const needBackup = save.exportedAt === 0 ? save.owned.length >= 6 : save.clearsSinceExport >= 3
   const firstTime = save.owned.length <= 3
