@@ -294,7 +294,87 @@ const cookSong: Song = {
   ],
 }
 
-export const SONGS = { title, camp, map, battle, boss, story } as const
+
+// =====================================================================================
+// 지역별 오리지널 전투 테마: 6곡 (원작의 멜로디/음원을 복제하지 않음)
+// 각 지역 고유의 조성과 모티프, 리듬, 악기 배치를 사용한다.
+// =====================================================================================
+function regional(
+  name: string, bpm: number, chords: string[], bars: string[], inst: NoteInstName,
+  bass: BassStyle, kick: string[], snare: string[], hats: string[], swing = 0,
+): Song {
+  return {
+    name, bpm, bars: 8, swing, loop: true,
+    tracks: [
+      melody(bars, inst, 0.98),
+      bassLine(chords, bass, 'pluck', 0.76, 0, 39),
+      chordHold(chords, 'pad', 0.64, 0, 55),
+      arpeggio(chords, 2, inst === 'bell' ? 'marimba' : 'bell', 0.30, 0, 69, [0, 2, 1, 3, 2, 1]),
+      stabs(chords, [0, 10], 'brass', 0.24, 2, 0, 60),
+      drum('kick', kick, 8, 0.70),
+      drum('rim', snare, 8, 0.55),
+      drum('shaker', hats, 8, 0.40),
+    ],
+  }
+}
+
+const tide = regional('tide', 116,
+  ['D', 'A', 'Bm', 'G', 'D', 'G', 'A', 'D'], [
+    'F#5/2 A5/2 D6/4 A5/4 F#5/4', 'E5/2 C#5/2 E5/4 A5/4 C#6/4',
+    'F#5/4 B5/4 D6/4 F#6/4', 'D5/4 G5/4 B5/4 D6/4',
+    'A5/2 F#5/2 E5/2 F#5/2 A5/4 D6/4', 'B5/4 D6/4 G6/4 D6/4',
+    'E5/4 A5/4 C#6/4 E6/4', 'D6/8 A5/4 F#5/4',
+  ], 'marimba', 'offbeat',
+  ['x.......x...x...', 'x..x....x.......'], [BACK], ['xox.xox.xox.xoxo'], 0.12)
+
+const grove = regional('grove', 108,
+  ['G', 'Em', 'C', 'D', 'G', 'C', 'Am', 'D'], [
+    'D5/4 G5/4 B5/4 D6/4', 'G5/2 B5/2 E6/4 B5/4 G5/4',
+    'E5/4 G5/4 C6/4 G5/4', 'F#5/4 A5/4 D6/4 A5/4',
+    'B5/2 A5/2 G5/4 D5/4 G5/4', 'G5/4 E5/4 C5/4 E5/4',
+    'A5/4 C6/4 E6/4 C6/4', 'A5/4 F#5/4 D5/8',
+  ], 'flute', 'walk',
+  ['x.......x.......', 'x...x.......x...'], ['....o.......x...'], ['x.x.o.x.x.x.o.x.'], 0.09)
+
+const echo = regional('echo', 94,
+  ['Am', 'F', 'Dm', 'E', 'Am', 'C', 'F', 'E'], [
+    'A4/4 C5/4 E5/8', 'A4/2 C5/2 F5/4 E5/4 C5/4',
+    'D5/4 F5/4 A5/8', 'B4/8 G#5/4 E5/4',
+    'A4/2 C5/2 E5/4 C5/4 A4/4', 'G4/4 C5/4 E5/8',
+    'F5/4 A5/4 C6/8', 'G#5/4 B5/4 E6/4 r/4',
+  ], 'bell', 'half',
+  ['x...............', 'x.......o.......'], ['........o.......'], ['..o...o...o...o.'])
+
+const spark = regional('spark', 142,
+  ['Em', 'C', 'G', 'D', 'Em', 'Am', 'B', 'Em'], [
+    'E5/2 G5/2 B5/2 E6/2 G5/4 B5/4', 'C5/2 E5/2 G5/4 E5/2 G5/2 C6/4',
+    'D5/4 G5/2 B5/2 D6/4 G5/4', 'F#5/2 A5/2 D6/4 A5/4 F#5/4',
+    'G5/2 B5/2 E6/4 D6/2 B5/2 G5/4', 'A5/4 C6/4 E6/4 C6/4',
+    'B4/2 D#5/2 F#5/4 B5/4 F#5/4', 'E6/8 B5/4 G5/4',
+  ], 'lead', 'gallop',
+  ['x...x...x...x...', 'x..xx...x..xx...'], [BACK], ['xxxxxxxxxxxxxxxx'])
+
+const ember = regional('ember', 150,
+  ['Dm', 'Bb', 'Gm', 'A', 'Dm', 'Bb', 'A', 'Dm'], [
+    'D5/4 F5/4 A5/4 D6/4', 'Bb4/2 D5/2 F5/4 Bb5/4 F5/4',
+    'G4/4 Bb4/4 D5/4 G5/4', 'A4/4 C#5/4 E5/4 A5/4',
+    'D5/2 F5/2 A5/2 D6/2 A5/4 F5/4', 'F5/4 Bb5/4 D6/4 Bb5/4',
+    'E5/2 A5/2 C#6/4 E6/4 C#6/4', 'D6/8 A5/4 F5/4',
+  ], 'brass', 'gallop',
+  ['x...x...x...x...', 'x..x..x.x...x...'], [BACK, '....x.....x.x...'], ['x.x.x.x.x.x.x.x.'])
+
+const astral = regional('astral', 114,
+  ['C', 'Am', 'F', 'G', 'C', 'Em', 'Dm', 'G'], [
+    'G5/4 C6/4 E6/4 G6/4', 'E5/2 A5/2 C6/4 E6/4 C6/4',
+    'F5/4 A5/4 C6/4 F6/4', 'D5/4 G5/4 B5/8',
+    'E6/4 C6/4 G5/4 E5/4', 'G5/2 B5/2 E6/4 G6/4 E6/4',
+    'A5/4 D6/4 F6/4 D6/4', 'G5/8 D5/4 B4/4',
+  ], 'bell', 'root5',
+  ['x.......x.......', 'x...........o...'], ['........o.......'], ['..o...o...o...o.'])
+
+// 6개 지역 테마는 맵/스토리 음악과 별개로 탐험 전투 중에 재생된다.
+
+export const SONGS = { title, camp, map, battle, boss, story, tide, grove, echo, spark, ember, astral } as const
 export const JINGLES = { win, lose, levelup, cook: cookSong } as const
 export type SongName = keyof typeof SONGS
 export type JingleName = keyof typeof JINGLES
