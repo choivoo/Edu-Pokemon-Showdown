@@ -33,6 +33,7 @@ export default function TeamPanel() {
   const [hold, setHold] = useState<{ id: string; rot: number } | null>(null)
   const [hover, setHover] = useState<[number, number] | null>(null)
   const [msg, setMsg] = useState('')
+  const [activeMoveSlot, setActiveMoveSlot] = useState<0|1>(0)
 
   const mon = save.owned.find(o => o.id === selId) ?? save.owned[0]
   if (!mon) return null
@@ -168,13 +169,14 @@ export default function TeamPanel() {
               </div>
             ) : right === 'moves' ? (
               <div className="space-y-1.5">
-                <p className="text-sm font-bold">장착 중 ({equipped.length}/{moveSlots}) · 필살기에 적용돼요</p>
+                <p className="text-sm font-bold">장착 중 ({equipped.length}/{moveSlots}) · 각 기술에 개별 적용</p>
+                {mon.move2 && <div className="flex gap-1 pb-1"><Btn color={activeMoveSlot===0?'yellow':'gray'} onClick={()=>setActiveMoveSlot(0)} className="flex-1 text-sm">기술 1: {getMove(mon.move??sp.special).name}</Btn><Btn color={activeMoveSlot===1?'yellow':'gray'} onClick={()=>setActiveMoveSlot(1)} className="flex-1 text-sm">기술 2: {getMove(mon.move2).name}</Btn></div>}
                 <div className="grid grid-cols-3 gap-2">
                   {Array.from({ length: moveSlots }, (_, i) => {
                     const m = equipped[i]
                     return (
                       <button key={i} disabled={!m} onClick={() => m && unequipMoveStone(mon.id, m.id)} className="flex h-[78px] flex-col items-center justify-center gap-0.5 border-4 border-dashed border-[#c98a00] bg-white/60 text-xs">
-                        {m ? (<><Icon n={MOVE_STONE_INFO[m.kind].icon} s={36} /><span>{MOVE_STONE_INFO[m.kind].name}</span></>) : <span className="text-[#a06a10]">빈 칸</span>}
+                        {m ? (<><Icon n={MOVE_STONE_INFO[m.kind].icon} s={36} /><span>{MOVE_STONE_INFO[m.kind].name}</span><span>기술 {(mon.moveStoneSlots?.[i]??0)+1}</span></>) : <span className="text-[#a06a10]">빈 칸</span>}
                       </button>
                     )
                   })}
@@ -182,7 +184,7 @@ export default function TeamPanel() {
                 <p className="pt-1 text-sm font-bold">보유한 기술스톤</p>
                 {freeMove.length === 0 && <p className="p-3 text-center text-sm">남은 기술스톤이 없어요. 탐험에서 가끔 얻을 수 있어요!</p>}
                 {freeMove.map(m => (
-                  <button key={m.id} disabled={equipped.length >= moveSlots} onClick={() => { if (equipMoveStone(mon.id, m.id)) sfx.select() }} className="flex w-full items-center gap-2 border-4 border-[#c98a00] bg-white/60 px-2 py-1 text-left disabled:opacity-50">
+                  <button key={m.id} disabled={equipped.length >= moveSlots} onClick={() => { if (equipMoveStone(mon.id, m.id, mon.move2 ? activeMoveSlot : 0)) sfx.select() }} className="flex w-full items-center gap-2 border-4 border-[#c98a00] bg-white/60 px-2 py-1 text-left disabled:opacity-50">
                     <Icon n={MOVE_STONE_INFO[m.kind].icon} s={32} />
                     <span className="flex-1"><b className="text-base">{MOVE_STONE_INFO[m.kind].name}</b><br /><span className="text-xs text-[#8a5a10]">{MOVE_STONE_INFO[m.kind].detail}</span></span>
                   </button>
