@@ -74,6 +74,7 @@ export default function Battle() {
       hit: (e: { eff: number; crit: boolean }) => (e.crit ? sfx.crit() : e.eff > 1 ? sfx.superHit() : sfx.hit()),
       special: () => sfx.special(),
       faint: () => sfx.faint(),
+      finisher: () => sfx.finisher(),
       wave: (boss: boolean) => (boss ? sfx.crit() : sfx.step()),
     }
     const loop = (nowMs: number) => {
