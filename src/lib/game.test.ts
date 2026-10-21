@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { ALL_RECIPES, attractPool, cook, gradeOf, INGREDIENTS, type IngredientId, recipeFor, tally } from './cooking'
+import { ALL_RECIPES, attractPool, cook, cookingExpeditions, gradeOf, INGREDIENTS, type IngredientId, recipeFor, tally } from './cooking'
 import { addExp, computeStats, expToNext, MAX_LEVEL, type OwnedMon } from './stats'
 import { canPlace, cellsOf, findSpot, GRID_H, GRID_W, occupancy, type Stone, unlockedCount } from './stones'
-import { AREAS, buildWaves, getEndlessStage, getStage, rollRewards, STAGES_PER_AREA } from './stages'
+import { AREAS, buildWaves, getEndlessStage, getStage, rollRewards } from './stages'
 import { getMove, getSpecies, SPECIES } from './roster'
 import { TYPES } from './typeChart'
 import { defaultSave } from './storage'
@@ -66,6 +66,12 @@ describe('cooking', () => {
     const reachable = new Set(ALL_RECIPES.flatMap(r => attractPool(r).flatMap(s => s.types)))
     for (const t of TYPES) expect(reachable.has(t)).toBe(true)
   })
+  it('요리는 즉시 끝나지 않고 희귀도에 따라 2~5회 탐험을 요구한다', () => {
+    expect(cookingExpeditions(ids('fossil','fossil','fossil','fossil','fossil'))).toBe(2)
+    expect(cookingExpeditions(ids('honey','honey','honey','fossil','fossil'))).toBe(4)
+    expect(cookingExpeditions(ids('rainbow','rainbow','honey','fossil','fossil'))).toBe(5)
+  })
+
   it('레시피는 18가지이며 번호가 겹치지 않는다', () => {
     expect(ALL_RECIPES).toHaveLength(18)
     expect(new Set(ALL_RECIPES.map(r => r.no)).size).toBe(18)
@@ -133,15 +139,17 @@ describe('파워스톤 격자', () => {
 })
 
 describe('스테이지 / 보상', () => {
-  it('지역은 6개, 지역당 5스테이지(마지막이 보스)', () => {
-    expect(AREAS).toHaveLength(6)
-    for (let a = 0; a < AREAS.length; a++) {
-      for (let i = 0; i < STAGES_PER_AREA; i++) expect(getStage(a, i).boss).toBe(i === STAGES_PER_AREA - 1)
-      expect(getStage(a, 4).recruit).toBe(AREAS[a].boss)
-    }
+  it('원작 11지역 54스테이지 + 확장 6지역 30스테이지를 보존한다', () => {
+    expect(AREAS).toHaveLength(17)
+    expect(AREAS.slice(0, 6).every(a => !a.stageCount)).toBe(true)
+    expect(AREAS.slice(6).map(a => a.stageCount)).toEqual([4,5,5,5,5,5,6,6,6,6,1])
+    for(let i=0;i<6;i++) expect(getStage(i,4).recruit).toBe(AREAS[i].boss)
+    expect(getStage(6,3).boss).toBe(true)
+    expect(getStage(16,0).boss).toBe(true)
+    expect(getStage(16,0).recruit).toBeNull()
   })
   it('지역이 갈수록 적 레벨이 오른다', () => {
-    for (let a = 1; a < AREAS.length; a++) {
+    for (let a = 1; a < 6; a++) {
       expect(getStage(a, 0).level).toBeGreaterThan(getStage(a - 1, 0).level)
       expect(getStage(a, 4).level).toBeGreaterThan(getStage(a - 1, 4).level)
     }

@@ -50,7 +50,7 @@ async function pipe(bytes: Uint8Array, stream: CompressionStream | Decompression
 
 // ---------- 저장 데이터 압축 표현 (배열 기반으로 크기를 줄임) ----------
 type PackedMon = [string, number, number, number, Array<[string, number, number, number]>, Array<[string, number, number, number]>?, string[]?, string?, number?, number?]
-type Packed = [number, number, string, number, [string, number][], Array<[string, string, number, string]>, PackedMon[], string[], string[], number[], number, number, number, number, number, number?, number?, Array<[string, string]>?, Record<string, number>?, string[]?, number?, string[]?, string?]
+type Packed = [number, number, string, number, [string, number][], Array<[string, string, number, string]>, PackedMon[], string[], string[], number[], number, number, number, number, number, number?, number?, Array<[string, string]>?, Record<string, number>?, string[]?, number?, string[]?, string?, [number, number, number, number]?]
 
 export function pack(s: SaveData): Packed {
   return [
@@ -61,6 +61,7 @@ export function pack(s: SaveData): Packed {
     s.party, Object.keys(s.cleared), s.dex, s.endlessBest, s.uid, s.muted ? 1 : 0, s.exportedAt, s.clearsSinceExport,
     s.battery.n, s.battery.at, s.moveStones.map(m => [m.id, m.kind]),
     s.counters, s.claimed, s.statue, s.themes, s.theme,
+    s.pot ? [s.pot.species, s.pot.remaining, s.pot.total, s.pot.recipe] : undefined,
   ] as unknown as Packed
 }
 
@@ -96,6 +97,7 @@ export function unpack(p: Packed): SaveData {
     battery: p[15] !== undefined && p[16] !== undefined ? { n: Math.max(0, Math.min(5, Number(p[15]) || 0)), at: Number(p[16]) || Date.now() } : defaultSave().battery,
     moveStones: (p[17] ?? []).map(([id, kind]) => ({ id, kind })) as SaveData['moveStones'],
     counters: p[18] ?? {}, claimed: p[19] ?? [], statue: Number(p[20]) || 0, themes: p[21] ?? ['default'], theme: p[22] ?? 'default',
+    pot: p[23] ? { species: p[23][0], remaining: p[23][1], total: p[23][2], recipe: p[23][3] } : null,
   }
   return migrate(save)
 }
@@ -106,7 +108,7 @@ export function validateSave(s: SaveData): string | null {
   if (!Array.isArray(s.owned) || s.owned.length === 0) return '포켓몬 정보가 없어요.'
   const ids = new Set(s.owned.map(o => o.id))
   if (ids.size !== s.owned.length) return '포켓몬 정보가 손상되었어요.'
-  if (s.owned.some(o => !(o.level >= 1 && o.level <= 99) || !Number.isFinite(o.species))) return '포켓몬 정보가 손상되었어요.'
+  if (s.owned.some(o => !(o.level >= 1 && o.level <= 100) || !Number.isFinite(o.species))) return '포켓몬 정보가 손상되었어요.'
   if (s.party.some(id => !ids.has(id))) return '파티 정보가 손상되었어요.'
   return null
 }

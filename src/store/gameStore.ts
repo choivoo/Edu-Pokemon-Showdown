@@ -1,6 +1,5 @@
 import { create } from 'zustand'
-import type { Species } from '../types'
-import { cook, type IngredientId, getIngredient, DISH_SIZE } from '../lib/cooking'
+import { cook, cookingExpeditions, recipeFor, type IngredientId, getIngredient, DISH_SIZE } from '../lib/cooking'
 import { getSpecies } from '../lib/roster'
 import { addExp, expToNext, MAX_LEVEL, type OwnedMon } from '../lib/stats'
 import { canPlace, findSpot, mergeCost, occupancy, type Stone, type ShapeId, type StoneKind } from '../lib/stones'
@@ -8,7 +7,8 @@ import { usedMoveStoneIds, usedStoneIds } from '../lib/party'
 import { type MoveStone, MOVE_SLOTS } from '../lib/moveStones'
 import { rollBonuses } from '../lib/bingo'
 import { BATTERY_MAX, batteryNow, charge, consume } from '../lib/battery'
-import { AREAS, rollRewards, type Rewards, type Stage, stageId } from '../lib/stages'
+import { AREAS, rollRewards, stageCount, type Rewards, type Stage, stageId } from '../lib/stages'
+import { ORIGINAL_FIRST, ORIGINAL_LAST, ORIGINAL_BOSS_AREA, ORIGINAL_STATUE_COUNT, originalUnlocked } from '../lib/originalCampaign'
 import { defaultSave, loadSave, resetSave, type SaveData, writeSave } from '../lib/storage'
 import { setMuted } from '../lib/sound'
 import { recall, trainExp, TRAIN_MAX, type RecallResult } from '../lib/training'
@@ -49,7 +49,8 @@ interface GameState {
   hardReset: () => void
   toggleMute: () => void
   markStory: (key: string) => void
-  cookDish: (sel: IngredientId[]) => OwnedMon | null
+  startCooking: (sel: IngredientId[]) => boolean
+  collectCooked: () => OwnedMon | null
   setParty: (ids: string[]) => void
   placeStone: (monId: string, stoneId: string, x: number, y: number, rot: number) => boolean
   autoPlaceStone: (monId: string, stoneId: string) => boolean
@@ -81,11 +82,22 @@ export function newcomerLevel(save: SaveData, floor = 5): number {
 }
 
 export const isCleared = (save: SaveData, area: number, index: number) => !!save.cleared[stageId(area, index)]
-export const areaCleared = (save: SaveData, area: number) => isCleared(save, area, 4)
-export const areaUnlocked = (save: SaveData, area: number) => area === 0 || areaCleared(save, area - 1)
-export const allCleared = (save: SaveData) => areaCleared(save, AREAS.length - 1)
-/** 되찾은 프리즘 조각 수 (보스 6명 처치 = 6/6) */
-export const shardCount = (save: SaveData) => AREAS.filter((_, i) => areaCleared(save, i)).length
+export const areaCleared = (save: SaveData, area: number) => isCleared(save, area, stageCount(area) - 1)
+/** Original campaign first. Fan-created six chapters unlock only after Mewtwo. */
+export const legacyFanProgress = (save: SaveData): boolean =>
+  Object.keys(save.cleared).some(k => /^a[0-5]-s\d+$/.test(k))
+export const areaUnlocked = (save: SaveData, area: number): boolean => {
+  if (area >= ORIGINAL_FIRST && area <= ORIGINAL_LAST) return originalUnlocked(area, i => areaCleared(save, i))
+  // Existing pre-2D-remake saves keep access to their already-played fan route.
+  return (areaCleared(save, ORIGINAL_BOSS_AREA) || legacyFanProgress(save)) && (area === 0 || areaCleared(save, area - 1))
+}
+/** The postgame Happenstance Island is available as soon as the original final boss falls. */
+export const allCleared = (save: SaveData) => areaCleared(save, ORIGINAL_BOSS_AREA)
+export const originalStatueCount = (save: SaveData) =>
+  Array.from({ length: ORIGINAL_STATUE_COUNT }, (_, i) => ORIGINAL_FIRST + i).filter(i => areaCleared(save, i)).length
+/** Optional fan story has six prism shards after the retail-story ending. */
+export const shardCount = (save: SaveData) =>
+  AREAS.slice(0, ORIGINAL_FIRST).filter((_, i) => areaCleared(save, i)).length
 
 export const useGame = create<GameState>((set, get) => {
   const commit = (patch: Partial<SaveData>) => {
@@ -124,11 +136,10 @@ export const useGame = create<GameState>((set, get) => {
 
     newGame: (name, starter) => {
       const base = defaultSave()
-      // 미라 박사가 함께 챙겨 준 두 친구와 3마리 파티로 시작
+      // Original first expedition starts with ONE chosen partner.
+      // Other companions arrive through base-camp cooking.
       const first = newMon(base, starter, 5)
-      const second = newMon({ ...base, ...first.patch }, 16, 5)
-      const third = newMon({ ...base, ...first.patch, ...second.patch }, 19, 5)
-      const save: SaveData = { ...base, ...third.patch, name, started: true, party: [first.mon.id, second.mon.id, third.mon.id], muted: get().save.muted }
+      const save: SaveData = { ...base, ...first.patch, name, started: true, party: [first.mon.id], muted: get().save.muted }
       writeSave(save)
       set({ save, panel: null, screen: 'camp' })
     },
@@ -146,17 +157,27 @@ export const useGame = create<GameState>((set, get) => {
       if (!s.seenStory.includes(key)) commit({ seenStory: [...s.seenStory, key] })
     },
 
-    cookDish: sel => {
+    startCooking: sel => {
       const s = get().save
-      if (sel.length !== DISH_SIZE) return null
+      if (s.pot || sel.length !== DISH_SIZE) return false
       const need: Partial<Record<IngredientId, number>> = {}
       for (const id of sel) need[id] = (need[id] ?? 0) + 1
-      for (const [id, n] of Object.entries(need) as [IngredientId, number][]) if ((s.ingredients[id] ?? 0) < n) return null
+      for (const [id, n] of Object.entries(need) as [IngredientId, number][])
+        if ((s.ingredients[id] ?? 0) < n) return false
       const ingredients = { ...s.ingredients }
       for (const [id, n] of Object.entries(need) as [IngredientId, number][]) ingredients[id] -= n
-      const sp: Species = cook(sel)
-      const { mon, patch } = newMon({ ...s, ingredients }, sp.id, newcomerLevel(s))
-      commit({ ...patch, ingredients, counters: bump(s.counters, 'cooked') })
+      const visitor = cook(sel)
+      const total = cookingExpeditions(sel)
+      const recipe = recipeFor(sel).no
+      commit({ ingredients, pot: { species: visitor.id, remaining: total, total, recipe } })
+      return true
+    },
+
+    collectCooked: () => {
+      const s = get().save
+      if (!s.pot || s.pot.remaining > 0) return null
+      const { mon, patch } = newMon(s, s.pot.species, newcomerLevel(s))
+      commit({ ...patch, pot: null, counters: bump(s.counters, 'cooked') })
       return mon
     },
 
@@ -316,6 +337,7 @@ export const useGame = create<GameState>((set, get) => {
     finishBattle: (win, stage, kills = 0) => {
       const s = get().save
       if (!win) {
+        if (s.pot && s.pot.remaining > 0) commit({ pot: { ...s.pot, remaining: s.pot.remaining - 1 } })
         set({ result: { win: false, stage, rewards: null, firstClear: false, recruited: null, levelUps: [], stone: null, moveStone: null, outroArea: null }, screen: 'result' })
         return
       }
@@ -352,7 +374,8 @@ export const useGame = create<GameState>((set, get) => {
         owned = [...owned, recruited]
         if (!dex.includes(stage.recruit)) dex = [...dex, stage.recruit]
       }
-      commit({ coins: s.coins + rewards.coins, ingredients, owned, stones, moveStones, cleared, endlessBest, uid, dex, clearsSinceExport: s.clearsSinceExport + 1, counters: bump(bump(bump(s.counters, 'clears'), 'kills', kills), 'bosses', stage.boss ? 1 : 0) })
+      const pot = s.pot && s.pot.remaining > 0 ? { ...s.pot, remaining: s.pot.remaining - 1 } : s.pot
+      commit({ coins: s.coins + rewards.coins, ingredients, owned, stones, moveStones, cleared, endlessBest, uid, dex, pot, clearsSinceExport: s.clearsSinceExport + 1, counters: bump(bump(bump(s.counters, 'clears'), 'kills', kills), 'bosses', stage.boss ? 1 : 0) })
       set({
         result: { win: true, stage, rewards, firstClear, recruited, levelUps, stone, moveStone, outroArea: firstClear && stage.boss && stage.area >= 0 ? stage.area : null },
         screen: 'result',

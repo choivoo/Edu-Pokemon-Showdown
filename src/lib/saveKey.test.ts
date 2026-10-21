@@ -21,6 +21,15 @@ function sample(): SaveData {
 }
 
 describe('저장 키', () => {
+  it('탐험 대기 중인 요리도 암호화 저장 키에서 정확히 복원된다', async () => {
+    const original = sample()
+    original.pot = { species: 25, remaining: 2, total: 3, recipe: 4 }
+    expect(unpack(pack(original)).pot).toEqual(original.pot)
+    const keys = await exportSave(original)
+    const restored = await importSave(keys.saveKey, keys.password)
+    expect(restored.pot).toEqual(original.pot)
+  })
+
   it('암호 키는 32글자 알파벳 16자이며 매번 다르다', () => {
     const a = generatePassword(), b = generatePassword()
     expect(a).toMatch(/^[0-9A-HJKMNP-TV-Z]{16}$/)

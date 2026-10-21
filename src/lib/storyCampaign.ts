@@ -1,5 +1,6 @@
 import type { DialogLine } from './stages'
 import type { SaveData } from './storage'
+import { ORIGINAL_AREAS, ORIGINAL_FIRST, originalStageStory } from './originalCampaign'
 
 /** 모든 본편 장면은 해당 탐험 첫 클리어와 연동된다. 옛 저장 데이터도 그대로 지원한다. */
 export interface StoryScene {
@@ -415,7 +416,7 @@ function makeLines(raw: string[]): DialogLine[] {
   })
 }
 
-export const STORY_CHAPTERS: StoryChapter[] = RAW_CHAPTERS.map((chapter, area) => ({
+const FAN_STORY_CHAPTERS: StoryChapter[] = RAW_CHAPTERS.map((chapter, area) => ({
   title: chapter.title,
   subtitle: chapter.sub,
   color: chapter.color,
@@ -425,6 +426,31 @@ export const STORY_CHAPTERS: StoryChapter[] = RAW_CHAPTERS.map((chapter, area) =
     ...chapter.side.map((lines, i) => ({ id: 'story-a' + area + '-side' + i, area, stage: i === 0 ? 2 : 4, title: lines[0], kind: 'side' as const, lines: makeLines(lines.slice(1)) })),
   ],
 }))
+/** Original-adventure chapters precede the existing six original fan-story chapters. */
+export const ORIGINAL_STORY_CHAPTERS: StoryChapter[] = ORIGINAL_AREAS.map((area, i) => {
+  const number = i + 1
+  const campaignArea = ORIGINAL_FIRST + i
+  const chapters: StoryScene[] = Array.from({ length: area.stageCount ?? 5 }, (_, stage): StoryScene => ({
+    id: 'original-a' + campaignArea + '-s' + stage,
+    area: campaignArea,
+    stage,
+    kind: 'main',
+    title: (number === 11 ? '뮤츠와의 결전' : number + '-' + (stage + 1) + ' 탐험') + ' · ' + area.name,
+    lines: originalStageStory(campaignArea, stage),
+  }))
+  return {
+    title: number === 11 ? '최종장 · 전설의공간' : '원작 본편 ' + number + '장 · ' + area.name,
+    subtitle: '네모루루섬',
+    color: ['#72c364','#529868','#5fb0d2','#c99c69','#877caa','#caaa55','#7e9e6b','#caa77f','#7981b8','#4fa9c8','#a785c8'][i],
+    summary: number === 11
+      ? '모비의 이상 신호와 고대 석상의 비밀을 밝히고 뮤츠에게 도전한다.'
+      : '고대 석상을 찾으며 섬의 비밀에 다가가는 ' + area.name + ' 탐험.',
+    scenes: chapters,
+  }
+})
+
+export const STORY_CHAPTERS: StoryChapter[] = [...ORIGINAL_STORY_CHAPTERS, ...FAN_STORY_CHAPTERS]
+
 export const EPILOGUE_SCENES: StoryScene[] = RAW_EPILOGUE.map((lines, i) => ({
   id: 'story-epilogue-' + i,
   area: 5, stage: 4, title: lines[0], kind: 'epilogue', lines: makeLines(lines.slice(1)),
@@ -432,7 +458,7 @@ export const EPILOGUE_SCENES: StoryScene[] = RAW_EPILOGUE.map((lines, i) => ({
 export const ALL_STORY_SCENES: StoryScene[] = [...STORY_CHAPTERS.flatMap(ch => ch.scenes), ...EPILOGUE_SCENES]
 
 export const fieldScene = (area: number, stage: number): StoryScene | undefined =>
-  STORY_CHAPTERS[area]?.scenes.find(scene => scene.kind === 'main' && scene.stage === stage)
+  ALL_STORY_SCENES.find(scene => scene.kind === 'main' && scene.area === area && scene.stage === stage)
 
 export const storyUnlocked = (save: SaveData, scene: StoryScene): boolean =>
   !!save.cleared['a' + scene.area + '-s' + scene.stage]

@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
-import { allCleared, areaCleared, areaUnlocked, isCleared, useGame } from '../store/gameStore'
+import { allCleared, areaCleared, areaUnlocked, isCleared, legacyFanProgress, useGame } from '../store/gameStore'
 import TypeBadge from '../components/TypeBadge'
-import { AREA_BONUS, AREA_BONUS_MUL, AREAS, getEndlessStage, getStage, recommendedPower, STAGES_PER_AREA, type Stage } from '../lib/stages'
+import { AREA_BONUS, AREA_BONUS_MUL, AREAS, getEndlessStage, getStage, recommendedPower, stageCount, type Stage } from '../lib/stages'
 import { getIngredient } from '../lib/cooking'
 import { partyMons, partyPower } from '../lib/party'
 import { getSpecies } from '../lib/roster'
 import { useCanvas } from '../components/useCanvas'
 import { AREA_NODES, drawIsland, ENDLESS_NODE } from '../art/scenes'
+import { ORIGINAL_NODES, drawOriginalIsland } from '../art/originalIsland'
+import { FAN_AREA_COUNT, ORIGINAL_FIRST, ORIGINAL_LAST } from '../lib/originalCampaign'
 import { H, W } from '../engine/draw'
 import Dialog from '../components/Dialog'
 import { Btn, PARTY_COLORS, Panel, Portrait } from '../ui/kit'
@@ -20,12 +22,17 @@ export default function Island() {
   useEffect(() => { bgm.play('map') }, [])
   const [area, setArea] = useState<number | null>(null)
   const [story, setStory] = useState<number | null>(null)
+  const [mode, setMode] = useState<'original' | 'fan'>(() => legacyFanProgress(save) ? 'fan' : 'original')
   const unlocked = AREAS.map((_, i) => areaUnlocked(save, i))
   const endless = allCleared(save)
-  useCanvas(canvas, (ctx, t) => drawIsland(ctx, t, unlocked, endless), [unlocked.join(), endless])
+  const fanAvailable = endless || legacyFanProgress(save)
+  useCanvas(canvas, (ctx, t) => {
+    if (mode === 'original') drawOriginalIsland(ctx, t, unlocked.slice(ORIGINAL_FIRST, ORIGINAL_LAST + 1), AREAS.slice(ORIGINAL_FIRST, ORIGINAL_LAST + 1).map((_, i) => areaCleared(save, ORIGINAL_FIRST + i)))
+    else drawIsland(ctx, t, unlocked.slice(0, FAN_AREA_COUNT), endless)
+  }, [unlocked.join(), Object.keys(save.cleared).join(','), endless, mode])
 
   const mine = partyPower(save)
-  const nextStage = (a: number) => Array.from({ length: STAGES_PER_AREA }, (_, i) => i).find(i => !isCleared(save, a, i)) ?? STAGES_PER_AREA - 1
+  const nextStage = (a: number) => Array.from({ length: stageCount(a) }, (_, i) => i).find(i => !isCleared(save, a, i)) ?? stageCount(a) - 1
 
   const open = (a: number) => {
     sfx.select()
@@ -42,28 +49,34 @@ export default function Island() {
         <span className="hud-bar px-3 py-1.5"><BatteryMeter compact /></span>
       </div>
 
+      <div className="absolute left-3 top-[80px] flex gap-2">
+        <Btn color={mode === 'original' ? 'yellow' : 'gray'} onClick={() => { setArea(null); setStory(null); setMode('original') }} className="px-4 py-1 text-base">본편 · 네모루루섬</Btn>
+        <Btn color={mode === 'fan' ? 'yellow' : 'gray'} disabled={!fanAvailable} onClick={() => { setArea(null); setStory(null); setMode('fan') }} className="px-4 py-1 text-base">{fanAvailable ? '추가 스토리 · 별모래섬' : '추가 스토리 · 엔딩 후 개방'}</Btn>
+      </div>
+
       {AREAS.map((a, i) => {
-        const n = AREA_NODES[i]
+        if (mode === 'original' ? i < ORIGINAL_FIRST : i >= FAN_AREA_COUNT) return null
+        const n = mode === 'original' ? ORIGINAL_NODES[i - ORIGINAL_FIRST] : AREA_NODES[i]
         const ok = unlocked[i]
         const st = getStage(i, nextStage(i))
         const rec = recommendedPower(st)
-        const done = Array.from({ length: STAGES_PER_AREA }, (_, k) => isCleared(save, i, k)).filter(Boolean).length
+        const done = Array.from({ length: stageCount(i) }, (_, k) => isCleared(save, i, k)).filter(Boolean).length
         return (
           <button key={a.name} disabled={!ok} onClick={() => open(i)} className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left: n.x, top: n.y - 8 }}>
-            <span className={`pop-in flex flex-col items-center border-4 border-[#2b2838] px-4 py-1 shadow-[0_5px_0_#2b2838] ${ok ? (areaCleared(save, i) ? 'bg-[#58cf7c]' : 'bg-[#2f9f55]') : 'bg-gray-500'}`}>
-              <Icon n={ok ? a.icon : 'lock'} s={40} />
-              <span className="text-base font-bold" style={{ textShadow: '2px 2px 0 #0006' }}>{a.name}</span>
+            <span className={`pop-in flex flex-col items-center border-4 border-[#2b2838] ${mode === 'original' ? 'max-w-[148px] px-2 py-0.5' : 'px-4 py-1'} shadow-[0_5px_0_#2b2838] ${ok ? (areaCleared(save, i) ? 'bg-[#58cf7c]' : 'bg-[#2f9f55]') : 'bg-gray-500'}`}>
+              <Icon n={ok ? a.icon : 'lock'} s={mode === 'original' ? 26 : 40} />
+              <span className={`${mode === 'original' ? 'text-sm' : 'text-base'} font-bold whitespace-nowrap`} style={{ textShadow: '2px 2px 0 #0006' }}>{a.name}</span>
               {ok && <span className={`flex items-center gap-1 text-lg font-bold ${mine >= rec ? 'text-white' : 'text-red-200'}`} style={{ textShadow: '2px 2px 0 #0007' }}><Icon n="sword" s={20} />{rec}</span>}
-              {ok && <span className="text-xs text-yellow-100">{done}/{STAGES_PER_AREA}</span>}
+              {ok && <span className="text-xs text-yellow-100">{done}/{stageCount(i)}</span>}
             </span>
           </button>
         )
       })}
 
-      {allCleared(save) && (
+      {allCleared(save) && mode === 'fan' && (
         <button onClick={() => { sfx.select(); startStage(getEndlessStage(save.endlessBest + 1)) }} className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left: ENDLESS_NODE.x, top: ENDLESS_NODE.y - 8 }}>
           <span className="flex flex-col items-center border-4 border-[#2b2838] bg-[#7a4fe0] px-4 py-1 shadow-[0_5px_0_#2b2838]">
-            <Icon n="star" s={36} /><span className="text-base font-bold">끝없는 별길</span>
+            <Icon n="star" s={36} /><span className="text-base font-bold">기이한 섬</span>
             <span className="text-sm text-yellow-200">{save.endlessBest + 1}층 도전</span>
           </span>
         </button>
@@ -80,7 +93,7 @@ export default function Island() {
         <Btn color="red" onClick={() => go('camp')} className="flex h-[70px] w-[130px] items-center justify-center gap-2 text-xl"><Icon n="back" s={24} />캠프</Btn>
       </div>
 
-      {area !== null && !story && <StagePanel area={area} onClose={() => setArea(null)} onGo={s => { startStage(s) }} />}
+      {area !== null && story === null && <StagePanel key={area} area={area} onClose={() => setArea(null)} onGo={s => { startStage(s) }} />}
       {story !== null && <Dialog lines={AREAS[story].intro} name={save.name} onDone={() => { markStory(`intro-${story}`); setStory(null) }} />}
     </div>
   )
@@ -90,7 +103,7 @@ function StagePanel({ area, onClose, onGo }: { area: number; onClose: () => void
   const { save } = useGame()
   const a = AREAS[area]
   const mine = partyPower(save)
-  const firstOpen = Array.from({ length: STAGES_PER_AREA }, (_, i) => i).find(i => !isCleared(save, area, i)) ?? STAGES_PER_AREA - 1
+  const firstOpen = Array.from({ length: stageCount(area) }, (_, i) => i).find(i => !isCleared(save, area, i)) ?? stageCount(area) - 1
   const [sel, setSel] = useState(firstOpen)
   const st = getStage(area, sel)
   const rec = recommendedPower(st)
@@ -101,7 +114,7 @@ function StagePanel({ area, onClose, onGo }: { area: number; onClose: () => void
     <Panel title={a.name} onClose={onClose} w={820}>
       <div className="flex gap-4">
         <div className="flex w-[380px] flex-col gap-2">
-          {Array.from({ length: STAGES_PER_AREA }, (_, i) => {
+          {Array.from({ length: stageCount(area) }, (_, i) => {
             const s = getStage(area, i)
             const ok = i === 0 || isCleared(save, area, i - 1)
             return (

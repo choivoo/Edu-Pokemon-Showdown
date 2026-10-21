@@ -1,5 +1,6 @@
 // 캠프·섬 지도·항해·타이틀 장면. 전부 점으로 찍은 그림이며 이모지/이미지는 쓰지 않는다.
 import { AREAS, type Theme } from '../lib/stages'
+import { FAN_AREA_COUNT } from '../lib/originalCampaign'
 import { drawBattleWorld, DOT, ENV_H, ENV_W, envPix, flush, PAL, pathTile, rockObj, TILE, treeObj, waterTile } from './world'
 import { eachDot, textWidth } from './font'
 import { hash, INK, make, shade } from './px'
@@ -148,7 +149,7 @@ export function drawIsland(ctx: CanvasRenderingContext2D, t: number, unlocked: b
     const n = Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / 9)
     for (let k = 0; k <= n; k++) obj(pathTile('beach', k % 3), a.x + ((b.x - a.x) * k) / n - 8, a.y + ((b.y - a.y) * k) / n - 8)
   }
-  AREAS.forEach((a, i) => {
+  AREAS.slice(0, FAN_AREA_COUNT).forEach((a, i) => {
     const n = AREA_NODES[i]
     const x = n.x / DOT - 40, y = n.y / DOT - 20
     obj(plate(a.theme, 80, 34, unlocked[i] ? 'open' : 'locked'), x, y)

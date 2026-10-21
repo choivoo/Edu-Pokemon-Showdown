@@ -20,7 +20,7 @@ export default function StoryPanel() {
 
   return (
     <>
-      <Panel title="모험일지 · 별모래섬의 기록" w={920} h={500} onClose={() => openPanel(null)}>
+      <Panel title="모험일지 · 네모루루섬 / 별모래섬" w={920} h={500} onClose={() => openPanel(null)}>
         <div className="mb-2 flex items-center justify-between gap-2 border-b-2 border-[#b99138] pb-2 text-sm">
           <span className="font-bold text-[#7b4c16]">기록된 이야기 {progress.unlocked}/{progress.total}장면</span>
           <span className="text-[#80632e]">탐험을 처음 클리어하면 새로운 이야기가 열립니다.</span>
@@ -84,7 +84,7 @@ export default function StoryPanel() {
             </div>
           </div>
         </div>
-        <p className="mt-2 text-right text-xs text-[#9c7c47]">본편 30장면 · 외전 12장면 · 후일담 4장면 · 총 {ALL_STORY_SCENES.length}장면</p>
+        <p className="mt-2 text-right text-xs text-[#9c7c47]">원작 본편 재구성 54장면 · 추가 스토리 46장면 · 총 {ALL_STORY_SCENES.length}장면</p>
       </Panel>
       {reading && <Dialog key={reading.id} lines={reading.lines} name={save.name} onDone={() => setReading(null)} />}
     </>

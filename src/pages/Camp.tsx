@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
-import { shardCount, useGame } from '../store/gameStore'
-import { AREAS } from '../lib/stages'
+import { originalStatueCount, shardCount, allCleared, useGame } from '../store/gameStore'
+import { ORIGINAL_STATUE_COUNT } from '../lib/originalCampaign'
 import { getSpecies } from '../lib/roster'
 import { partyMons } from '../lib/party'
 import { useCanvas } from '../components/useCanvas'
@@ -40,7 +40,7 @@ export default function Camp() {
       <div className="hud-bar absolute left-3 top-3 flex items-center gap-4 px-4 py-2 text-lg">
         <span className="font-bold">{save.name}</span>
         <Coins n={save.coins} className="text-yellow-300" />
-        <span className="inline-flex items-center gap-1 text-purple-200"><Icon n="gem" s={22} />{shardCount(save)}/{AREAS.length}</span>
+        <span className="inline-flex items-center gap-1 text-purple-200"><Icon n="gem" s={22} />석상 {originalStatueCount(save)}/{ORIGINAL_STATUE_COUNT} {allCleared(save) && <span className="text-yellow-200">· 프리즘 {shardCount(save)}/6</span>}</span>
         <BatteryMeter compact />
       </div>
       <div className="absolute right-3 top-3 flex gap-2">

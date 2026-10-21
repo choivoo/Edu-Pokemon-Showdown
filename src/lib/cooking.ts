@@ -44,6 +44,8 @@ export const TEXTURE_LABEL: Record<Texture, string> = { soft: '부드러움', ha
 export const KIND_LABEL: Record<Kind | 'mystic', string> = { mushroom: '버섯', sweet: '달콤함', plant: '식물', mineral: '광물', mystic: '신비로움' }
 
 export const DISH_SIZE = 5
+/** Original-style exploration countdown for each pot grade. */
+export const cookingExpeditions = (sel: IngredientId[]): number => ({ basic: 2, good: 3, great: 4, special: 5 })[gradeOf(sel)]
 
 /** 냄비에 든 재료의 성질별 개수. 무지개 재료는 모든 색·식감·종류에 +1, 조개껍질은 신비로움에 +1 */
 export interface Tally { color: Record<Color, number>; texture: Record<Texture, number>; kind: Record<Kind | 'mystic', number> }

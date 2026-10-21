@@ -5,6 +5,7 @@ import { computeStats, expToNext, powerRating } from './stats'
 import { SHAPE_WEIGHTS, type Stone, STONE_KINDS, type StoneKind } from './stones'
 import { MOVE_STONE_KINDS, type MoveStoneKind } from './moveStones'
 import type { Species } from '../types'
+import { FAN_AREA_COUNT, ORIGINAL_AREAS, ORIGINAL_BOSS_AREA, ORIGINAL_FIRST } from './originalCampaign'
 
 export type Theme = 'beach' | 'forest' | 'cave' | 'gorge' | 'volcano' | 'altar'
 export interface DialogLine { speaker: string | null; text: string }
@@ -24,12 +25,16 @@ export interface Area {
   stars: [number, number, number]
   intro: DialogLine[]
   outro: DialogLine[]
+  /** Some original worlds have 4 or 6 expeditions; the legendary chamber has 1. */
+  stageCount?: number
+  bonusTypes?: PokemonType[]
+  campaign?: 'original' | 'fan'
 }
 
 const MIRA = '미라 박사'
 const N = null
 
-export const AREAS: Area[] = [
+const FAN_AREAS: Area[] = [
   {
     name: '푸른물결 해변', icon: 'areaBeach', theme: 'beach', levelBase: 4, pool: [19, 54, 129, 60, 74, 16], boss: 130,
     bossName: '성난 갸라도스', shard: '파도의 조각', drops: ['berryBlue', 'rockBlue', 'fossil', 'mushroomRed'], stars: [90, 10, 0],
@@ -114,17 +119,24 @@ export const AREAS: Area[] = [
   },
 ]
 
+export const AREAS: Area[] = [
+  ...FAN_AREAS.map((area, i): Area => ({ ...area, levelBase: 62 + i * 7, campaign: 'fan' })),
+  ...ORIGINAL_AREAS,
+]
+
 export const PROLOGUE: DialogLine[] = [
-  { speaker: N, text: '하늘에서 별이 떨어진 날, 그 조각들이 모여 섬이 되었다고 한다. 그 이름은 별모래섬.' },
-  { speaker: N, text: '섬 한가운데 별빛 제단에는 "오로라 프리즘"이 있어, 섬의 포켓몬들은 오랫동안 평화롭게 살아왔다.' },
-  { speaker: MIRA, text: '{name}! 드디어 도착했구나. 여기가 별모래섬이야!' },
-  { speaker: MIRA, text: '그런데 큰일이야. 지난 폭풍에 오로라 프리즘이 여섯 조각으로 깨져 버렸어. 빛을 잃은 포켓몬들이 흥분해서 난폭해졌지.' },
-  { speaker: MIRA, text: '조각은 각 지역의 우두머리가 품고 있어. 모두 모아 제단에 놓으면 섬이 다시 평화로워질 거야.' },
-  { speaker: MIRA, text: '탐험은 혼자 할 수 없어. 베이스캠프 냄비에서 요리를 하면, 냄새를 맡은 친구들이 찾아올 거야!' },
-  { speaker: MIRA, text: "자, 먼저 첫 번째 동료를 골라 봐. 구구와 꼬렛도 함께 데려가렴. 잘 부탁한다!" },
+  { speaker: N, text: '새로 발견된 네모루루섬. 탐험가는 이 섬에 감춰진 보물을 찾기 위해 배를 타고 출발했다.' },
+  { speaker: N, text: '섬에는 오래전에 누군가 남긴 석상과 신기한 포켓몬들이 기다리고 있다.' },
+  { speaker: '모비', text: '안녕하세요! 탐험 지원 드론 모비입니다. 현재 이 섬의 지도 데이터가 없습니다.' },
+  { speaker: '모비', text: '처음 만난 포켓몬과 친구가 되어 섬의 지형을 조사해 보세요.' },
+  { speaker: '모비', text: '첫 동료를 고른 다음에는 출발의초원으로! 재료를 모아 요리하면 더 많은 친구를 만날 수 있어요.' },
+  { speaker: N, text: '열 개의 고대 석상을 모으면 섬에 숨겨진 전설의공간으로 가는 길이 열린다고 한다.' },
+  { speaker: N, text: '네모루루섬을 탐험한 다음, 원작 엔딩 너머의 새로운 이야기도 기다리고 있다.' },
 ]
 
 export const STAGES_PER_AREA = 5
+export const stageCount = (area: number): number => AREAS[area]?.stageCount ?? STAGES_PER_AREA
+export const originalAreaCount = () => AREAS.length - FAN_AREA_COUNT
 
 export interface Stage {
   id: string
@@ -147,34 +159,34 @@ export const stageId = (area: number, index: number) => `a${area}-s${index}`
 
 export function getStage(area: number, index: number): Stage {
   const a = AREAS[area]
-  const boss = index === STAGES_PER_AREA - 1
+  const boss = index === stageCount(area) - 1
   const level = a.levelBase + index + (boss ? 1 : 0)
   return {
     id: stageId(area, index), area, index,
     name: boss ? a.bossName : `${a.name} ${index + 1}`,
     level,
-    wavePlan: wavePlanFor(area, index, boss),
+    wavePlan: area === ORIGINAL_BOSS_AREA ? [1] : wavePlanFor(area, index, boss),
     boss,
     coins: Math.round((24 + area * 12 + index * 8) * (boss ? 2 : 1)),
     exp: Math.round(expToNext(level) * (boss ? 2 : 1.1)),
-    recruit: boss ? a.boss : null,
+    recruit: boss && a.campaign !== 'original' ? a.boss : null,
   }
 }
 
 /** 첫 지역 초반은 적 수를 줄여 부담 없이 시작 */
 function wavePlanFor(area: number, index: number, boss: boolean): number[] {
   if (boss) return [2, 3, 2]
-  if (area === 0 && index === 0) return [1, 2, 2]
-  if (area === 0 && index === 1) return [2, 2, 2]
+  if ((area === 0 || area === ORIGINAL_FIRST) && index === 0) return [1, 2, 2]
+  if ((area === 0 || area === ORIGINAL_FIRST) && index === 1) return [2, 2, 2]
   return index === 3 ? [2, 3, 3, 3] : [2, 2, 3]
 }
 
-export const allStages = (): Stage[] => AREAS.flatMap((_, a) => Array.from({ length: STAGES_PER_AREA }, (_, i) => getStage(a, i)))
+export const allStages = (): Stage[] => AREAS.flatMap((_, a) => Array.from({ length: stageCount(a) }, (_, i) => getStage(a, i)))
 
 export function getEndlessStage(floor: number): Stage {
   const boss = floor % 5 === 0
   return {
-    id: `endless-${floor}`, area: -1, index: floor, name: `끝없는 별길 ${floor}층`,
+    id: `endless-${floor}`, area: -1, index: floor, name: `기이한 섬 ${floor}층`,
     level: 12 + floor * 2, wavePlan: boss ? [2, 3, 2] : [2, 3, 3], boss,
     coins: 50 + floor * 10, exp: Math.round(expToNext(12 + floor * 2) * (boss ? 2 : 1.1)), recruit: floor === 10 ? 150 : null, endlessFloor: floor,
   }
@@ -199,7 +211,7 @@ export function buildWaves(stage: Stage, rng: Rng = Math.random): WaveEnemy[][] 
   const area = stage.area >= 0 ? AREAS[stage.area] : null
   const pool = area ? area.pool : SPECIES.filter(s => s.rarity <= 3).map(s => s.id)
   // 첫 두 판은 이벤트 없이 익숙해지도록 한다
-  const eventsOn = !(stage.area === 0 && stage.index < 2)
+  const eventsOn = !((stage.area === 0 || stage.area === ORIGINAL_FIRST) && stage.index < 2)
   const mk = (level: number, extra: Partial<WaveEnemy> = {}): WaveEnemy => ({ species: pick(pool, rng), level, ...extra })
   return stage.wavePlan.map((count, wi) => {
     const last = wi === stage.wavePlan.length - 1
@@ -266,6 +278,7 @@ export const recommendedPower = (stage: Stage) => 3 * powerRating(computeStats(A
 /** 지역별 보너스 타입: 해당 타입 포켓몬은 그 지역에서 체력과 공격력이 늘어난다 */
 export const AREA_BONUS: PokemonType[][] = [
   ['water', 'flying'], ['grass', 'bug'], ['rock', 'ghost'], ['electric', 'fighting'], ['fire', 'ground'], ['psychic', 'dragon'],
+  ...ORIGINAL_AREAS.map(area => area.bonusTypes ?? []),
 ]
 export const AREA_BONUS_MUL = 1.3
 export const hasAreaBonus = (area: number, types: PokemonType[]) => area >= 0 && types.some(t => AREA_BONUS[area]?.includes(t))
