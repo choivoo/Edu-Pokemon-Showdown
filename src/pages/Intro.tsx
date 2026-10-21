@@ -11,7 +11,7 @@ import { useCanvas } from '../components/useCanvas'
 import { drawVoyage } from '../art/scenes'
 import { H, W } from '../engine/draw'
 
-const STARTERS = [1, 4, 7, 25]
+const STARTERS = [1, 4, 7, 25, 133]
 
 export default function Intro() {
   const { newGame, go } = useGame()
@@ -56,7 +56,7 @@ export default function Intro() {
               <img src={frontSprite(pick)} alt="" className="sprite idle h-40 w-40" />
               <p className="text-2xl">{sp.name}</p>
               <div className="flex gap-2">{sp.types.map(t => <TypeBadge key={t} type={t} />)}</div>
-              <p className="text-sm">구구, 꼬렛과 함께 3마리 파티로 출발해요!</p>
+              <p className="text-sm">첫 동료 한 마리로 시작해요. 요리로 동료를 모으세요!</p>
               <Btn color="red" onClick={() => { bgm.play('camp'); newGame(name.trim(), pick) }} className="mt-1 w-full text-xl">{sp.name}와(과) 모험 시작!</Btn>
             </div>
           </div>
