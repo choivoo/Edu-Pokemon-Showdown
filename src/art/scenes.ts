@@ -1,3 +1,4 @@
+import { drawCampDecorations } from './campDecor'
 // 캠프·섬 지도·항해·타이틀 장면. 전부 점으로 찍은 그림이며 이모지/이미지는 쓰지 않는다.
 import { AREAS, type Theme } from '../lib/stages'
 import { FAN_AREA_COUNT } from '../lib/originalCampaign'
@@ -79,9 +80,10 @@ export function drawCampWorld(t: number, cooking: boolean) {
 }
 
 /** 캠프: 도트 바닥 + 돌아다니는 동료(PokeAPI 스프라이트) */
-export function drawCamp(ctx: CanvasRenderingContext2D, t: number, mons: number[], cooking: boolean) {
+export function drawCamp(ctx: CanvasRenderingContext2D, t: number, mons: number[], cooking: boolean, decorations: readonly string[] = []) {
   drawCampWorld(t, cooking)
   flush(ctx)
+  drawCampDecorations(ctx,decorations,t)
   const list = mons.slice(0, 8)
   list.forEach((id, i) => {
     const ph = hash(id, i) * 6.28, sp = 0.18 + hash(i, 3) * 0.15
