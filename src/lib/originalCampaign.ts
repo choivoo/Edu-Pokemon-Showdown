@@ -10,6 +10,7 @@ export const FAN_AREA_COUNT = 6
 export const ORIGINAL_FIRST = FAN_AREA_COUNT
 export const ORIGINAL_BOSS_AREA = ORIGINAL_FIRST + 10
 export const ORIGINAL_LAST = ORIGINAL_BOSS_AREA
+export const HAPPENSTANCE_AREA = ORIGINAL_LAST + 1
 export const ORIGINAL_STATUE_COUNT = 10
 
 type Region = {
@@ -30,7 +31,7 @@ const REGIONS: Region[] = [
   { name: '고요한대지', theme: 'gorge', count: 6, level: 35, pool: [27, 29, 32, 35, 39, 50, 74, 113], boss: 31, bossName: '니드퀸', bonus: ['ground'], statue: '불꽃갈기의석상', drops: ['rockBlue','berryBlue','fossil','nutYellow'], icon: 'areaGorge' },
   { name: '빛나는동굴', theme: 'cave', count: 6, level: 38, pool: [41, 42, 92, 93, 94, 63, 64, 65, 100], boss: 94, bossName: '팬텀', bonus: ['psychic'], statue: '장수의석상', drops: ['mushroomGray','fossil','berryBlue','rootRed'], icon: 'areaCave' },
   { name: '머나먼해안', theme: 'beach', count: 6, level: 41, pool: [54, 55, 72, 73, 79, 80, 86, 87, 117, 119], boss: 131, bossName: '라프라스', bonus: ['electric'], statue: '경외의석상', drops: ['berryBlue','rockBlue','honey','fossil'], icon: 'areaBeach' },
-  { name: '전설의공간', theme: 'altar', count: 1, level: 52, pool: [150], boss: 150, bossName: '뮤츠', bonus: [], statue: '', drops: ['rainbow','shell','fossil','mushroomGray'], icon: 'areaAltar' },
+  { name: '전설의공간', theme: 'altar', count: 1, level: 52, pool: [150], boss: 150, bossName: '뮤츠', bonus: [], statue: '', drops: ['rainbow','mushroomRed','fossil','mushroomGray'], icon: 'areaAltar' },
 ]
 
 /** 기존 엔딩의 다음 장으로 연결하는 신규 팬게임 전개. */
@@ -69,6 +70,14 @@ export const ORIGINAL_AREAS: Area[] = REGIONS.map((r, i) => {
 })
 
 export const ORIGINAL_STAGE_COUNTS = REGIONS.map(r => r.count)
+
+/** Original postgame: 12-1 through 12-8 plus 12-BOSS. */
+export const HAPPENSTANCE = {
+  name: '기이한 섬',
+  stageCount: 9,
+  recommended: [18000, 20000, 25000, 30000, 32000, 33000, 34000, 35000, 36500] as const,
+  timeLimit: 300,
+} as const
 
 /**
  * 원작과 동일한 해금 순서. 각 묶음의 모든 보스를 클리어하면
