@@ -3,6 +3,7 @@ import { SPECIES } from './roster'
 import { EVOLUTION_ONLY } from './evolution'
 import { questStats } from '../data/questSpecies'
 import { verifiedRecipeOdds } from '../data/verifiedRecipeOdds'
+import { QUEST_DISH_NAMES, ATTRACTABLE_SOURCE_SPECIES, attractionWeight } from '../data/questAttractionWeights'
 
 // 재료는 원작처럼 "색 / 식감 / 종류" 세 가지 성질을 가진다. 어떤 성질이 얼마나 들어갔는지로 레시피가 정해진다.
 export type IngredientId =
@@ -156,6 +157,15 @@ export function attractionOdds(sel: IngredientId[]): AttractionOdds[] {
   const recipe=recipeFor(sel)
   const verified=verifiedRecipeOdds(recipe.no,gradeOf(sel))
   if(verified) return verified.map(e=>({species:SPECIES.find(s=>s.id===e.id)!,weight:e.probability,probability:e.probability}))
+  // Community-vetted species-by-dish weight tables fill missing published
+  // recipe/grade pairs, rather than inventing species probabilities by type.
+  const dish=QUEST_DISH_NAMES[recipe.no===1?0:recipe.no===18?17:recipe.no-1]
+  if(dish){
+    const rows=ATTRACTABLE_SOURCE_SPECIES.map(id=>({species:SPECIES.find(s=>s.id===id),weight:attractionWeight(id,dish,gradeOf(sel))}))
+      .filter((r):r is {species:Species;weight:number}=>!!r.species&&r.weight>0)
+    const sum=rows.reduce((n,r)=>n+r.weight,0)
+    if(sum>0)return rows.map(r=>({...r,probability:r.weight/sum}))
+  }
   const pool=attractPool(recipe)
   if (!pool.length) return []
   if (recipe.no===18) {
