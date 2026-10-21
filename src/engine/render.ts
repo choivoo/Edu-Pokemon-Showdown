@@ -207,6 +207,22 @@ export function drawBattle(ctx: CanvasRenderingContext2D, b: Battle, v: Visual, 
   if (v.shake > 0) ctx.translate(Math.round((Math.random() - 0.5) * v.shake), Math.round((Math.random() - 0.5) * v.shake))
   ctx.translate(Math.round(W/2-v.cameraX),Math.round(H/2-v.cameraY))
   drawOpenField(ctx,theme,v.cameraX,v.cameraY,now)
+  if(b.manualPoint){
+    const {x,y}=b.manualPoint, pulse=(Math.sin(now*6)+1)/2
+    ctx.save()
+    ctx.translate(Math.round(x),Math.round(y))
+    ctx.lineWidth=3
+    ctx.strokeStyle='#ffffff'
+    ctx.globalAlpha=.65+.3*pulse
+    ctx.beginPath()
+    ctx.ellipse(0,0,20+pulse*8,9+pulse*3,0,0,Math.PI*2)
+    ctx.stroke()
+    ctx.fillStyle='#ffdf66'
+    ctx.beginPath()
+    ctx.moveTo(0,-20);ctx.lineTo(10,-12);ctx.lineTo(0,-4);ctx.lineTo(-10,-12);ctx.closePath()
+    ctx.fill()
+    ctx.restore()
+  }
   for (const u of [...b.units].sort((a, c) => a.y - c.y)) drawUnit(ctx, b, u, now)
   if(v.bossBurst){
     const age=now-v.bossBurst.t0

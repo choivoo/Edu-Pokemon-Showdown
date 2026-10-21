@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useGame } from '../store/gameStore'
-import { type AllyInput, type Battle as BattleState, createBattle, scatter, step, useSpecial, waveCenter } from '../engine/battle'
+import { type AllyInput, type Battle as BattleState, createBattle, movePartyTo, scatter, step, useSpecial, waveCenter } from '../engine/battle'
 import { consumeEvents, drawBattle, H, newVisual, preload, SLOT_COLORS, W } from '../engine/render'
 import { AREAS, AREA_BONUS_MUL, buildWaves, hasAreaBonus, type Theme } from '../lib/stages'
 import { HAPPENSTANCE_AREA } from '../lib/originalCampaign'
@@ -52,6 +52,27 @@ export default function Battle() {
   const [uiPaused, setUiPaused] = useState(false)
   const [auto, setAuto] = useState(false)
   const [quit, setQuit] = useState(false)
+  useEffect(() => {
+    const keymove=(e:KeyboardEvent)=>{
+      if(e.target instanceof HTMLInputElement||e.target instanceof HTMLTextAreaElement)return
+      const d:Record<string,[number,number]>={
+        ArrowLeft:[-1,0],a:[-1,0],A:[-1,0],
+        ArrowRight:[1,0],d:[1,0],D:[1,0],
+        ArrowUp:[0,-1],w:[0,-1],W:[0,-1],
+        ArrowDown:[0,1],s:[0,1],S:[0,1],
+      }
+      const v=d[e.key],b=battle.current
+      if(!v||!b||paused.current)return
+      e.preventDefault()
+      const allies=b.units.filter(x=>x.side==='ally'&&x.alive)
+      if(!allies.length)return
+      const x=allies.reduce((n,x)=>n+x.x,0)/allies.length
+      const y=allies.reduce((n,x)=>n+x.y,0)/allies.length
+      movePartyTo(b,(b.manualPoint?.x??x)+v[0]*165,(b.manualPoint?.y??y)+v[1]*165)
+    }
+    window.addEventListener('keydown',keymove)
+    return()=>window.removeEventListener('keydown',keymove)
+  },[])
 
   useEffect(() => {
     if (!stage) return
@@ -107,7 +128,7 @@ export default function Battle() {
       if (hudT > 0.1) { hudT = 0; setHud(snapshot(b)) }
       if ((b.phase === 'won' || b.phase === 'lost') && !finished.current) {
         endT += real
-        if (endT > 1.3) { finished.current = true; setHud(snapshot(b)); finishBattle(b.phase === 'won', stage, b.kills) }
+        if (endT > (stage.area===6 && [0,1,3].includes(stage.index) ? 2.45 : 1.3)) { finished.current = true; setHud(snapshot(b)); finishBattle(b.phase === 'won', stage, b.kills) }
       }
       raf = requestAnimationFrame(loop)
     }
@@ -121,7 +142,14 @@ export default function Battle() {
 
   return (
     <div className="absolute inset-0 bg-black">
-      <canvas ref={canvas} width={W} height={H} className="absolute inset-0 h-full w-full" />
+      <canvas ref={canvas} width={W} height={H} className="absolute inset-0 h-full w-full cursor-crosshair"
+        onPointerDown={e=>{
+          if(paused.current||!battle.current)return
+          const box=e.currentTarget.getBoundingClientRect()
+          const sx=(e.clientX-box.left)/box.width*W
+          const sy=(e.clientY-box.top)/box.height*H
+          movePartyTo(battle.current,visual.current.cameraX+sx-W/2,visual.current.cameraY+sy-H/2)
+        }} />
 
       {/* 좌상단: 일시정지 + 카운터 */}
       <div className="absolute left-3 top-3 flex items-center gap-2">
@@ -139,8 +167,11 @@ export default function Battle() {
 
       {/* 2.5D 광역 필드의 현 위치 및 다음 교전 지점 */}
       {hud && <div className="absolute right-3 top-12 z-10 w-[152px] border-[3px] border-[#604e32] bg-[#d4edb6]/95 p-1 shadow-[3px_4px_0_#392a1b]">
-        <div className="mb-0.5 text-center text-[10px] font-black text-[#486146]">섬 탐험 · 자유 이동</div>
-        <div className="relative h-[66px] overflow-hidden border-2 border-[#85b27c] bg-[repeating-linear-gradient(40deg,#afdc9e_0px,#afdc9e_12px,#a2d493_12px,#a2d493_24px)]">
+        <div className="mb-0.5 text-center text-[10px] font-black text-[#486146]">섬 탐험 · 터치 / WASD 이동</div>
+        <div className="relative h-[66px] overflow-hidden border-2 border-[#85b27c] bg-[repeating-linear-gradient(40deg,#afdc9e_0px,#afdc9e_12px,#a2d493_12px,#a2d493_24px)] cursor-crosshair" title="미니맵 터치로 목적지 지정" onPointerDown={e=>{
+            const box=e.currentTarget.getBoundingClientRect()
+            if(battle.current)movePartyTo(battle.current,(e.clientX-box.left)/box.width*3220,(e.clientY-box.top)/box.height*1460)
+          }}>
           <span className="absolute h-2.5 w-2.5 rounded-sm border border-white bg-red-500 shadow" style={{left:`${hud.targetX/3220*100}%`,top:`${hud.targetY/1460*100}%`}} title="이번 웨이브 전투 지역" />
           <span className="absolute h-2.5 w-2.5 rounded-full border-2 border-white bg-blue-600 shadow" style={{left:`${hud.partyX/3220*100}%`,top:`${hud.partyY/1460*100}%`}} title="우리 포켓몬 위치" />
           <span className="absolute bottom-0 right-1 text-[9px] text-[#426744]">● 팀  ■ 적</span>
