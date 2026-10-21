@@ -133,15 +133,17 @@ describe('파워스톤 격자', () => {
 })
 
 describe('스테이지 / 보상', () => {
-  it('지역은 6개, 지역당 5스테이지(마지막이 보스)', () => {
-    expect(AREAS).toHaveLength(6)
-    for (let a = 0; a < AREAS.length; a++) {
-      for (let i = 0; i < STAGES_PER_AREA; i++) expect(getStage(a, i).boss).toBe(i === STAGES_PER_AREA - 1)
-      expect(getStage(a, 4).recruit).toBe(AREAS[a].boss)
-    }
+  it('원작 11지역 54스테이지 + 확장 6지역 30스테이지를 보존한다', () => {
+    expect(AREAS).toHaveLength(17)
+    expect(AREAS.slice(0, 6).every(a => !a.stageCount)).toBe(true)
+    expect(AREAS.slice(6).map(a => a.stageCount)).toEqual([4,5,5,5,5,5,6,6,6,6,1])
+    for(let i=0;i<6;i++) expect(getStage(i,4).recruit).toBe(AREAS[i].boss)
+    expect(getStage(6,3).boss).toBe(true)
+    expect(getStage(16,0).boss).toBe(true)
+    expect(getStage(16,0).recruit).toBeNull()
   })
   it('지역이 갈수록 적 레벨이 오른다', () => {
-    for (let a = 1; a < AREAS.length; a++) {
+    for (let a = 1; a < 6; a++) {
       expect(getStage(a, 0).level).toBeGreaterThan(getStage(a - 1, 0).level)
       expect(getStage(a, 4).level).toBeGreaterThan(getStage(a - 1, 4).level)
     }
