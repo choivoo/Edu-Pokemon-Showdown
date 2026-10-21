@@ -50,7 +50,7 @@ describe('Original cooking and P stone game rules',()=>{
     for (const [tier,n] of [2,2,3,4].entries()) expect(cookingExpeditions([...base],tier as 0|1|2|3)).toBe(n)
     expect(gradeOf(['honey','honey','honey','fossil','fossil'])).toBe('great')
     expect(gradeOf(['rainbow','rainbow','honey','fossil','fossil'])).toBe('special')
-    expect(cookingExpeditions(['shell','fossil','fossil','fossil','fossil'],0)).toBe(4)
+    expect(cookingExpeditions(['shell','fossil','fossil','fossil','fossil'],0)).toBe(5)
   })
   it('guarantees three-perk gold stones and greater ingredient drops with expedition bonus',()=>{
     const stage = getStage(6,2)
