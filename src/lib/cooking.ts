@@ -1,7 +1,7 @@
 import type { PokemonType, Rng, Species } from '../types'
 import { SPECIES } from './roster'
 import { EVOLUTION_ONLY } from './evolution'
-import { questStats } from '../data/questSpecies'
+import { originalCookingWeight, type QuestCookingGrade } from '../data/originalCookingWeights'
 
 // 재료는 원작처럼 "색 / 식감 / 종류" 세 가지 성질을 가진다. 어떤 성질이 얼마나 들어갔는지로 레시피가 정해진다.
 export type IngredientId =
@@ -144,42 +144,29 @@ export function attractPool(recipe: Recipe): Species[] {
   return SPECIES.filter(s => s.rarity <= 3 && !EVOLUTION_ONLY.has(s.id) && !LEGENDARY_SPECIES.includes(s.id as typeof LEGENDARY_SPECIES[number]) && s.types.some(t => recipe.types.includes(t)))
 }
 
-/**
- * Species-level recipe odds table. Normal stages use the observed relative
- * rarity bucket and per-species normalized numerical affinities. Until the
- * entire retail datamine is independently verified, these are explicitly
- * ESTIMATES, never advertised as official original spawn percentages.
+/** Source-derived relative cooking weights for every available species in 18 dishes × 4 grades.
+ * Never use arbitrary type buckets or attack-stat heuristics for recruitment.
  */
 export interface AttractionOdds { species: Species; probability: number; weight: number }
 export function attractionOdds(sel: IngredientId[]): AttractionOdds[] {
-  const recipe=recipeFor(sel)
-  const pool=attractPool(recipe)
-  if (!pool.length) return []
-  if (recipe.no===18) {
-    const shells=sel.filter(x=>x==='shell').length
-    const weights=pool.map(p=>p.id===150||p.id===151 ? (shells>1 ? 2 : 1) : 3)
-    const total=weights.reduce((a,b)=>a+b,0)
-    return pool.map((species,i)=>({species,weight:weights[i],probability:weights[i]/total}))
+  const dish = recipeFor(sel).no
+  const qualities: Record<Grade,QuestCookingGrade> = { basic:0, good:1, great:2, special:3 }
+  const quality = qualities[gradeOf(sel)]
+  const eligible = SPECIES.map(species=>({species,weight:originalCookingWeight(species.id,dish,quality)}))
+    .filter(o=>o.weight>0)
+  const total = eligible.reduce((sum,o)=>sum+o.weight,0)
+  if(total<=0) {
+    // No verified spawn at a recipe/quality that retail cannot produce.
+    // Preserve playability in a manually loaded old save without forging 'exact' probabilities.
+    const legacy=attractPool(recipeFor(sel))
+    const odds=legacy.length?legacy:SPECIES.filter(x=>x.id<=151&&!EVOLUTION_ONLY.has(x.id))
+    return odds.map(species=>({species,weight:1,probability:1/odds.length}))
   }
-  const rarity=RARITY_WEIGHTS[gradeOf(sel)]
-  const groups=([1,2,3] as const).filter(x=>pool.some(p=>p.rarity===x)&&rarity[x-1]>0)
-  const rarityTotal=groups.reduce((n,k)=>n+rarity[k-1],0)
-  const odds:AttractionOdds[]=[]
-  for (const r of groups) {
-    const candidates=pool.filter(s=>s.rarity===r)
-    const weights=candidates.map(s=>{
-      const q=questStats(s.id)
-      const strength=q ? (q.hp+q.atk)/2 : 400
-      const flavor=1+((s.id*37)%9)*.025
-      return (1/Math.sqrt(Math.max(100,strength))) * flavor
-    })
-    const groupTotal=weights.reduce((a,b)=>a+b,0)
-    candidates.forEach((species,i)=>odds.push({species,weight:weights[i],probability:rarity[r-1]/rarityTotal*weights[i]/groupTotal}))
-  }
-  return odds
+  return eligible.map(o=>({...o,probability:o.weight/total}))
 }
 export function cook(sel: IngredientId[], rng: Rng = Math.random): Species {
   const odds=attractionOdds(sel)
+  if (!odds.length) throw new Error('Empty cooking pool')
   let r=rng()
   for (const o of odds) {r-=o.probability;if(r<0)return o.species}
   return odds[odds.length-1].species
