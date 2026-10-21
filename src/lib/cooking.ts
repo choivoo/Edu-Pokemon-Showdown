@@ -30,7 +30,7 @@ export const INGREDIENTS: Ingredient[] = [
   { id: 'berryBlue', name: '블리열매', icon: 'berryBlue', color: 'blue', texture: 'soft', kind: 'sweet', rarity: 0, price: 10 },
   { id: 'nutYellow', name: '규토리', icon: 'nutYellow', color: 'yellow', texture: 'hard', kind: 'plant', rarity: 0, price: 10 },
   { id: 'fossil', name: '화석', icon: 'fossil', color: 'gray', texture: 'hard', kind: 'mineral', rarity: 0, price: 10 },
-  { id: 'rootRed', name: '큰뿌리', icon: 'rootRed', color: 'red', texture: 'soft', kind: 'plant', rarity: 0, price: 10 },
+  { id: 'rootRed', name: '큰뿌리', icon: 'rootRed', color: 'red', texture: 'soft', kind: 'plant', rarity: 1, price: 28 },
   { id: 'rockBlue', name: '차가운바위', icon: 'rockBlue', color: 'blue', texture: 'hard', kind: 'mineral', rarity: 1, price: 28 },
   { id: 'honey', name: '달콤한꿀', icon: 'honey', color: 'yellow', texture: 'soft', kind: 'sweet', rarity: 1, price: 28 },
   { id: 'mushroomGray', name: '향기버섯', icon: 'mushroomGray', color: 'gray', texture: 'soft', kind: 'mushroom', rarity: 1, price: 28 },
@@ -53,11 +53,16 @@ export const COOKING_TIERS = [
   { name: '금 냄비', perSlot: 20, minLevel: 70, unlockArea: 16 },
 ] as const
 /** Cooking duration depends on ingredient quality and pot material. */
+export const COOKING_DURATIONS = [
+  { basic: 2, good: 4, great: 5, special: 6 },
+  { basic: 2, good: 4, great: 5, special: 6 },
+  { basic: 3, good: 5, great: 6, special: 7 },
+  { basic: 4, good: 6, great: 7, special: 8 },
+] as const
 export const cookingExpeditions = (sel: IngredientId[], tier: CookingTier = 0): number =>
-  ({ basic: 2, good: 4, great: 5, special: 6 })[gradeOf(sel)] +
-    (tier === 3 ? 2 : tier === 2 ? 1 : 0) + (sel.includes('shell') ? 1 : 0)
+  COOKING_DURATIONS[tier][gradeOf(sel)] + (sel.includes('shell') ? 1 : 0)
 
-/** 냄비에 든 재료의 성질별 개수. 무지개 재료는 모든 색·식감·종류에 +1, 조개껍질은 신비로움에 +1 */
+/** Count actual ingredient properties. Rainbow matter has NO colour/texture/material tag in Quest; it only upgrades dish quality. */
 export interface Tally { color: Record<Color, number>; texture: Record<Texture, number>; kind: Record<Kind | 'mystic', number> }
 export function tally(sel: IngredientId[]): Tally {
   const t: Tally = {
@@ -67,17 +72,15 @@ export function tally(sel: IngredientId[]): Tally {
   }
   for (const id of sel) {
     const i = getIngredient(id)
-    for (const c of Object.keys(t.color) as Color[]) if (i.color === 'all' || i.color === c) t.color[c]++
-    for (const x of Object.keys(t.texture) as Texture[]) if (i.texture === 'all' || i.texture === x) t.texture[x]++
-    for (const k of Object.keys(t.kind) as (Kind | 'mystic')[]) {
-      if (k === 'mystic') { if (i.kind === 'mystic' || i.id === 'rainbow') t.kind.mystic++ } else if (i.kind === 'all' || i.kind === k) t.kind[k]++
-    }
+    for (const c of Object.keys(t.color) as Color[]) if (i.color === c) t.color[c]++
+    for (const x of Object.keys(t.texture) as Texture[]) if (i.texture === x) t.texture[x]++
+    for (const k of Object.keys(t.kind) as (Kind | 'mystic')[]) if (i.kind === k) t.kind[k]++
   }
   return t
 }
 
 /** 듬뿍 = 4개 이상, 많이 = 3개 이상, 조금 = 1개 이상 */
-const PLENTY = 4, MANY = 3, SOME = 1
+const PLENTY = 4, MANY = 3
 
 export interface Recipe { no: number; name: string; types: PokemonType[]; hint: string }
 
@@ -90,29 +93,30 @@ const RECIPES: { r: Recipe; ok: (t: Tally) => boolean }[] = [
   { r: { no: 4, name: '옐로네모루루카레', types: ['normal', 'bug', 'electric'], hint: '노란 재료 듬뿍' }, ok: t => t.color.yellow >= PLENTY },
   { r: { no: 5, name: '화이트네모루루그라탕', types: ['rock', 'ground', 'steel'], hint: '회색 재료 듬뿍' }, ok: t => t.color.gray >= PLENTY },
   { r: { no: 6, name: '네모루루워터카우다', types: ['water', 'ice'], hint: '부드러운 재료 듬뿍 + 파란 재료 많이' }, ok: t => t.texture.soft >= PLENTY && t.color.blue >= MANY },
-  { r: { no: 7, name: '네모루루실크레이프', types: ['normal', 'fairy'], hint: '달콤한 재료 많이 + 회색 조금' }, ok: t => t.kind.sweet >= MANY && t.color.gray >= SOME },
+  { r: { no: 7, name: '네모루루실크레이프', types: ['normal', 'fairy'], hint: '달콤한 재료 많이 + 회색 조금' }, ok: t => t.kind.sweet >= MANY && t.color.gray >= 2 },
   { r: { no: 8, name: '네모루루오물단팥죽', types: ['poison', 'ghost'], hint: '버섯 듬뿍 + 부드러운 재료 많이' }, ok: t => t.kind.mushroom >= PLENTY && t.texture.soft >= MANY },
-  { r: { no: 9, name: '네모루루클레이차우더', types: ['ground', 'rock'], hint: '부드러운 재료 많이 + 광물 조금' }, ok: t => t.texture.soft >= MANY && t.kind.mineral >= SOME },
-  { r: { no: 10, name: '네모루루건강스무디', types: ['grass', 'bug'], hint: '식물 듬뿍 + 부드러운 재료 조금' }, ok: t => t.kind.plant >= PLENTY && t.texture.soft >= SOME },
+  { r: { no: 9, name: '네모루루클레이차우더', types: ['ground', 'rock'], hint: '부드러운 재료 많이 + 광물 조금' }, ok: t => t.texture.soft >= MANY && t.kind.mineral >= 2 },
+  { r: { no: 10, name: '네모루루건강스무디', types: ['grass', 'bug'], hint: '식물 듬뿍 + 부드러운 재료 조금' }, ok: t => t.kind.plant >= PLENTY && t.texture.soft >= 2 },
   { r: { no: 11, name: '네모루루허니퐁듀', types: ['bug', 'poison'], hint: '달콤한 재료 듬뿍 + 노란 재료 많이' }, ok: t => t.kind.sweet >= PLENTY && t.color.yellow >= MANY },
-  { r: { no: 12, name: '네모루루염력자오로스', types: ['psychic', 'fairy', 'dark'], hint: '달콤한 재료 많이 + 딱딱한 재료 조금' }, ok: t => t.kind.sweet >= MANY && t.texture.hard >= SOME },
-  { r: { no: 13, name: '네모루루암석찜', types: ['rock', 'steel', 'ground'], hint: '딱딱한 재료 듬뿍 + 광물 조금' }, ok: t => t.texture.hard >= PLENTY && t.kind.mineral >= SOME },
-  { r: { no: 14, name: '네모루루윈도리아', types: ['flying', 'dragon'], hint: '광물 많이 + 식물 조금' }, ok: t => t.kind.mineral >= MANY && t.kind.plant >= SOME },
-  { r: { no: 15, name: '네모루루파이야베스', types: ['fire', 'dragon'], hint: '버섯 많이 + 빨간 재료 조금' }, ok: t => t.kind.mushroom >= MANY && t.color.red >= SOME },
+  { r: { no: 12, name: '네모루루염력자오로스', types: ['psychic', 'fairy', 'dark'], hint: '달콤한 재료 많이 + 딱딱한 재료 조금' }, ok: t => t.kind.sweet >= MANY && t.texture.hard >= 2 },
+  { r: { no: 13, name: '네모루루암석찜', types: ['rock', 'steel', 'ground'], hint: '딱딱한 재료 듬뿍 + 광물 조금' }, ok: t => t.texture.hard >= PLENTY && t.kind.mineral >= 2 },
+  { r: { no: 14, name: '네모루루윈도리아', types: ['flying', 'dragon'], hint: '광물 많이 + 식물 조금' }, ok: t => t.kind.mineral >= MANY && t.kind.plant >= 2 },
+  { r: { no: 15, name: '네모루루파이야베스', types: ['fire', 'dragon'], hint: '버섯 많이 + 빨간 재료 조금' }, ok: t => t.kind.mushroom >= MANY && t.color.red >= 2 },
   { r: { no: 16, name: '네모루루찌리리조또', types: ['electric', 'steel'], hint: '부드러운 재료 듬뿍 + 노란 재료 많이' }, ok: t => t.texture.soft >= PLENTY && t.color.yellow >= MANY },
-  { r: { no: 17, name: '네모루루머슬오레', types: ['fighting', 'dark'], hint: '달콤한 재료 많이 + 버섯 조금' }, ok: t => t.kind.sweet >= MANY && t.kind.mushroom >= SOME },
+  { r: { no: 17, name: '네모루루머슬오레', types: ['fighting', 'dark'], hint: '달콤한 재료 많이 + 버섯 조금' }, ok: t => t.kind.sweet >= MANY && t.kind.mushroom >= 2 },
   { r: { no: 18, name: '네모루루레전드수프', types: ALL_TYPES, hint: '신비로운 재료 듬뿍' }, ok: t => t.kind.mystic >= PLENTY },
 ]
 const BASIC: Recipe = { no: 1, name: '네모루루수프', types: ALL_TYPES, hint: '아무 재료나' }
 
 export const ALL_RECIPES: Recipe[] = [BASIC, ...RECIPES.map(x => x.r)].sort((a, b) => a.no - b.no)
 
-/** 재료 묶음으로 만들 수 있는 요리. 여러 개가 맞으면 번호가 낮은 것(단, 신비로운 재료 듬뿍은 항상 전설의 수프) */
+/** Game order: coloured/type dishes 2–17 first, then shell-only Ambrosia, lastly general stew. */
 export function recipeFor(sel: IngredientId[]): Recipe {
   const t = tally(sel)
-  const legend = RECIPES[RECIPES.length - 1]
-  if (sel.includes('shell')) return legend.r
-  return RECIPES.find(x => x.ok(t))?.r ?? BASIC
+  const normalRecipe = RECIPES.slice(0, -1).find(x => x.ok(t))
+  if (normalRecipe) return normalRecipe.r
+  if (sel.includes('shell')) return RECIPES[RECIPES.length-1].r
+  return BASIC
 }
 
 export type Grade = 'basic' | 'good' | 'great' | 'special'
@@ -120,8 +124,9 @@ export const GRADE_LABEL: Record<Grade, string> = { basic: '기본', good: '좋�
 
 /** 재료 희귀도의 합이 클수록 요리 등급이 높다 (0 / 1~2 / 3~4 / 5 이상) */
 export function gradeOf(sel: IngredientId[]): Grade {
-  const sum = sel.reduce((a, id) => a + getIngredient(id).rarity, 0)
-  return sum >= 5 ? 'special' : sum >= 3 ? 'great' : sum >= 1 ? 'good' : 'basic'
+  // Small=1, precious=2, Rainbow=3 and Mystical Shell=2.
+  const points = sel.reduce((a, id) => a + (id === 'rainbow' ? 3 : id === 'shell' ? 2 : getIngredient(id).rarity === 0 ? 1 : 2), 0)
+  return points >= 10 ? 'special' : points >= 8 ? 'great' : points >= 6 ? 'good' : 'basic'
 }
 
 /** 포켓몬 희귀도 1~3이 나올 가중치 (4는 요리로 나오지 않는다) */

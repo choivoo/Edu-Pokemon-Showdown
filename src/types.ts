@@ -10,6 +10,10 @@ export interface Move {
   name: string
   type: PokemonType
   power: number
+  /** Original Quest move cooldown, in seconds (if specified). */
+  wait?: number
+  /** Which of the six Quest move stones fit this move. */
+  stones?: Array<'quick'|'repeat'|'widen'|'multiply'|'bond'|'lasting'>
   /** 버프/디버프/상태이상 기술이면 지정 (없으면 평범한 공격기) */
   role?: 'buff' | 'debuff' | 'status'
   fx?: SupportFx

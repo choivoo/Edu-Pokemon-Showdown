@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useGame } from '../../store/gameStore'
 import { expToNext, MAX_LEVEL } from '../../lib/stats'
-import { canPlace, cellsOf, GRID_H, GRID_W, occupancy, SHAPES, type Stone, STONE_INFO, stoneName, unlockedSet } from '../../lib/stones'
+import { canPlace, cellsOf, GRID_H, GRID_W, occupancy, SHAPES, type Stone, STONE_INFO, STONE_PERK_LABEL, stoneName, unlockedSet } from '../../lib/stones'
 import { getMove, getSpecies } from '../../lib/roster'
 import { bingoOf, equippedMoveStones, powerOf, statsOf, usedMoveStoneIds, usedStoneIds } from '../../lib/party'
 import { BONUS_INFO, completeLines } from '../../lib/bingo'
@@ -107,16 +107,17 @@ export default function TeamPanel() {
                   const x = i % GRID_W, y = Math.floor(i / GRID_W)
                   const k = `${x},${y}`
                   const isOpen = open.has(k)
+                   const socket = mon.sockets?.[i] ?? 'any'
                   const oi = occ.get(k)
                   const st = oi !== undefined ? save.stones.find(s => s.id === mon.stones[oi].stone) : undefined
                   const g = ghost.get(k)
                   return (
                     <button
-                      key={k} onClick={() => clickCell(x, y)} onMouseEnter={() => setHover([x, y])} onTouchStart={() => setHover([x, y])}
+                      key={k} title={socket === 'hp' ? '체력석 전용' : socket === 'atk' ? '공격석 전용' : '체력/공격 공용'} onClick={() => clickCell(x, y)} onMouseEnter={() => setHover([x, y])} onTouchStart={() => setHover([x, y])}
                       className="flex items-center justify-center border-2 border-black/40 text-lg font-bold text-white"
-                      style={{ width: CELL, height: CELL, background: st ? STONE_INFO[st.kind].color : g !== undefined ? (g ? '#58cf7c' : '#e0505a') : isOpen ? '#566' : '#2a2d38', opacity: isOpen ? 1 : 0.7, boxShadow: bingoCells.has(k) ? 'inset 0 0 0 4px #ffe14d' : undefined }}
+                      style={{ width: CELL, height: CELL, background: st ? STONE_INFO[st.kind].color : g !== undefined ? (g ? '#58cf7c' : '#e0505a') : isOpen ? (socket === 'hp' ? '#8a4457' : socket === 'atk' ? '#916036' : '#566') : '#2a2d38', opacity: isOpen ? 1 : 0.7, boxShadow: bingoCells.has(k) ? 'inset 0 0 0 4px #ffe14d' : undefined }}
                     >
-                      {st ? <Stars n={st.star} s={14} /> : isOpen ? null : <Icon n="lock" s={26} />}
+                      {st ? <Stars n={st.star} s={14} /> : isOpen ? <span className="text-[11px]">{socket === 'hp' ? 'HP' : socket === 'atk' ? 'ATK' : '·'}</span> : <Icon n="lock" s={26} />}
                     </button>
                   )
                 })}
@@ -188,7 +189,7 @@ export default function TeamPanel() {
               </div>
             ) : right === 'bingo' ? (
               <div className="space-y-2 text-sm">
-                <p className="leading-snug">P스톤 격자의 <b>가로 또는 세로 한 줄을 스톤으로 모두 채우면</b> 빙고! 3/6/9개의 스톤을 장착하고 줄을 완성할 때마다 보너스가 하나씩 켜져요.</p>
+                <p className="leading-snug">P스톤 격자의 <b>가로 또는 세로 한 줄을 스톤으로 모두 채우면</b> 빙고! 가로·세로 빙고 줄을 1·2·3개 완성할 때마다 각각의 보너스가 켜져요.</p>
                 <p className="flex items-center gap-1 text-lg font-bold text-[#c06a00]"><Icon n="bingo" s={26} />완성한 빙고 {bingos}줄{bingos > 3 ? ' (3줄까지 인정)' : ''}</p>
                 {mon.bonus.map((b, bi) => (
                   <div key={b.kind} className="border-4 border-[#c98a00] bg-white/60 p-2">
@@ -208,7 +209,7 @@ export default function TeamPanel() {
                   <button key={s.id} onClick={() => { sfx.select(); setHold({ id: s.id, rot: 0 }); setMsg('') }} className={`flex w-full items-center gap-3 rounded-lg border-4 px-2 py-1 text-left ${hold?.id === s.id ? 'border-[#e8524a] bg-white' : 'border-[#e5a500]'}`}>
                     <span className="flex w-16 justify-center"><ShapePreview stone={s} /></span>
                     <span className="flex flex-1 items-center gap-1 text-lg"><Icon n={STONE_INFO[s.kind].icon} s={26} />{STONE_INFO[s.kind].name} <Stars n={s.star} s={14} /></span>
-                    <span className="text-sm">{STONE_INFO[s.kind].desc} +{s.value !== undefined ? s.value : Math.round(STONE_INFO[s.kind].per * s.star * SHAPES[s.shape].length * 100) + '%'}</span>
+                    <span className="text-sm">{STONE_INFO[s.kind].desc} +{s.value !== undefined ? s.value : Math.round(STONE_INFO[s.kind].per * s.star * SHAPES[s.shape].length * 100) + '%'} {Object.entries(s.perks ?? {}).map(([k,v]) => STONE_PERK_LABEL[k as keyof typeof STONE_PERK_LABEL] + ' +' + v + '%').join(' · ')}</span>
                   </button>
                 ))}
               </div>

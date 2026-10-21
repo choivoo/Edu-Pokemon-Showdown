@@ -91,7 +91,7 @@ export function autoEvolve(mon: OwnedMon, stones: Stone[]): OwnedMon {
     choice = hp > atk ? 'water' : atk > hp ? 'fire' : 'electric'
   }
   const to = targetOf(mon.species, choice)
-  return to ? { ...mon, species: to, move: undefined } : mon
+  return to ? { ...mon, species: to } : mon
 }
 
 export const EVOLUTION_ONLY = new Set([...Object.values(EVOLUTIONS).map(e => e.to), 134, 136, 124, 125, 126, 142, 151])

@@ -2,6 +2,7 @@ import type { Move, Rng } from '../types'
 import { MOVES, getSpecies } from './roster'
 import { isEvolvedForm } from './evolution'
 import { expToNext, type OwnedMon } from './stats'
+import { questLearnset } from '../data/questSpecies'
 
 export const TRAIN_MAX = 4
 /** 기술 떠올리기 성공 확률이 회복되는 시간 (분 단위로 1회씩) */
@@ -44,6 +45,8 @@ export function recallChance(target: OwnedMon, foods: OwnedMon[], now: number): 
 export function recallPool(m: OwnedMon): Move[] {
   const sp = getSpecies(m.species)
   const cur = m.move ?? sp.special
+  const questMoves = questLearnset(sp.id)
+  if (questMoves.length) return questMoves.filter(mv => mv.id !== cur && mv.id !== m.move2)
   return MOVES.filter(mv => mv.id !== cur && mv.id !== sp.basic && (mv.role ? mv.learn?.some(t => sp.types.includes(t)) : sp.types.includes(mv.type) && mv.power >= 70))
 }
 

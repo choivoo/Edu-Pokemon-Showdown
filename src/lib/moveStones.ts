@@ -5,7 +5,7 @@ export interface MoveStone { id: string; kind: MoveStoneKind }
 export const MOVE_SLOTS = 3
 
 export const MOVE_STONE_INFO: Record<MoveStoneKind, { name: string; icon: string; desc: string; detail: string; color: string }> = {
-  quick: { name: '빨리쏘기스톤', icon: 'msQuick', desc: '대기시간 -8%', detail: '필살기를 다시 쓸 수 있을 때까지의 시간이 8% 줄어요.', color: '#f5c518' },
+  quick: { name: '빨리쏘기스톤', icon: 'msQuick', desc: '대기시간 -5%', detail: '필살기를 다시 쓸 수 있을 때까지의 시간이 5% 줄어요.', color: '#f5c518' },
   repeat: { name: '리피트스톤', icon: 'msRepeat', desc: '한 번 더 / 대기시간 +50%', detail: '필살기를 연달아 한 번 더 쓰지만, 대기시간이 50% 늘어요.', color: '#e0505a' },
   widen: { name: '넓히기스톤', icon: 'msWiden', desc: '공격 범위 +', detail: '필살기의 범위가 넓어져요. 한 명만 맞히던 필살기는 주변까지 번져요.', color: '#4a8fe0' },
   multiply: { name: '늘리기스톤', icon: 'msMultiply', desc: '타수 +1 / 위력 -15%', detail: '필살기가 가까운 적 한 명을 더 맞혀요. (범위기는 한 번 더 때려요) 위력은 15% 줄어요.', color: '#43b97a' },

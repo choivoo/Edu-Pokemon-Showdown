@@ -1,8 +1,10 @@
 import { create } from 'zustand'
 import { cook, cookingExpeditions, COOKING_TIERS, recipeFor, type CookingTier, type IngredientId, getIngredient, DISH_SIZE } from '../lib/cooking'
-import { getSpecies } from '../lib/roster'
+import { getSpecies, getMove } from '../lib/roster'
+import { questLearnset } from '../data/questSpecies'
+import { acceptsSocket, socketLayout } from '../lib/pCharm'
 import { addExp, expToNext, MAX_LEVEL, type OwnedMon } from '../lib/stats'
-import { canPlace, findSpot, mergeCost, occupancy, type Stone, type ShapeId, type StoneKind } from '../lib/stones'
+import { canPlace, mergeCost, occupancy, type Stone, type ShapeId, type StoneKind } from '../lib/stones'
 import { usedMoveStoneIds, usedStoneIds } from '../lib/party'
 import { type MoveStone, MOVE_SLOTS } from '../lib/moveStones'
 import { rollBonuses } from '../lib/bingo'
@@ -13,7 +15,7 @@ import { defaultSave, loadSave, resetSave, type SaveData, writeSave } from '../l
 import { setMuted } from '../lib/sound'
 import { recall, recallPool, trainExp, TRAIN_MAX, type RecallResult } from '../lib/training'
 import { autoEvolve, canEvolve, targetOf } from '../lib/evolution'
-import { MEMBER_REWARD_TICKETS, memberRewardReady, buyableDecoration, ingredientBonus, maxBatteryBonus, moveSuccessBonus, recycledIngredientBonus, trainingExpBonus } from '../lib/decorations'
+import { MEMBER_REWARD_TICKETS, memberRewardReady, buyableDecoration, ingredientBonus, maxBatteryBonus, moveSuccessBonus, recycledIngredientBonus, trainingExpBonus, multipleMoveBonus, multipleCookingBonus } from '../lib/decorations'
 import { QUESTS, isClaimed, isDone, STATUE_MAX, statueCap, statueCost, statueMul } from '../lib/quests'
 
 export const BATTERY_ONE_COST = 150
@@ -117,10 +119,21 @@ export const useGame = create<GameState>((set, get) => {
     return save
   }
   const bump = (c: Record<string, number>, key: string, n = 1) => ({ ...c, [key]: (c[key] ?? 0) + n })
-  const newMon = (save: SaveData, speciesId: number, level: number): { mon: OwnedMon; patch: Partial<SaveData> } => {
-    const mon: OwnedMon = { id: `m${save.uid}`, species: speciesId, level, exp: 0, stones: [], bonus: rollBonuses(), mstones: [] }
-    const options = recallPool(mon)
-    if (options.length && Math.random() < 0.38) mon.move2 = options[Math.floor(Math.random() * options.length)].id
+  const newMon = (save: SaveData, speciesId: number, level: number, tier: CookingTier = 0): { mon: OwnedMon; patch: Partial<SaveData> } => {
+    const bonuses = [0, 50, 100, 300] as const
+    const maxIV = [10, 50, 100, 100] as const
+    const mon: OwnedMon = { id: `m${save.uid}`, species: speciesId, level, exp: 0, stones: [],
+      bonus: rollBonuses(), mstones: [], potBonus: bonuses[tier], ivHp: Math.floor(Math.random() * (maxIV[tier] + 1)), ivAtk: Math.floor(Math.random() * (maxIV[tier] + 1)), sockets: socketLayout(speciesId, save.uid) }
+    const pool = questLearnset(speciesId)
+    if (pool.length) {
+      const first = pool[Math.floor(Math.random() * pool.length)]
+      mon.move = first.id
+      const second = pool.filter(m => m.id !== first.id)
+      if (second.length && Math.random() < Math.min(0.95, 0.38 * multipleMoveBonus(save.decorations))) mon.move2 = second[Math.floor(Math.random() * second.length)].id
+    } else {
+      const options = recallPool(mon)
+      if (options.length && Math.random() < Math.min(0.95, 0.38 * multipleMoveBonus(save.decorations))) mon.move2 = options[Math.floor(Math.random() * options.length)].id
+    }
     return {
       mon,
       patch: { owned: [...save.owned, mon], uid: save.uid + 1, dex: save.dex.includes(speciesId) ? save.dex : [...save.dex, speciesId] },
@@ -181,17 +194,26 @@ export const useGame = create<GameState>((set, get) => {
       const ingredients = { ...s.ingredients }
       for (const [id, n] of Object.entries(need) as [IngredientId, number][]) ingredients[id] -= n
       const visitor = cook(sel)
+      // Original cooking: 4.3% chance to attract two Pokémon, 0.5% for three.
+      const roll = Math.random()
+      const boost = multipleCookingBonus(s.decorations)
+      const extras = roll < 0.005 * boost ? [cook(sel).id, cook(sel).id] : roll < 0.048 * boost ? [cook(sel).id] : []
       const total = cookingExpeditions(sel, tier)
       const recipe = recipeFor(sel).no
-      commit({ ingredients, pot: { species: visitor.id, remaining: total, total, recipe, ...(tier ? { tier } : {}) } })
+      commit({ ingredients, pot: { species: visitor.id, visitors: extras, remaining: total, total, recipe, ...(tier ? { tier } : {}) } })
       return true
     },
 
     collectCooked: () => {
       const s = get().save
       if (!s.pot || s.pot.remaining > 0) return null
-      const { mon, patch } = newMon(s, s.pot.species, Math.min(100, Math.max(newcomerLevel(s), COOKING_TIERS[s.pot.tier ?? 0]?.minLevel ?? 5)))
-      commit({ ...patch, pot: null, counters: bump(s.counters, 'cooked') })
+      const potTier = s.pot.tier ?? 0
+      const low = [1,16,31,71][potTier] ?? 1
+      const high = [15,30,70,100][potTier] ?? 15
+      const { mon, patch } = newMon(s, s.pot.species, Math.max(low, Math.min(high, newcomerLevel(s, low))), potTier)
+      const waiting = s.pot.visitors ?? []
+      const pot = waiting.length ? { ...s.pot, species: waiting[0], visitors: waiting.slice(1), remaining: 0 } : null
+      commit({ ...patch, pot, counters: bump(s.counters, 'cooked') })
       return mon
     },
 
@@ -203,6 +225,7 @@ export const useGame = create<GameState>((set, get) => {
       const stone = s.stones.find(t => t.id === stoneId)
       if (!mon || !stone || usedStoneIds(s).has(stoneId)) return false
       if (!canPlace(mon.level, occupancy(mon.stones, s.stones), stone.shape, rot, x, y)) return false
+      if (!acceptsSocket(mon.sockets, x, y, stone.kind)) return false
       commit({ owned: s.owned.map(o => (o.id === monId ? { ...o, stones: [...o.stones, { stone: stoneId, x, y, rot }] } : o)) })
       return true
     },
@@ -211,8 +234,11 @@ export const useGame = create<GameState>((set, get) => {
       const mon = s.owned.find(o => o.id === monId)
       const stone = s.stones.find(t => t.id === stoneId)
       if (!mon || !stone) return false
-      const spot = findSpot(mon.level, occupancy(mon.stones, s.stones), stone.shape)
-      return spot ? get().placeStone(monId, stoneId, spot.x, spot.y, spot.rot) : false
+      const occ = occupancy(mon.stones, s.stones)
+      for (let y = 0; y < 3; y++) for (let x = 0; x < 3; x++)
+        if (acceptsSocket(mon.sockets, x, y, stone.kind) && canPlace(mon.level, occ, stone.shape, 0, x, y))
+          return get().placeStone(monId, stoneId, x, y, 0)
+      return false
     },
     removeStone: (monId, stoneId) => {
       const s = get().save
@@ -288,7 +314,13 @@ export const useGame = create<GameState>((set, get) => {
     equipMoveStone: (monId, stoneId) => {
       const s = get().save
       const mon = s.owned.find(o => o.id === monId)
-      if (!mon || mon.mstones.length >= (mon.move2 ? 2 : MOVE_SLOTS) || usedMoveStoneIds(s).has(stoneId) || !s.moveStones.some(m => m.id === stoneId)) return false
+      const ms = s.moveStones.find(m => m.id === stoneId)
+      if (!mon || !ms || mon.mstones.length >= (mon.move2 ? 2 : MOVE_SLOTS) || usedMoveStoneIds(s).has(stoneId)) return false
+      const current = [mon.move, mon.move2].filter((x): x is string => !!x)
+      if (current.length && current.every(id => {
+        const move = getMove(id)
+        return move.stones && !move.stones.includes(ms.kind)
+      })) return false
       commit({ owned: s.owned.map(o => (o.id === monId ? { ...o, mstones: [...o.mstones, stoneId] } : o)) })
       return true
     },
@@ -396,7 +428,9 @@ export const useGame = create<GameState>((set, get) => {
         set({ result: { win: false, stage, rewards: null, firstClear: false, recruited: null, levelUps: [], stone: null, moveStone: null, outroArea: null }, screen: 'result' })
         return
       }
-      const rewards = rollRewards(stage)
+      const clearsSoFar = s.counters.clears ?? 0
+      const expeditionBonus = clearsSoFar > 0 && clearsSoFar % 10 === 0
+      const rewards = rollRewards(stage, Math.random, expeditionBonus)
       const firstClear = stage.area >= 0 ? !s.cleared[stage.id] : stage.endlessFloor! > s.endlessBest
       // 파티 전원에게 경험치
       const levelUps: BattleResult['levelUps'] = []

@@ -24,6 +24,9 @@ export const DECORATIONS = [
   { id: 'dittoBalloon', name: '메타몽 풍선', tickets: 700, effect: '기술 특훈 성공률 ×2', multiplier: 2 },
   { id: 'squirtleFlag', name: '꼬부기 깃발', tickets: 100, effect: '스톤 재활용 재료 ×1.5', multiplier: 1.5 },
   { id: 'meowthBalloon', name: '나옹 풍선', tickets: 400, effect: '스톤 재활용 재료 ×2', multiplier: 2 },
+  { id: 'victreebelBag', name: '우츠보트 골프백', tickets: 200, effect: '기술 2개인 포켓몬 출현율 ×1.5', multiplier: 1.5 },
+  { id: 'kangaskhanChair', name: '캥카 흔들의자', tickets: 800, effect: '기술 2개인 포켓몬 출현율 ×2', multiplier: 2 },
+  { id: 'pikachuSurfboard', name: '피카츄 서핑보드', tickets: 400, effect: '요리로 여러 마리 방문 확률 ×1.5', multiplier: 1.5 },
   { id: 'mewtwoArch', name: '뮤츠 아치', tickets: 700, effect: '배터리 최대치 +1', multiplier: 1 },
 ] as const
 
@@ -60,4 +63,6 @@ export const moveSuccessBonus = (owned: readonly string[]) =>
   ownedMultiplier(owned, ['charmanderFlag','dittoBalloon'])
 export const recycledIngredientBonus = (owned: readonly string[]) =>
   ownedMultiplier(owned, ['squirtleFlag','meowthBalloon'])
+export const multipleMoveBonus = (owned: readonly string[]) => ownedMultiplier(owned,['victreebelBag','kangaskhanChair'])
+export const multipleCookingBonus = (owned: readonly string[]) => ownedMultiplier(owned,['pikachuSurfboard'])
 export const maxBatteryBonus = (owned: readonly string[]) => owned.includes('mewtwoArch') ? 1 : 0

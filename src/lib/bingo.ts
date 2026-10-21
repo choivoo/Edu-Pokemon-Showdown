@@ -58,9 +58,9 @@ export const BINGO_LINES: string[][] = [
 export function completeLines(occ: Map<string, number>): string[][] {
   return BINGO_LINES.filter(line => line.every(c => occ.has(c)))
 }
-/** Original unlock thresholds: 3/6/9 stones, with a completed row/column. */
+/** Each distinct complete row/column unlocks one of the three Bingo perks. */
 export function unlockedBingoCount(occ: Map<string, number>): number {
-  return Math.min(3, completeLines(occ).length, Math.floor(occ.size / 3))
+  return Math.min(3, completeLines(occ).length)
 }
 
 export interface Mods { atkCd: number; spCd: number; critRate: number; critDmg: number; moveSpd: number; waveHeal: number; lifesteal: number; regen: number; atkUp: number; hpUp: number }

@@ -31,7 +31,7 @@ describe('Original free Poké Mart', () => {
   })
   it('decorations apply passive colour rewards, training and battery boost', () => {
     const decorations = ['flareonCushion', 'charizardTorch', 'fearowVane', 'dittoBalloon', 'meowthBalloon', 'mewtwoArch']
-    expect(DECORATIONS).toHaveLength(15)
+    expect(DECORATIONS).toHaveLength(18)
     expect(ingredientBonus('mushroomRed', 3, decorations)).toBe(6)
     expect(ingredientBonus('rockBlue', 3, decorations)).toBe(3)
     expect(ingredientBonus('shell', 2, decorations)).toBe(2)
@@ -62,12 +62,12 @@ describe('Original evolution and Bingo rules', () => {
     expect(autoEvolve({ ...mon, stones: [] }, [hp, atk]).species).toBe(135)
     expect(autoEvolve({ ...mon, everstone: true }, [hp, atk]).species).toBe(133)
   })
-  it('unlocks three distinct Bingo bonuses only at 3, 6 and 9 stones', () => {
+  it('unlocks bonuses on one, two and three complete Bingo lines', () => {
     const occ = new Map<string, number>()
     for (let y = 0; y < 3; y++) {
       for (let x = 0; x < 3; x++) {
         occ.set(x + ',' + y, x + y * 3)
-        const expected = y === 0 ? (x === 2 ? 1 : 0) : y === 1 ? (x === 2 ? 2 : 1) : x === 2 ? 3 : 2
+        const expected = y === 0 ? (x === 2 ? 1 : 0) : y === 1 ? (x === 2 ? 2 : 1) : 3
         expect(unlockedBingoCount(occ)).toBe(expected)
       }
     }
