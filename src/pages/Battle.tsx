@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { useGame } from '../store/gameStore'
 import { type AllyInput, type Battle as BattleState, createBattle, scatter, step, useSpecial } from '../engine/battle'
 import { consumeEvents, drawBattle, H, newVisual, preload, SLOT_COLORS, W } from '../engine/render'
-import { AREAS, AREA_BONUS_MUL, buildWaves, hasAreaBonus } from '../lib/stages'
+import { AREAS, AREA_BONUS_MUL, buildWaves, hasAreaBonus, type Theme } from '../lib/stages'
+import { HAPPENSTANCE_AREA } from '../lib/originalCampaign'
 import { getSpecies } from '../lib/roster'
 import { moveFxOf, partyMons, statsOf } from '../lib/party'
 import { bgm, sfx } from '../lib/sound'
@@ -59,10 +60,11 @@ export default function Battle() {
     setHud(snapshot(b))
     const regionMusic = (['tide', 'grove', 'echo', 'spark', 'ember', 'astral'] as const)[stage.area] ?? 'battle'
     bgm.play(stage.boss ? 'boss' : regionMusic)
-    if (stage.boss && stage.area >= 0) sfx.cry(AREAS[stage.area].boss)
+    if (stage.boss && stage.area >= 0) sfx.cry(waves.flat().find(w => w.boss)?.species ?? AREAS[stage.area].boss)
 
     const ctx = canvas.current!.getContext('2d')!
-    const theme = stage.area >= 0 ? AREAS[stage.area].theme : (['beach', 'forest', 'cave', 'gorge', 'volcano', 'altar'] as const)[stage.index % 6]
+    const themes: Theme[] = ['beach', 'forest', 'cave', 'gorge', 'volcano', 'altar']
+    const theme = stage.area === HAPPENSTANCE_AREA ? (stage.index === 8 ? 'altar' : themes[Math.floor(Math.random() * themes.length)]) : stage.area >= 0 ? AREAS[stage.area].theme : themes[stage.index % 6]
     let raf = 0
     let last = performance.now()
     let acc = 0
@@ -79,7 +81,16 @@ export default function Battle() {
       last = nowMs
       const dt = paused.current ? 0 : real * speed.current
       acc += dt
-      while (acc >= 0.05) { step(b, 0.05); acc -= 0.05 }
+      while (acc >= 0.05) {
+        step(b, 0.05)
+        acc -= 0.05
+        if (stage.timeLimitSec && b.t >= stage.timeLimitSec && b.phase !== 'won') {
+          b.phase = 'lost'
+          b.events.push({ k: 'banner', text: '탐험 제한시간 종료!', tone: 'warn' })
+          acc = 0
+          break
+        }
+      }
       const t = nowMs / 1000
       consumeEvents(b, visual.current, t, hooks)
       drawBattle(ctx, b, visual.current, theme, t, real)
@@ -107,7 +118,7 @@ export default function Battle() {
       <div className="absolute left-3 top-3 flex items-center gap-2">
         <button onClick={() => { paused.current = !paused.current; setUiPaused(paused.current) }} className="pq-btn pq-red flex h-12 w-12 items-center justify-center"><Icon n={uiPaused ? 'play' : 'pause'} s={30} /></button>
         <span className="hud-bar flex items-center gap-1 px-3 py-1 text-lg"><Icon n="sword" s={22} />{hud?.kills ?? 0}</span>
-        <span className="hud-bar flex items-center gap-1 px-3 py-1 text-lg"><Icon n="clock" s={22} />{fmt(hud?.time ?? 0)}</span>
+        <span className={`hud-bar flex items-center gap-1 px-3 py-1 text-lg ${stage.timeLimitSec && (stage.timeLimitSec - (hud?.time ?? 0)) <= 30 ? 'text-red-300 blink' : ''}`}><Icon n="clock" s={22} />{stage.timeLimitSec ? fmt(Math.max(0, stage.timeLimitSec - (hud?.time ?? 0))) : fmt(hud?.time ?? 0)}</span>
         <span className="hud-bar max-w-[260px] truncate px-3 py-1 text-base text-yellow-200">{stage.name}</span>
       </div>
       {/* 우상단: 웨이브 진행 */}

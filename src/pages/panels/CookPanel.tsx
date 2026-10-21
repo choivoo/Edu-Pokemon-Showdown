@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { useGame } from '../../store/gameStore'
+import { areaCleared, useGame } from '../../store/gameStore'
 import {
-  ALL_RECIPES, COLOR_LABEL, DISH_SIZE, getIngredient, GRADE_LABEL, gradeOf, INGREDIENTS, type IngredientId, KIND_LABEL, recipeFor, TEXTURE_LABEL,
+  ALL_RECIPES, COLOR_LABEL, COOKING_TIERS, DISH_SIZE, getIngredient, GRADE_LABEL, gradeOf, INGREDIENTS, type CookingTier, type IngredientId, KIND_LABEL, recipeFor, TEXTURE_LABEL,
 } from '../../lib/cooking'
 import { getSpecies } from '../../lib/roster'
 import { frontSprite } from '../../data/sprites'
@@ -14,27 +14,29 @@ import type { OwnedMon } from '../../lib/stats'
 export default function CookPanel() {
   const { save, startCooking, collectCooked, openPanel } = useGame()
   const [sel, setSel] = useState<IngredientId[]>([])
+  const [tier, setTier] = useState<CookingTier>(0)
+  const pot = COOKING_TIERS[tier]
   const [got, setGot] = useState<{ mon: OwnedMon; isNew: boolean } | null>(null)
   const [book, setBook] = useState(false)
 
   const used = (id: IngredientId) => sel.filter(s => s === id).length
   const add = (id: IngredientId) => {
-    if (!!save.pot || sel.length >= DISH_SIZE || used(id) >= save.ingredients[id]) return
+    if (!!save.pot || sel.length >= DISH_SIZE || (used(id) + 1) * pot.perSlot > save.ingredients[id]) return
     sfx.select()
     setSel([...sel, id])
   }
   const recipe = sel.length ? recipeFor(sel) : null
   const grade = sel.length ? gradeOf(sel) : null
-  const owned = INGREDIENTS.filter(i => save.ingredients[i.id] > 0 || used(i.id) > 0)
+  const owned = INGREDIENTS.filter(i => save.ingredients[i.id] >= pot.perSlot || used(i.id) > 0)
 
   const autoFill = () => {
     const best = INGREDIENTS.filter(i => i.rarity === 0).map(i => ({ id: i.id, n: save.ingredients[i.id] })).sort((a, b) => b.n - a.n)[0]
-    setSel(Array(Math.min(DISH_SIZE, best.n)).fill(best.id))
+    setSel(Array(Math.min(DISH_SIZE, Math.floor(best.n / pot.perSlot))).fill(best.id))
   }
 
   const cookNow = () => {
     if (sel.length !== DISH_SIZE || save.pot) return
-    if (startCooking(sel)) { sfx.cook(); setSel([]) }
+    if (startCooking(sel, tier)) { sfx.cook(); setSel([]) }
   }
   const collectNow = () => {
     const known = new Set(save.dex)
@@ -48,7 +50,16 @@ export default function CookPanel() {
 
   return (
     <Panel title="요리 냄비" onClose={() => openPanel(null)} w={900}>
-      <div className="flex gap-4" style={{ height: 390 }}>
+      <div className="mb-2 flex gap-1.5">
+        {COOKING_TIERS.map((p, index) => {
+          const unlocked = p.unlockArea < 0 || areaCleared(save, p.unlockArea)
+          return <Btn key={p.name} color={tier === index ? 'yellow' : 'gray'} disabled={!unlocked || !!save.pot}
+            onClick={() => { setTier(index as CookingTier); setSel([]) }} className="flex-1 px-1 py-1 text-sm">
+            {unlocked ? p.name : '잠김'} <span className="text-xs">×{p.perSlot}</span>
+          </Btn>
+        })}
+      </div>
+      <div className="flex gap-4" style={{ height: 345 }}>
         <div className="flex w-[330px] flex-col items-center gap-2">
           <div className={`pq-dark flex w-full flex-col items-center gap-2 p-3 ${!!save.pot ? 'animate-bounce' : ''}`}>
             <div className="bg-black/30 px-4 py-0.5 text-lg">{sel.length} / {DISH_SIZE}</div>
@@ -66,7 +77,7 @@ export default function CookPanel() {
               <p className="flex flex-wrap items-center justify-center gap-1 pt-1">
                 {recipe.no === 18 || recipe.no === 1 ? <span className="text-sm">여러 타입이 찾아와요</span> : recipe.types.map(t => <TypeBadge key={t} type={t} />)}
               </p>
-            </>) : <p className="pt-3 text-sm">재료를 눌러 냄비에 넣어 보세요</p>}
+            </>) : <p className="pt-3 text-sm">재료를 눌러 냄비에 넣어 보세요 (칸당 {pot.perSlot}개 소모)</p>}
           </div>
           <div className="mt-auto flex w-full gap-2">
             <Btn color="blue" disabled={!!save.pot} onClick={autoFill} className="flex-1 text-sm">같은 재료로 채우기</Btn>
@@ -82,9 +93,9 @@ export default function CookPanel() {
           <div className="pq-inner scroll-thin grid flex-1 grid-cols-3 content-start gap-2 overflow-y-auto p-2">
             {owned.length === 0 && <p className="col-span-3 p-6 text-center text-base">재료가 없어요. 탐험에서 얻거나 상점에서 사 보세요.</p>}
             {owned.map(i => {
-              const left = save.ingredients[i.id] - used(i.id)
+              const left = save.ingredients[i.id] - used(i.id) * pot.perSlot
               return (
-                <button key={i.id} disabled={left <= 0 || sel.length >= DISH_SIZE || !!save.pot} onClick={() => add(i.id)} className="flex flex-col items-center gap-0.5 border-4 border-[#c98a00] bg-white/70 p-1 disabled:opacity-40">
+                <button key={i.id} disabled={left < pot.perSlot || sel.length >= DISH_SIZE || !!save.pot} onClick={() => add(i.id)} className="flex flex-col items-center gap-0.5 border-4 border-[#c98a00] bg-white/70 p-1 disabled:opacity-40">
                   <Icon n={i.icon} s={44} />
                   <span className="text-sm font-bold">{i.name}</span>
                   <span className="text-xs text-[#8a5a10]">{i.color === 'all' ? '모든 색' : COLOR_LABEL[i.color]} · {i.texture === 'all' ? '모든 식감' : TEXTURE_LABEL[i.texture]}</span>
@@ -115,7 +126,7 @@ export default function CookPanel() {
         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 bg-[#fff3c8] p-8 text-center">
           <Icon n="pot" s={80} />
           <p className="text-3xl font-bold text-[#b77512]">냄비에서 맛있는 요리가 끓고 있어요!</p>
-          <p className="text-xl">레시피: {ALL_RECIPES.find(r => r.no === save.pot!.recipe)?.name ?? '네모루루수프'}</p>
+          <p className="text-xl">{COOKING_TIERS[save.pot.tier ?? 0].name} · {ALL_RECIPES.find(r => r.no === save.pot!.recipe)?.name ?? '네모루루수프'}</p>
           <div className="w-[420px] max-w-full border-4 border-[#9b7832] bg-[#e7d0a3] p-2">
             <div className="h-7 bg-[#e8b34d]" style={{ width: (100 * (save.pot.total - save.pot.remaining) / save.pot.total) + '%' }} />
           </div>

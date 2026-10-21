@@ -8,7 +8,7 @@ import { getSpecies } from '../lib/roster'
 import { useCanvas } from '../components/useCanvas'
 import { AREA_NODES, drawIsland, ENDLESS_NODE } from '../art/scenes'
 import { ORIGINAL_NODES, drawOriginalIsland } from '../art/originalIsland'
-import { FAN_AREA_COUNT, ORIGINAL_FIRST, ORIGINAL_LAST } from '../lib/originalCampaign'
+import { FAN_AREA_COUNT, ORIGINAL_FIRST, HAPPENSTANCE_AREA } from '../lib/originalCampaign'
 import { H, W } from '../engine/draw'
 import Dialog from '../components/Dialog'
 import { Btn, PARTY_COLORS, Panel, Portrait } from '../ui/kit'
@@ -27,7 +27,7 @@ export default function Island() {
   const endless = allCleared(save)
   const fanAvailable = endless || legacyFanProgress(save)
   useCanvas(canvas, (ctx, t) => {
-    if (mode === 'original') drawOriginalIsland(ctx, t, unlocked.slice(ORIGINAL_FIRST, ORIGINAL_LAST + 1), AREAS.slice(ORIGINAL_FIRST, ORIGINAL_LAST + 1).map((_, i) => areaCleared(save, ORIGINAL_FIRST + i)))
+    if (mode === 'original') drawOriginalIsland(ctx, t, unlocked.slice(ORIGINAL_FIRST, HAPPENSTANCE_AREA + 1), AREAS.slice(ORIGINAL_FIRST, HAPPENSTANCE_AREA + 1).map((_, i) => areaCleared(save, ORIGINAL_FIRST + i)))
     else drawIsland(ctx, t, unlocked.slice(0, FAN_AREA_COUNT), endless)
   }, [unlocked.join(), Object.keys(save.cleared).join(','), endless, mode])
 
@@ -73,10 +73,10 @@ export default function Island() {
         )
       })}
 
-      {allCleared(save) && mode === 'fan' && (
+      {areaCleared(save, FAN_AREA_COUNT - 1) && mode === 'fan' && (
         <button onClick={() => { sfx.select(); startStage(getEndlessStage(save.endlessBest + 1)) }} className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left: ENDLESS_NODE.x, top: ENDLESS_NODE.y - 8 }}>
           <span className="flex flex-col items-center border-4 border-[#2b2838] bg-[#7a4fe0] px-4 py-1 shadow-[0_5px_0_#2b2838]">
-            <Icon n="star" s={36} /><span className="text-base font-bold">기이한 섬</span>
+            <Icon n="star" s={36} /><span className="text-base font-bold">끝없는 별길</span>
             <span className="text-sm text-yellow-200">{save.endlessBest + 1}층 도전</span>
           </span>
         </button>
@@ -116,7 +116,7 @@ function StagePanel({ area, onClose, onGo }: { area: number; onClose: () => void
         <div className="flex w-[380px] flex-col gap-2">
           {Array.from({ length: stageCount(area) }, (_, i) => {
             const s = getStage(area, i)
-            const ok = i === 0 || isCleared(save, area, i - 1)
+            const ok = area === HAPPENSTANCE_AREA || i === 0 || isCleared(save, area, i - 1)
             return (
               <button key={i} disabled={!ok} onClick={() => { sfx.select(); setSel(i) }} className={`flex items-center gap-3 border-4 px-3 py-2 text-left ${sel === i ? 'border-[#e8524a] bg-white' : 'border-[#c98a00] bg-[#fff3c8]'} ${ok ? '' : 'opacity-50'}`}>
                 <span className="flex w-8 justify-center text-2xl">{s.boss ? <Icon n="crown" s={28} /> : i + 1}</span>
@@ -129,7 +129,7 @@ function StagePanel({ area, onClose, onGo }: { area: number; onClose: () => void
         </div>
         <div className="pq-inner flex flex-1 flex-col gap-2 p-4 text-lg">
           <p className="text-2xl font-bold text-[#c06a00]">{st.name}</p>
-          <p>적 Lv{st.level} · {st.wavePlan.length}웨이브{st.boss ? ' · 보스!' : ''}</p>
+          <p>적 Lv{st.level} · {st.wavePlan.length}웨이브{st.boss ? ' · 보스!' : ''}{st.timeLimitSec ? ' · 제한시간 5분' : ''}</p>
           <p>추천 전투력 <b className={mine >= rec ? 'text-[#2e8f4a]' : 'text-[#d23c36]'}>{rec}</b> <span className="text-base">(내 파티 {mine})</span></p>
           <p className="flex flex-wrap items-center gap-1">재료 {a.drops.map(d => <Icon key={d} n={getIngredient(d).icon} s={24} />)} <Coins n={st.coins} s={20} className="ml-2" /> <span className="ml-2">EXP {st.exp}</span></p>
           <p className="flex flex-wrap items-center gap-1 text-base">지역 보너스 타입 {AREA_BONUS[area].map(t => <TypeBadge key={t} type={t} />)} <span>체력·공격 ×{AREA_BONUS_MUL}</span></p>

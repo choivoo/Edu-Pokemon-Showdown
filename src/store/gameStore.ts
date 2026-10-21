@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { cook, cookingExpeditions, recipeFor, type IngredientId, getIngredient, DISH_SIZE } from '../lib/cooking'
+import { cook, cookingExpeditions, COOKING_TIERS, recipeFor, type CookingTier, type IngredientId, getIngredient, DISH_SIZE } from '../lib/cooking'
 import { getSpecies } from '../lib/roster'
 import { addExp, expToNext, MAX_LEVEL, type OwnedMon } from '../lib/stats'
 import { canPlace, findSpot, mergeCost, occupancy, type Stone, type ShapeId, type StoneKind } from '../lib/stones'
@@ -8,7 +8,7 @@ import { type MoveStone, MOVE_SLOTS } from '../lib/moveStones'
 import { rollBonuses } from '../lib/bingo'
 import { BATTERY_MAX, batteryNow, charge, consume } from '../lib/battery'
 import { AREAS, rollRewards, stageCount, type Rewards, type Stage, stageId } from '../lib/stages'
-import { ORIGINAL_FIRST, ORIGINAL_LAST, ORIGINAL_BOSS_AREA, ORIGINAL_STATUE_COUNT, originalUnlocked } from '../lib/originalCampaign'
+import { ORIGINAL_FIRST, ORIGINAL_LAST, ORIGINAL_BOSS_AREA, ORIGINAL_STATUE_COUNT, HAPPENSTANCE_AREA, originalUnlocked } from '../lib/originalCampaign'
 import { defaultSave, loadSave, resetSave, type SaveData, writeSave } from '../lib/storage'
 import { setMuted } from '../lib/sound'
 import { recall, trainExp, TRAIN_MAX, type RecallResult } from '../lib/training'
@@ -49,7 +49,7 @@ interface GameState {
   hardReset: () => void
   toggleMute: () => void
   markStory: (key: string) => void
-  startCooking: (sel: IngredientId[]) => boolean
+  startCooking: (sel: IngredientId[], tier?: CookingTier) => boolean
   collectCooked: () => OwnedMon | null
   setParty: (ids: string[]) => void
   placeStone: (monId: string, stoneId: string, x: number, y: number, rot: number) => boolean
@@ -87,6 +87,7 @@ export const areaCleared = (save: SaveData, area: number) => isCleared(save, are
 export const legacyFanProgress = (save: SaveData): boolean =>
   Object.keys(save.cleared).some(k => /^a[0-5]-s\d+$/.test(k))
 export const areaUnlocked = (save: SaveData, area: number): boolean => {
+  if (area === HAPPENSTANCE_AREA) return areaCleared(save, ORIGINAL_BOSS_AREA)
   if (area >= ORIGINAL_FIRST && area <= ORIGINAL_LAST) return originalUnlocked(area, i => areaCleared(save, i))
   // Existing pre-2D-remake saves keep access to their already-played fan route.
   return (areaCleared(save, ORIGINAL_BOSS_AREA) || legacyFanProgress(save)) && (area === 0 || areaCleared(save, area - 1))
@@ -95,6 +96,10 @@ export const areaUnlocked = (save: SaveData, area: number): boolean => {
 export const allCleared = (save: SaveData) => areaCleared(save, ORIGINAL_BOSS_AREA)
 export const originalStatueCount = (save: SaveData) =>
   Array.from({ length: ORIGINAL_STATUE_COUNT }, (_, i) => ORIGINAL_FIRST + i).filter(i => areaCleared(save, i)).length
+const ORIGINAL_STATUE_LEVELS = [5, 10, 15, 20, 25, 30, 35, 40, 50, 60]
+/** Non-stacking 50% experience increase for Pokémon under the last unlocked statue's level. */
+export const originalStatueExpCap = (save: SaveData): number =>
+  ORIGINAL_STATUE_LEVELS[originalStatueCount(save) - 1] ?? 0
 /** Optional fan story has six prism shards after the retail-story ending. */
 export const shardCount = (save: SaveData) =>
   AREAS.slice(0, ORIGINAL_FIRST).filter((_, i) => areaCleared(save, i)).length
@@ -157,26 +162,28 @@ export const useGame = create<GameState>((set, get) => {
       if (!s.seenStory.includes(key)) commit({ seenStory: [...s.seenStory, key] })
     },
 
-    startCooking: sel => {
+    startCooking: (sel, tier: CookingTier = 0) => {
       const s = get().save
       if (s.pot || sel.length !== DISH_SIZE) return false
+      const pot = COOKING_TIERS[tier]
+      if (!pot || (pot.unlockArea >= 0 && !areaCleared(s, pot.unlockArea))) return false
       const need: Partial<Record<IngredientId, number>> = {}
-      for (const id of sel) need[id] = (need[id] ?? 0) + 1
+      for (const id of sel) need[id] = (need[id] ?? 0) + pot.perSlot
       for (const [id, n] of Object.entries(need) as [IngredientId, number][])
         if ((s.ingredients[id] ?? 0) < n) return false
       const ingredients = { ...s.ingredients }
       for (const [id, n] of Object.entries(need) as [IngredientId, number][]) ingredients[id] -= n
       const visitor = cook(sel)
-      const total = cookingExpeditions(sel)
+      const total = cookingExpeditions(sel, tier)
       const recipe = recipeFor(sel).no
-      commit({ ingredients, pot: { species: visitor.id, remaining: total, total, recipe } })
+      commit({ ingredients, pot: { species: visitor.id, remaining: total, total, recipe, ...(tier ? { tier } : {}) } })
       return true
     },
 
     collectCooked: () => {
       const s = get().save
       if (!s.pot || s.pot.remaining > 0) return null
-      const { mon, patch } = newMon(s, s.pot.species, newcomerLevel(s))
+      const { mon, patch } = newMon(s, s.pot.species, Math.min(100, Math.max(newcomerLevel(s), COOKING_TIERS[s.pot.tier ?? 0]?.minLevel ?? 5)))
       commit({ ...patch, pot: null, counters: bump(s.counters, 'cooked') })
       return mon
     },
@@ -348,7 +355,7 @@ export const useGame = create<GameState>((set, get) => {
       let owned = s.owned.map(o => {
         if (!s.party.includes(o.id)) return o
         // 번영의 석상: 아직 레벨이 낮은 포켓몬은 경험치를 더 받는다
-        const mul = o.level < statueCap(s.statue) ? statueMul(s.statue) : 1
+        const mul = Math.max(o.level <= originalStatueExpCap(s) ? 1.5 : 1, o.level < statueCap(s.statue) ? statueMul(s.statue) : 1)
         const r = addExp(o, Math.round(rewards.exp * mul))
         if (r.gained > 0) levelUps.push({ name: getSpecies(o.species).name, from: o.level, to: r.mon.level })
         return r.mon

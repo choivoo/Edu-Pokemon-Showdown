@@ -2,10 +2,10 @@ import type { PokemonType, Rng } from '../types'
 import { type IngredientId } from './cooking'
 import { SPECIES } from './roster'
 import { computeStats, expToNext, powerRating } from './stats'
-import { SHAPE_WEIGHTS, type Stone, STONE_KINDS, type StoneKind } from './stones'
+import { SHAPE_WEIGHTS, type Stone, type StoneKind } from './stones'
 import { MOVE_STONE_KINDS, type MoveStoneKind } from './moveStones'
 import type { Species } from '../types'
-import { FAN_AREA_COUNT, ORIGINAL_AREAS, ORIGINAL_BOSS_AREA, ORIGINAL_FIRST } from './originalCampaign'
+import { ORIGINAL_AREAS, ORIGINAL_BOSS_AREA, ORIGINAL_FIRST, HAPPENSTANCE_AREA, HAPPENSTANCE } from './originalCampaign'
 
 export type Theme = 'beach' | 'forest' | 'cave' | 'gorge' | 'volcano' | 'altar'
 export interface DialogLine { speaker: string | null; text: string }
@@ -122,6 +122,14 @@ const FAN_AREAS: Area[] = [
 export const AREAS: Area[] = [
   ...FAN_AREAS.map((area, i): Area => ({ ...area, levelBase: 62 + i * 7, campaign: 'fan' })),
   ...ORIGINAL_AREAS,
+  {
+    name: HAPPENSTANCE.name, icon: 'areaAltar', theme: 'altar', levelBase: 60,
+    pool: [3,6,9,18,65,68,76,94,103,112,115,127,130,131,143,149], boss: 150,
+    bossName: '전설의 포켓몬', shard: '', drops: ['mushroomRed','berryBlue','nutYellow','fossil','rootRed','rockBlue','honey','mushroomGray'],
+    stars: [10, 30, 60], stageCount: HAPPENSTANCE.stageCount, bonusTypes: [], campaign: 'original',
+    intro: [{ speaker: '모비', text: '뮤츠와의 결전 이후 나타난 기이한 섬입니다. 지형과 포켓몬이 탐험할 때마다 달라집니다.' }, { speaker: null, text: '아홉 가지 난이도에 자유롭게 도전할 수 있지만 각 탐험에는 5분 제한이 있다.' }],
+    outro: [{ speaker: null, text: '끝없이 변화하는 기이한 섬에서 또 하나의 전설이 기록되었다.' }],
+  },
 ]
 
 export const PROLOGUE: DialogLine[] = [
@@ -136,7 +144,7 @@ export const PROLOGUE: DialogLine[] = [
 
 export const STAGES_PER_AREA = 5
 export const stageCount = (area: number): number => AREAS[area]?.stageCount ?? STAGES_PER_AREA
-export const originalAreaCount = () => AREAS.length - FAN_AREA_COUNT
+export const originalAreaCount = () => ORIGINAL_AREAS.length
 
 export interface Stage {
   id: string
@@ -153,23 +161,34 @@ export interface Stage {
   /** 첫 클리어 시 동료가 되는 포켓몬 */
   recruit: number | null
   endlessFloor?: number
+  /** Set on original island 12. Losing when this many seconds elapse. */
+  timeLimitSec?: number
+  recommended?: number
+  /** Strong-looking Pokemon appears in the final wave of each expedition. */
+  finalEnemy?: number
 }
 
 export const stageId = (area: number, index: number) => `a${area}-s${index}`
 
 export function getStage(area: number, index: number): Stage {
   const a = AREAS[area]
-  const boss = index === stageCount(area) - 1
-  const level = a.levelBase + index + (boss ? 1 : 0)
+  const postgame = area === HAPPENSTANCE_AREA
+  const boss = postgame || index === stageCount(area) - 1
+  const level = a.levelBase + index * (postgame ? 5 : 1) + (boss ? 1 : 0)
+  const firstSteppe = area === ORIGINAL_FIRST
+  const firstSteppeStrength = [200, 650, 750, 850] as const
+  const firstSteppeBoss = [52, 11, 17] as const
   return {
     id: stageId(area, index), area, index,
-    name: boss ? a.bossName : `${a.name} ${index + 1}`,
+    name: postgame ? (index === 8 ? '12-BOSS · 전설의 시련' : `12-${index + 1} · 기이한 섬`) : a.campaign === 'original' ? `${area - ORIGINAL_FIRST + 1}-${boss ? 'BOSS' : index + 1} · ${boss ? a.bossName : a.name}` : boss ? a.bossName : `${a.name} ${index + 1}`,
     level,
-    wavePlan: area === ORIGINAL_BOSS_AREA ? [1] : wavePlanFor(area, index, boss),
+    wavePlan: postgame ? [2, 3, 3, index === 8 ? 1 : 2] : area === ORIGINAL_BOSS_AREA ? [1] : wavePlanFor(area, index, boss),
     boss,
     coins: Math.round((24 + area * 12 + index * 8) * (boss ? 2 : 1)),
     exp: Math.round(expToNext(level) * (boss ? 2 : 1.1)),
     recruit: boss && a.campaign !== 'original' ? a.boss : null,
+    ...(postgame ? { timeLimitSec: HAPPENSTANCE.timeLimit, recommended: HAPPENSTANCE.recommended[index] } : {}),
+    ...(firstSteppe ? { recommended: firstSteppeStrength[index], ...(!boss ? { finalEnemy: firstSteppeBoss[index] } : {}) } : {}),
   }
 }
 
@@ -186,7 +205,7 @@ export const allStages = (): Stage[] => AREAS.flatMap((_, a) => Array.from({ len
 export function getEndlessStage(floor: number): Stage {
   const boss = floor % 5 === 0
   return {
-    id: `endless-${floor}`, area: -1, index: floor, name: `기이한 섬 ${floor}층`,
+    id: `endless-${floor}`, area: -1, index: floor, name: `끝없는 별길 ${floor}층`,
     level: 12 + floor * 2, wavePlan: boss ? [2, 3, 2] : [2, 3, 3], boss,
     coins: 50 + floor * 10, exp: Math.round(expToNext(12 + floor * 2) * (boss ? 2 : 1.1)), recruit: floor === 10 ? 150 : null, endlessFloor: floor,
   }
@@ -209,22 +228,27 @@ const pick = <T,>(arr: T[], rng: Rng): T => arr[Math.floor(rng() * arr.length)]
 /** 스테이지의 웨이브 구성을 무작위로 뽑는다 */
 export function buildWaves(stage: Stage, rng: Rng = Math.random): WaveEnemy[][] {
   const area = stage.area >= 0 ? AREAS[stage.area] : null
-  const pool = area ? area.pool : SPECIES.filter(s => s.rarity <= 3).map(s => s.id)
+  const postgame = stage.area === HAPPENSTANCE_AREA
+  const pool = stage.area === ORIGINAL_FIRST && stage.index < 3 ? [
+    [16, 19], [10, 13], [16, 21, 4, 37, 58],
+  ][stage.index] : area ? area.pool : SPECIES.filter(s => s.rarity <= 3).map(s => s.id)
   // 첫 두 판은 이벤트 없이 익숙해지도록 한다
   const eventsOn = !((stage.area === 0 || stage.area === ORIGINAL_FIRST) && stage.index < 2)
   const mk = (level: number, extra: Partial<WaveEnemy> = {}): WaveEnemy => ({ species: pick(pool, rng), level, ...extra })
   return stage.wavePlan.map((count, wi) => {
+    // 12-BOSS: Legendary birds guard the last room before Mew/Mewtwo.
+    if (postgame && stage.index === 8 && wi === 2) return [144, 145, 146].map(id => ({ species: id, level: stage.level - 2, elite: true }))
     const last = wi === stage.wavePlan.length - 1
     if (stage.boss && last) {
-      const bossId = area ? area.boss : pick(SPECIES.filter(s => s.rarity === 3).map(s => s.id), rng)
-      const minions = Array.from({ length: count - 1 }, () => mk(Math.max(1, stage.level - 2)))
+      const bossId = postgame ? pick(stage.index === 8 ? [150, 151] : [3, 6, 9, 18, 65, 68, 76, 94, 103, 115, 127, 130, 131, 143, 144, 145, 146, 149, 150, 151], rng) : area ? area.boss : pick(SPECIES.filter(s => s.rarity === 3).map(s => s.id), rng)
+      const minions = Array.from({ length: postgame && stage.index === 8 ? 0 : count - 1 }, () => mk(Math.max(1, stage.level - 2)))
       // 보스 체력이 반쯤 깎이면 부하들이 사방에서 나타난다 (보스가 쓰러지면 모두 도망친다)
-      const rush = Array.from({ length: 2 }, () => mk(Math.max(1, stage.level - 2), { late: 'bossHp' as const }))
+      const rush = postgame && stage.index === 8 ? [] : Array.from({ length: 2 }, () => mk(Math.max(1, stage.level - 2), { late: 'bossHp' as const }))
       return [{ species: bossId, level: stage.level, boss: true }, ...minions, ...rush]
     }
     const lv = stage.level - (last ? 0 : 1)
     const base = Array.from({ length: count }, () => mk(lv))
-    if (last && !stage.boss && eventsOn) base[0] = { ...base[0], elite: true, level: lv + 1 }
+    if (last && !stage.boss && (eventsOn || !!stage.finalEnemy)) base[0] = { ...base[0], ...(stage.finalEnemy ? { species: stage.finalEnemy } : {}), elite: true, level: lv + 1 }
     if (!eventsOn || (last && !stage.boss)) return base
     const roll = rng()
     if (roll < 0.22) return [...base, mk(lv - 1, { late: 'call' }), mk(lv - 1, { late: 'call' }), mk(lv - 1, { late: 'call' })]
@@ -261,24 +285,25 @@ export function rollRewards(stage: Stage, rng: Rng = Math.random): Rewards {
     ingredients[id] = (ingredients[id] ?? 0) + 1
   }
   // 마지막 지역과 끝없는 별길에서는 무지개 재료가, 끝없는 별길 보스층에서는 신비의 조개껍질이 가끔 나온다
-  if ((stage.area === AREAS.length - 1 || stage.area < 0) && rng() < (stage.boss ? 0.9 : 0.35)) ingredients.rainbow = 1
-  if (stage.area < 0 && stage.boss) ingredients.shell = 1
+  if ((stage.area === HAPPENSTANCE_AREA || stage.area < 0) && rng() < (stage.boss ? 0.9 : 0.35)) ingredients.rainbow = 1
+  if (stage.area === HAPPENSTANCE_AREA && rng() < (0.15 + stage.index * 0.06)) ingredients.shell = 1
   const stars = area ? area.stars : ([40, 40, 20] as [number, number, number])
   const gotStone = stage.boss || rng() < 0.35
   const shape = SHAPE_WEIGHTS[weighted(SHAPE_WEIGHTS.map(w => w[1]), rng)][0]
-  const stone = gotStone ? { kind: pick<StoneKind>(STONE_KINDS, rng), star: (weighted(stars, rng) + 1) as 1 | 2 | 3, shape } : null
+  const stone = gotStone ? { kind: pick<StoneKind>(['hp', 'atk'], rng), star: (weighted(stars, rng) + 1) as 1 | 2 | 3, shape } : null
   const moveStone = rng() < (stage.boss ? 0.7 : 0.2) ? pick<MoveStoneKind>(MOVE_STONE_KINDS, rng) : null
   return { coins: stage.coins, exp: stage.exp, ingredients, stone, moveStone }
 }
 
 const AVG: Species = { id: 0, name: '', types: ['normal'], stats: { hp: 60, atk: 60, def: 60, spe: 60 }, rarity: 2, basic: '', special: '' }
 /** 스테이지 추천 전투력 (파티 3마리 합계 기준, 원작처럼 숫자로 표시) */
-export const recommendedPower = (stage: Stage) => 3 * powerRating(computeStats(AVG, stage.level))
+export const recommendedPower = (stage: Stage) => stage.recommended ?? 3 * powerRating(computeStats(AVG, stage.level))
 
 /** 지역별 보너스 타입: 해당 타입 포켓몬은 그 지역에서 체력과 공격력이 늘어난다 */
 export const AREA_BONUS: PokemonType[][] = [
   ['water', 'flying'], ['grass', 'bug'], ['rock', 'ghost'], ['electric', 'fighting'], ['fire', 'ground'], ['psychic', 'dragon'],
   ...ORIGINAL_AREAS.map(area => area.bonusTypes ?? []),
+  [],
 ]
-export const AREA_BONUS_MUL = 1.3
+export const AREA_BONUS_MUL = 1.5
 export const hasAreaBonus = (area: number, types: PokemonType[]) => area >= 0 && types.some(t => AREA_BONUS[area]?.includes(t))

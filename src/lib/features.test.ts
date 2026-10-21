@@ -56,17 +56,16 @@ describe('빙고 보너스', () => {
     expect(rollBonuses(seededRng('m7'))).toEqual(rollBonuses(seededRng('m7')))
     expect(rollBonuses(seededRng('m7'))).not.toEqual(rollBonuses(seededRng('m8')))
   })
-  it('빙고 줄은 가로 3줄 + 세로 4줄', () => {
-    expect(BINGO_LINES).toHaveLength(7)
-    expect(BINGO_LINES.filter(l => l.length === 4)).toHaveLength(3)
-    expect(BINGO_LINES.filter(l => l.length === 3)).toHaveLength(4)
+  it('P애뮬릿은 3×3 격자이며 가로 3줄, 세로 3줄', () => {
+    expect(BINGO_LINES).toHaveLength(6)
+    expect(BINGO_LINES.every(l => l.length === 3)).toBe(true)
   })
   it('한 줄을 모두 스톤으로 채우면 빙고', () => {
     const stones: Stone[] = [{ id: 'a', kind: 'atk', star: 1, shape: 'bar3' }, { id: 'b', kind: 'hp', star: 1, shape: 'dot' }]
-    // 가로 한 줄은 4칸 → bar3 + dot
-    const occ = occupancy([{ stone: 'a', x: 0, y: 1, rot: 0 }, { stone: 'b', x: 3, y: 1, rot: 0 }], stones)
+    // 가로 한 줄은 3칸이므로 bar3 한 개로 채울 수 있다(기존 저장 호환).
+    const occ = occupancy([{ stone: 'a', x: 0, y: 1, rot: 0 }], stones)
     expect(completeLines(occ)).toHaveLength(1)
-    expect(completeLines(occupancy([{ stone: 'a', x: 0, y: 1, rot: 0 }], stones))).toHaveLength(0)
+    expect(completeLines(occupancy([{ stone: 'b', x: 1, y: 1, rot: 0 }], stones))).toHaveLength(0)
   })
   it('빙고 0줄이면 효과 없음, 3줄 이상이면 최대 효과', () => {
     const b = rollBonuses(seededRng('q'))

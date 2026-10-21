@@ -45,7 +45,17 @@ export const KIND_LABEL: Record<Kind | 'mystic', string> = { mushroom: '버섯',
 
 export const DISH_SIZE = 5
 /** Original-style exploration countdown for each pot grade. */
-export const cookingExpeditions = (sel: IngredientId[]): number => ({ basic: 2, good: 3, great: 4, special: 5 })[gradeOf(sel)]
+export type CookingTier = 0 | 1 | 2 | 3
+export const COOKING_TIERS = [
+  { name: '기본 냄비', perSlot: 3, minLevel: 5, unlockArea: -1 },
+  { name: '동 냄비', perSlot: 10, minLevel: 20, unlockArea: 8 },
+  { name: '은 냄비', perSlot: 15, minLevel: 40, unlockArea: 11 },
+  { name: '금 냄비', perSlot: 20, minLevel: 70, unlockArea: 16 },
+] as const
+/** Cooking duration depends on ingredient quality and pot material. */
+export const cookingExpeditions = (sel: IngredientId[], tier: CookingTier = 0): number =>
+  ({ basic: 2, good: 4, great: 5, special: 6 })[gradeOf(sel)] +
+    (tier === 3 ? 2 : tier === 2 ? 1 : 0) + (sel.includes('shell') ? 1 : 0)
 
 /** 냄비에 든 재료의 성질별 개수. 무지개 재료는 모든 색·식감·종류에 +1, 조개껍질은 신비로움에 +1 */
 export interface Tally { color: Record<Color, number>; texture: Record<Texture, number>; kind: Record<Kind | 'mystic', number> }
@@ -101,7 +111,7 @@ export const ALL_RECIPES: Recipe[] = [BASIC, ...RECIPES.map(x => x.r)].sort((a, 
 export function recipeFor(sel: IngredientId[]): Recipe {
   const t = tally(sel)
   const legend = RECIPES[RECIPES.length - 1]
-  if (legend.ok(t)) return legend.r
+  if (sel.includes('shell')) return legend.r
   return RECIPES.find(x => x.ok(t))?.r ?? BASIC
 }
 
@@ -122,13 +132,25 @@ export const RARITY_WEIGHTS: Record<Grade, [number, number, number]> = {
   special: [30, 45, 25],
 }
 
+export const LEGENDARY_SPECIES = [144, 145, 146, 150, 151] as const
 export function attractPool(recipe: Recipe): Species[] {
-  return SPECIES.filter(s => s.rarity <= 3 && !EVOLUTION_ONLY.has(s.id) && s.types.some(t => recipe.types.includes(t)))
+  if (recipe.no === 18) return SPECIES.filter(s => LEGENDARY_SPECIES.includes(s.id as typeof LEGENDARY_SPECIES[number]))
+  return SPECIES.filter(s => s.rarity <= 3 && !EVOLUTION_ONLY.has(s.id) && !LEGENDARY_SPECIES.includes(s.id as typeof LEGENDARY_SPECIES[number]) && s.types.some(t => recipe.types.includes(t)))
 }
 
 /** 요리를 해서 찾아오는 포켓몬을 뽑는다 */
 export function cook(sel: IngredientId[], rng: Rng = Math.random): Species {
-  const pool = attractPool(recipeFor(sel))
+  const recipe = recipeFor(sel)
+  const pool = attractPool(recipe)
+  if (recipe.no === 18) {
+    const shellCount = sel.filter(id => id === 'shell').length
+    // Legendary Pokémon are obtainable ONLY using the special shell recipe.
+    const weights = pool.map(p => p.id === 150 || p.id === 151 ? (shellCount > 1 ? 2 : 1) : 3)
+    const max = weights.reduce((sum, weight) => sum + weight, 0)
+    let value = rng() * max
+    for (let i = 0; i < pool.length; i++) { value -= weights[i]; if (value < 0) return pool[i] }
+    return pool[pool.length - 1]
+  }
   const w = RARITY_WEIGHTS[gradeOf(sel)]
   // 풀에 존재하는 희귀도만으로 가중치를 다시 계산
   const avail = ([1, 2, 3] as const).filter(r => pool.some(s => s.rarity === r) && w[r - 1] > 0)

@@ -11,11 +11,12 @@ export const ORIGINAL_NODES = [
   { x: 603, y: 367 }, // 9
   { x: 768, y: 304 }, // 10
   { x: 826, y: 143 }, // 11 chamber
+  { x: 102, y: 171 }, // 12 Happenstance Island
 ] as const
 const connections = [
   [0,1], [0,2], [1,3], [1,4], [1,5], [2,3], [2,4], [2,5],
   [3,6], [3,7], [3,8], [3,9], [4,6], [4,7], [4,8], [5,7], [5,8], [5,9],
-  [6,10], [7,10], [8,10], [9,10],
+  [6,10], [7,10], [8,10], [9,10], [10,11],
 ] as const
 
 function box(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, color: string) {
@@ -43,7 +44,7 @@ export function drawOriginalIsland(ctx: CanvasRenderingContext2D, time: number, 
   ctx.setLineDash([])
   ORIGINAL_NODES.forEach((node,i)=>{
     const bright=unlocked[i],finished=cleared[i]
-    const color=finished?'#f8d87a':i===10?'#9f83db':i===1||i===6?'#4caf62':i===2||i===9?'#e6c67d':i===4||i===8?'#887b9b':'#9ad46d'
+    const color=finished?'#f8d87a':i===11?'#b0d7e6':i===10?'#9f83db':i===1||i===6?'#4caf62':i===2||i===9?'#e6c67d':i===4||i===8?'#887b9b':'#9ad46d'
     const x=node.x-63, y=node.y-31
     // Drop shadow and squared 3D-like coastline on a fully 2D canvas
     box(ctx,x+1,y+15,130,69,'#0e597a88')
@@ -57,7 +58,7 @@ export function drawOriginalIsland(ctx: CanvasRenderingContext2D, time: number, 
       const px=x+6+((n*29+fx)%110),py=y-3+((n*11+i)%45)
       box(ctx,px,py,4+(n%2)*2,3,bright?'#fff9e63b':'#213d4b30')
     }
-    if(i===10){
+    if(i===10 || i===11){
       box(ctx,x+43,y-17,40,22,'#e8d7ff')
       box(ctx,x+48,y-23,30,14,'#976bb8')
       box(ctx,x+57,y-32,12,10,'#fdf4ff')
