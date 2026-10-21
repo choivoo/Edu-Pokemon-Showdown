@@ -16,7 +16,7 @@ async function copy(text: string): Promise<boolean> {
 }
 
 export default function SavePanel() {
-  const { save, openPanel, markExported, importSave: apply } = useGame()
+  const { save, openPanel, markExported, importSave: apply, hardReset } = useGame()
   const [tab, setTab] = useState<'export' | 'import'>(save.started ? 'export' : 'import')
   const [keys, setKeys] = useState<ExportedKeys | null>(null)
   const [busy, setBusy] = useState(false)
@@ -25,6 +25,8 @@ export default function SavePanel() {
   const [inPw, setInPw] = useState('')
   const [err, setErr] = useState('')
   const [confirm, setConfirm] = useState(false)
+  const [resetOpen, setResetOpen] = useState(false)
+  const [resetPhrase, setResetPhrase] = useState('')
 
   const make = async () => {
     setBusy(true)
@@ -116,6 +118,32 @@ export default function SavePanel() {
           </div>
         </div>
       )}
+      <div className="mt-3 border-t-4 border-[#a77e44] pt-3">
+        {!resetOpen ? (
+          <div className="flex items-center justify-between gap-3">
+            <div className="text-sm text-[#684724]">
+              <b>처음부터 다시 플레이하기</b>
+              <p>이 기기의 계정과 진행 상황만 초기화합니다. 다른 기기 데이터는 변경되지 않습니다.</p>
+            </div>
+            <Btn color="gray" disabled={!save.started} onClick={() => { setResetOpen(true); setResetPhrase('') }} className="shrink-0 text-base">계정 초기화</Btn>
+          </div>
+        ) : (
+          <div className="space-y-2 rounded border-4 border-[#cb594d] bg-[#fff0da] p-3" role="group" aria-label="계정 초기화 최종 확인">
+            <p className="text-lg font-bold text-[#a22f28]">계정 초기화 · 마지막 확인</p>
+            <p className="text-sm">현재 포켓몬, 파워스톤, 진행도, 재료, 티켓과 저장 정보가 이 기기에서 삭제됩니다. 되돌릴 수 없으니 먼저 위에서 저장 키와 암호 키를 따로 보관하세요.</p>
+            <label className="block text-sm font-bold" htmlFor="reset-account-confirm">확인하려면 아래 칸에 <strong>초기화</strong>라고 정확히 입력하세요.</label>
+            <input id="reset-account-confirm" value={resetPhrase} onChange={e => setResetPhrase(e.target.value)}
+              placeholder="초기화" autoComplete="off" className="w-full rounded border-2 border-[#bc6551] bg-white px-3 py-2 text-lg text-[#463322]" />
+            <div className="flex justify-end gap-2">
+              <Btn color="gray" onClick={() => { setResetOpen(false); setResetPhrase('') }}>취소</Btn>
+              <Btn color="red" disabled={resetPhrase !== '초기화'} onClick={() => {
+                if (resetPhrase !== '초기화') return
+                sfx.wrong(); hardReset(); setResetOpen(false); setResetPhrase('')
+              }}>모든 진행 데이터 초기화</Btn>
+            </div>
+          </div>
+        )}
+      </div>
     </Panel>
   )
 }

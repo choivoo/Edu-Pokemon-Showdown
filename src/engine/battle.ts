@@ -117,6 +117,9 @@ export interface Battle {
   /** 리피트/늘리기 스톤으로 이어서 나가는 필살기 */
   queue: Queued[]
   events: FxEvent[]
+  /** Finale fires exactly once per stage, including a stage without a labeled boss. */
+  finalePlayed: boolean
+  lastEnemyFaint: {uid:number;x:number;y:number}|null
   auto: boolean
   kills: number
   nextUid: number
@@ -251,7 +254,7 @@ function joinLate(b: Battle, kind: 'call' | 'new' | 'bossHp') {
 export function createBattle(allies: AllyInput[], waves: WaveEnemy[][], rng: Rng = Math.random, stage?: Pick<Stage,'area'|'index'>): Battle {
   const b: Battle = {
     late: [], scatterCd: 0, surrounded: false, waveKills: 0, t: 0, units: [], waves, wave: 0, phase: 'fight', phaseT: 0, pending: [], queue: [], events: [],
-    auto: false, kills: 0, nextUid: 1, rng, manualPoint: null, manualDirection: null, balance: stage ? encounterBalance(stage, allies.length) : { hp: 1, attack: 1, defense: 1, allyHeal: 0.1, bossHp: 1 },
+    auto: false, kills: 0, nextUid: 1, rng, finalePlayed: false, lastEnemyFaint:null, manualPoint: null, manualDirection: null, balance: stage ? encounterBalance(stage, allies.length) : { hp: 1, attack: 1, defense: 1, allyHeal: 0.1, bossHp: 1 },
   }
   allies.forEach((a, i) => b.units.push(makeUnit(b, 'ally', a.speciesId, a.level, a.stats, i, false, { ownedId: a.ownedId, fx: a.fx, move: a.move, move2: a.move2, fx2: a.fx2 })))
   spawnWave(b)
@@ -433,6 +436,13 @@ export function scatter(b: Battle): boolean {
   return true
 }
 
+/** One fan-composed climactic fanfare and one 2D screen-space burst per cleared stage. */
+function emitFinale(b: Battle, at:{uid:number;x:number;y:number}|null): void {
+  if (b.finalePlayed || !at) return
+  b.finalePlayed = true
+  b.events.push({ k:'bossDefeated', uid:at.uid, x:at.x, y:at.y })
+}
+
 function applyHit(b: Battle, p: Pending) {
   const to = unitById(b, p.to)
   if (!to || !to.alive) return
@@ -462,6 +472,7 @@ function applyHit(b: Battle, p: Pending) {
     to.status = null
     if (to.side === 'enemy') {
       b.kills++; b.waveKills++
+      b.lastEnemyFaint={uid:to.uid,x:to.x,y:to.y}
       if (from && from.alive && from.side === 'ally' && from.koHeal > 0) {
         const healed = Math.max(1, Math.floor(from.maxHp * from.koHeal))
         from.hp = Math.min(from.maxHp, from.hp + healed)
@@ -469,7 +480,7 @@ function applyHit(b: Battle, p: Pending) {
       }
     }
     b.events.push({ k: 'faint', uid: to.uid })
-    if(to.boss && to.side === 'enemy') b.events.push({ k: 'bossDefeated', uid: to.uid, x: to.x, y: to.y })
+    if(to.boss && to.side === 'enemy') emitFinale(b,{uid:to.uid,x:to.x,y:to.y})
     // 보스가 쓰러지면 부하들은 도망친다
     if (to.boss && to.side === 'enemy') {
       for (const m of b.units) if (m.side === 'enemy' && m.alive) { m.alive = false; m.deadT = 0; b.events.push({ k: 'flee', uid: m.uid }) }
@@ -556,9 +567,9 @@ export function step(b: Battle, dt: number): void {
             u.hurt = 0.15
             if (u.hp <= 0) {
               u.alive = false; u.deadT = 0; u.status = null
-              if (u.side === 'enemy') { b.kills++; b.waveKills++ }
+              if (u.side === 'enemy') { b.kills++; b.waveKills++; b.lastEnemyFaint={uid:u.uid,x:u.x,y:u.y} }
               b.events.push({ k: 'faint', uid: u.uid })
-              if (u.boss && u.side === 'enemy') b.events.push({ k: 'bossDefeated', uid: u.uid, x: u.x, y: u.y })
+              if (u.boss && u.side === 'enemy') emitFinale(b,{uid:u.uid,x:u.x,y:u.y})
               continue
             }
           }
@@ -674,6 +685,7 @@ export function step(b: Battle, dt: number): void {
       if (!alive(b, 'enemy').length && !b.pending.length && b.late.some(e => e.late === 'new')) joinLate(b, 'new')
     }
     if (!alive(b, 'enemy').length && !b.pending.length) {
+      if (b.wave === b.waves.length - 1) emitFinale(b,b.lastEnemyFaint)
       b.phase = 'advance'
       b.manualPoint=null
       b.phaseT = ADVANCE_TIME
