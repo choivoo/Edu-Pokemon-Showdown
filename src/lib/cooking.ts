@@ -80,7 +80,7 @@ export function tally(sel: IngredientId[]): Tally {
 }
 
 /** 듬뿍 = 4개 이상, 많이 = 3개 이상, 조금 = 1개 이상 */
-const PLENTY = 4, MANY = 3, SOME = 1
+const PLENTY = 4, MANY = 3
 
 export interface Recipe { no: number; name: string; types: PokemonType[]; hint: string }
 
