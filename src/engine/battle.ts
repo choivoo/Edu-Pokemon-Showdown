@@ -57,6 +57,8 @@ export interface Unit {
   /** 흩어지기 남은 시간 */
   scatterT: number
   elite: boolean
+  /** 최종 보스 패턴 상태 */
+  pat?: { tp: number; gi: number; charge: number; broke: boolean }
   alive: boolean
   deadT: number
   lunge: number
@@ -359,6 +361,42 @@ export function scatter(b: Battle): boolean {
   return true
 }
 
+/** 최종 보스(망나뇽/뮤츠) 패턴: 순간이동, 기가임팩트, 반 이하가 되면 사이코브레이크 */
+export const PATTERN_BOSSES = [149, 150]
+function bossPattern(b: Battle, u: Unit, dt: number) {
+  const pat = (u.pat ??= { tp: 8, gi: 14, charge: 0, broke: false })
+  const allies = alive(b, 'ally')
+  if (!allies.length) return
+  pat.tp -= dt
+  if (pat.tp <= 0 && pat.charge <= 0) {
+    pat.tp = 11
+    const a = allies[Math.floor(b.rng() * allies.length)]
+    u.x = Math.min(FIELD.x1, Math.max(FIELD.x0, a.x + (b.rng() < 0.5 ? -1 : 1) * (110 + b.rng() * 80)))
+    u.y = Math.min(FIELD.y1, Math.max(FIELD.y0, a.y + (b.rng() - 0.5) * 120))
+    b.events.push({ k: 'banner', text: '순간이동!', tone: 'warn' })
+  }
+  pat.gi -= dt
+  if (pat.gi <= 0 && pat.charge <= 0) {
+    pat.gi = 18
+    pat.charge = 1.6
+    b.events.push({ k: 'banner', text: '기가임팩트 준비! 흩어져!', tone: 'boss' })
+  }
+  if (pat.charge > 0) {
+    pat.charge -= dt
+    if (pat.charge <= 0) {
+      u.lunge = 0.4
+      b.events.push({ k: 'attack', from: u.uid, to: allies.map(a => a.uid), type: u.special.type, special: true, ranged: true })
+      for (const a of allies) strike(b, u, a, u.special, true, 1.8, 0.1)
+    }
+  }
+  if (!pat.broke && u.hp <= u.maxHp * 0.5) {
+    pat.broke = true
+    b.events.push({ k: 'banner', text: '사이코브레이크!', tone: 'boss' })
+    for (const a of allies) { a.debuff = { atk: 0, def: -0.3, speed: 0, until: b.t + 8 }; b.events.push({ k: 'buff', uid: a.uid, good: false }) }
+    u.buff = { atk: 0.2, def: 0, speed: 0.2, until: b.t + 9999 }
+  }
+}
+
 function applyHit(b: Battle, p: Pending) {
   const to = unitById(b, p.to)
   if (!to || !to.alive) return
@@ -442,7 +480,8 @@ export function step(b: Battle, dt: number): void {
           }
         }
       }
-      if (stunned(u)) { u.moving = false; continue }
+      if (u.boss && u.side === 'enemy' && PATTERN_BOSSES.includes(u.speciesId)) bossPattern(b, u, dt)
+      if (stunned(u) || (u.pat && u.pat.charge > 0)) { u.moving = false; continue }
       u.atkCd -= u.status?.kind === 'paralyze' ? dt * 0.5 : dt
       u.spCd = Math.max(0, u.spCd - dt)
       if (u.spCd <= 0 && (u.boss || (u.side === 'ally' && b.auto) || u.side === 'enemy' && u.special.role) && u.scatterT <= 0) doSpecial(b, u)

@@ -49,18 +49,18 @@ async function pipe(bytes: Uint8Array, stream: CompressionStream | Decompression
 }
 
 // ---------- 저장 데이터 압축 표현 (배열 기반으로 크기를 줄임) ----------
-type PackedMon = [string, number, number, number, Array<[string, number, number, number]>, Array<[string, number, number, number]>?, string[]?, string?, number?, number?]
-type Packed = [number, number, string, number, [string, number][], Array<[string, string, number, string]>, PackedMon[], string[], string[], number[], number, number, number, number, number, number?, number?, Array<[string, string]>?, Record<string, number>?, string[]?, number?, string[]?, string?]
+type PackedMon = [string, number, number, number, Array<[string, number, number, number]>, Array<[string, number, number, number]>?, string[]?, string?, number?, number?, number?]
+type Packed = [number, number, string, number, [string, number][], Array<[string, string, number, string]>, PackedMon[], string[], string[], number[], number, number, number, number, number, number?, number?, Array<[string, string]>?, Record<string, number>?, string[]?, number?, string[]?, string?, number?]
 
 export function pack(s: SaveData): Packed {
   return [
     s.version, s.started ? 1 : 0, s.name, s.coins,
     Object.entries(s.ingredients),
     s.stones.map(t => [t.id, t.kind, t.star, t.shape]),
-    s.owned.map(o => [o.id, o.species, o.level, o.exp, o.stones.map(p => [p.stone, p.x, p.y, p.rot]), o.bonus.map(b => [b.kind, ...b.v]), o.mstones, o.move ?? '', o.recalls ?? 0, o.recallT ?? 0]),
+    s.owned.map(o => [o.id, o.species, o.level, o.exp, o.stones.map(p => [p.stone, p.x, p.y, p.rot]), o.bonus.map(b => [b.kind, ...b.v]), o.mstones, o.move ?? '', o.recalls ?? 0, o.recallT ?? 0, o.keep ? 1 : 0]),
     s.party, Object.keys(s.cleared), s.dex, s.endlessBest, s.uid, s.muted ? 1 : 0, s.exportedAt, s.clearsSinceExport,
     s.battery.n, s.battery.at, s.moveStones.map(m => [m.id, m.kind]),
-    s.counters, s.claimed, s.statue, s.themes, s.theme,
+    s.counters, s.claimed, s.statue, s.themes, s.theme, s.tickets,
   ] as unknown as Packed
 }
 
@@ -76,9 +76,9 @@ export function unpack(p: Packed): SaveData {
     coins: Number(p[3]) || 0,
     ingredients: ing,
     stones: p[5].map(([id, kind, star, shape]) => ({ id, kind, star, shape })) as SaveData['stones'],
-    owned: p[6].map(([id, species, level, exp, st, bonus, mstones, move, recalls, recallT]) => ({
+    owned: p[6].map(([id, species, level, exp, st, bonus, mstones, move, recalls, recallT, keep]) => ({
       id, species, level, exp,
-      ...(move ? { move } : {}), ...(recalls ? { recalls, recallT } : {}),
+      ...(keep ? { keep: true } : {}), ...(move ? { move } : {}), ...(recalls ? { recalls, recallT } : {}),
       stones: st.map(([stone, x, y, rot]) => ({ stone, x, y, rot })),
       // 옛 저장 키에는 빙고 보너스/기술스톤이 없다 → migrate 가 채운다
       bonus: (bonus ?? []).map(([kind, a, b, c]) => ({ kind, v: [a, b, c] })) as OwnedMon['bonus'],
@@ -95,7 +95,7 @@ export function unpack(p: Packed): SaveData {
     clearsSinceExport: Number(p[14]) || 0,
     battery: p[15] !== undefined && p[16] !== undefined ? { n: Math.max(0, Math.min(5, Number(p[15]) || 0)), at: Number(p[16]) || Date.now() } : defaultSave().battery,
     moveStones: (p[17] ?? []).map(([id, kind]) => ({ id, kind })) as SaveData['moveStones'],
-    counters: p[18] ?? {}, claimed: p[19] ?? [], statue: Number(p[20]) || 0, themes: p[21] ?? ['default'], theme: p[22] ?? 'default',
+    counters: p[18] ?? {}, claimed: p[19] ?? [], statue: Number(p[20]) || 0, themes: p[21] ?? ['default'], theme: p[22] ?? 'default', tickets: Number(p[23]) || 0,
   }
   return migrate(save)
 }

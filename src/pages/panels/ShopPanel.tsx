@@ -1,3 +1,5 @@
+import { useState } from 'react'
+import { getSpecies } from '../../lib/roster'
 import { useGame } from '../../store/gameStore'
 import { INGREDIENTS } from '../../lib/cooking'
 import { mergeCost, type ShapeId, SHAPES, type StoneKind, STONE_INFO, STONE_KINDS } from '../../lib/stones'
@@ -8,12 +10,13 @@ import { sfx } from '../../lib/sound'
 import BatteryMeter, { useBattery } from '../../ui/BatteryMeter'
 import { BATTERY_MAX } from '../../lib/battery'
 import { STATUE_MAX, statueCap, statueCost, statueMul } from '../../lib/quests'
-import { BATTERY_FULL_COST, BATTERY_ONE_COST } from '../../store/gameStore'
+import { BATTERY_FULL_COST, BATTERY_ONE_COST, ENCOUNTER_COST } from '../../store/gameStore'
 
 const SHAPE_IDS = Object.keys(SHAPES) as ShapeId[]
 
 export default function ShopPanel() {
-  const { save, openPanel, buyIngredient, mergeStones, buyBattery, upgradeStatue } = useGame()
+  const { save, openPanel, buyIngredient, mergeStones, buyBattery, upgradeStatue, encounter } = useGame()
+  const [met, setMet] = useState('')
   const bat = useBattery()
   const used = usedStoneIds(save)
   const free = save.stones.filter(s => !used.has(s.id))
@@ -37,7 +40,14 @@ export default function ShopPanel() {
           {save.statue >= STATUE_MAX ? '최대 레벨' : <>올리기 <Icon n="coin" s={16} />{statueCost(save.statue)}</>}
         </Btn>
       </div>
-      <div className="flex gap-4" style={{ height: 230 }}>
+      <div className="pq-inner mb-2 flex items-center gap-3 p-2 text-lg">
+        <Icon n="sparkle" s={28} />
+        <span className="font-bold">기이한만남의섬</span>
+        <span className="flex-1 text-sm">{met || `낯선 포켓몬과 만나요. 가끔 전설의 포켓몬이! (선물 티켓 ${save.tickets}장)`}</span>
+        <Btn color="blue" disabled={save.tickets < 1} onClick={() => { const m = encounter(true); if (m) { sfx.levelup(); setMet(`${getSpecies(m.species).name}이(가) 동료가 되었어요!`) } }} quiet className="px-3 py-1 text-sm">티켓 1장</Btn>
+        <Btn color="green" disabled={save.coins < ENCOUNTER_COST} onClick={() => { const m = encounter(false); if (m) { sfx.levelup(); setMet(`${getSpecies(m.species).name}이(가) 동료가 되었어요!`) } }} quiet className="flex items-center gap-1 px-3 py-1 text-sm"><Icon n="coin" s={16} />{ENCOUNTER_COST}</Btn>
+      </div>
+      <div className="flex gap-4" style={{ height: 180 }}>
         <div className="pq-inner scroll-thin flex-1 space-y-1.5 overflow-y-auto p-3">
           <p className="text-xl font-bold">재료 상점</p>
           {INGREDIENTS.filter(i => i.price > 0).map(i => (

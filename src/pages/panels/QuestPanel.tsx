@@ -8,6 +8,7 @@ function RewardText({ r }: { r: Reward }) {
   const t = THEMES.find(x => x.id === r.theme)
   return (
     <span className="flex flex-wrap items-center gap-2 text-sm text-[#8a5a10]">
+      {r.ticket ? <span className="inline-flex items-center gap-0.5"><Icon n="star" s={16} />티켓×{r.ticket}</span> : null}
       {r.coins ? <span className="inline-flex items-center gap-0.5"><Icon n="coin" s={16} />{r.coins}</span> : null}
       {r.shell ? <span className="inline-flex items-center gap-0.5"><Icon n="shell" s={18} />×{r.shell}</span> : null}
       {r.rainbow ? <span className="inline-flex items-center gap-0.5"><Icon n="rainbow" s={18} />×{r.rainbow}</span> : null}

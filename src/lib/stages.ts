@@ -31,7 +31,7 @@ const N = null
 
 export const AREAS: Area[] = [
   {
-    name: '푸른물결 해변', icon: 'areaBeach', theme: 'beach', levelBase: 4, pool: [19, 54, 129, 60, 74, 16], boss: 130,
+    name: '푸른물결 해변', icon: 'areaBeach', theme: 'beach', levelBase: 4, pool: [19, 54, 129, 60, 74, 16, 90, 116, 120], boss: 130,
     bossName: '성난 갸라도스', shard: '파도의 조각', drops: ['berryBlue', 'rockBlue', 'fossil', 'mushroomRed'], stars: [90, 10, 0],
     intro: [
       { speaker: N, text: '짭짤한 바람과 거센 파도 소리. 별모래섬의 첫 번째 지역, 푸른물결 해변이다.' },
@@ -45,7 +45,7 @@ export const AREAS: Area[] = [
     ],
   },
   {
-    name: '속삭이는 숲', icon: 'areaForest', theme: 'forest', levelBase: 10, pool: [13, 43, 41, 1, 16, 19, 54], boss: 3,
+    name: '속삭이는 숲', icon: 'areaForest', theme: 'forest', levelBase: 10, pool: [13, 43, 41, 1, 16, 19, 54, 10, 46, 69, 102], boss: 3,
     bossName: '숲의 파수꾼 이상해꽃', shard: '숲의 조각', drops: ['rootRed', 'nutYellow', 'mushroomRed', 'honey'], stars: [75, 22, 3],
     intro: [
       { speaker: N, text: '나뭇잎이 서로 속삭이는 숲. 하지만 오늘은 어딘가 시끄럽다.' },
@@ -58,7 +58,7 @@ export const AREAS: Area[] = [
     ],
   },
   {
-    name: '달그림자 동굴', icon: 'areaCave', theme: 'cave', levelBase: 16, pool: [92, 74, 104, 50, 41, 63, 261], boss: 94,
+    name: '달그림자 동굴', icon: 'areaCave', theme: 'cave', levelBase: 16, pool: [92, 74, 104, 50, 41, 63, 261, 27, 109, 111], boss: 94,
     bossName: '그림자 속의 팬텀', shard: '달그림자 조각', drops: ['fossil', 'mushroomGray', 'rockBlue', 'nutYellow'], stars: [60, 32, 8],
     intro: [
       { speaker: N, text: '햇빛이 닿지 않는 깊은 동굴. 벽에 박힌 광석이 희미하게 빛난다.' },
@@ -71,7 +71,7 @@ export const AREAS: Area[] = [
     ],
   },
   {
-    name: '번개 협곡', icon: 'areaGorge', theme: 'gorge', levelBase: 22, pool: [25, 81, 66, 198, 50, 74, 35], boss: 135,
+    name: '번개 협곡', icon: 'areaGorge', theme: 'gorge', levelBase: 22, pool: [25, 81, 66, 198, 50, 74, 35, 100, 56, 84], boss: 135,
     bossName: '천둥의 쥬피썬더', shard: '번개 조각', drops: ['nutYellow', 'honey', 'fossil', 'mushroomGray'], stars: [50, 38, 12],
     intro: [
       { speaker: N, text: '구름 사이로 번개가 끊임없이 내리치는 협곡. 머리카락이 곤두선다.' },
@@ -84,7 +84,7 @@ export const AREAS: Area[] = [
     ],
   },
   {
-    name: '불꽃 화산', icon: 'areaVolcano', theme: 'volcano', levelBase: 28, pool: [4, 58, 37, 66, 95, 74, 215], boss: 6,
+    name: '불꽃 화산', icon: 'areaVolcano', theme: 'volcano', levelBase: 28, pool: [4, 58, 37, 66, 95, 74, 215, 77, 21], boss: 6,
     bossName: '불꽃의 군주 리자몽', shard: '불꽃 조각', drops: ['mushroomRed', 'rootRed', 'fossil', 'mushroomGray'], stars: [40, 42, 18],
     intro: [
       { speaker: N, text: '용암이 흐르는 뜨거운 화산. 발바닥이 후끈거린다.' },
@@ -97,7 +97,7 @@ export const AREAS: Area[] = [
     ],
   },
   {
-    name: '별빛 제단', icon: 'areaAltar', theme: 'altar', levelBase: 32, pool: [215, 198, 94, 65, 131, 147, 143, 135], boss: 149,
+    name: '별빛 제단', icon: 'areaAltar', theme: 'altar', levelBase: 32, pool: [215, 198, 94, 65, 131, 147, 143, 135, 96, 122, 138, 140], boss: 149,
     bossName: '별을 삼킨 망나뇽', shard: '별빛 조각', drops: ['mushroomRed', 'berryBlue', 'nutYellow', 'fossil', 'rootRed', 'rockBlue', 'honey', 'mushroomGray'], stars: [30, 45, 25],
     intro: [
       { speaker: N, text: '별빛이 쏟아지는 섬의 중심, 별빛 제단. 그 위에 거대한 그림자가 똬리를 틀고 있다.' },
@@ -204,7 +204,7 @@ export function buildWaves(stage: Stage, rng: Rng = Math.random): WaveEnemy[][] 
   return stage.wavePlan.map((count, wi) => {
     const last = wi === stage.wavePlan.length - 1
     if (stage.boss && last) {
-      const bossId = area ? area.boss : pick(SPECIES.filter(s => s.rarity === 3).map(s => s.id), rng)
+      const bossId = area ? area.boss : stage.index >= 10 && rng() < 0.5 ? 150 : pick(SPECIES.filter(s => s.rarity === 3).map(s => s.id), rng)
       const minions = Array.from({ length: count - 1 }, () => mk(Math.max(1, stage.level - 2)))
       // 보스 체력이 반쯤 깎이면 부하들이 사방에서 나타난다 (보스가 쓰러지면 모두 도망친다)
       const rush = Array.from({ length: 2 }, () => mk(Math.max(1, stage.level - 2), { late: 'bossHp' as const }))

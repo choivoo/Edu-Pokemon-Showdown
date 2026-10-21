@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import type { Species } from '../types'
 import { cook, type IngredientId, getIngredient, DISH_SIZE } from '../lib/cooking'
-import { getSpecies } from '../lib/roster'
+import { getSpecies, SPECIES } from '../lib/roster'
 import { addExp, expToNext, MAX_LEVEL, type OwnedMon } from '../lib/stats'
 import { canPlace, findSpot, mergeCost, occupancy, type Stone, type ShapeId, type StoneKind } from '../lib/stones'
 import { usedMoveStoneIds, usedStoneIds } from '../lib/party'
@@ -12,9 +12,10 @@ import { AREAS, rollRewards, type Rewards, type Stage, stageId } from '../lib/st
 import { defaultSave, loadSave, resetSave, type SaveData, writeSave } from '../lib/storage'
 import { setMuted } from '../lib/sound'
 import { recall, trainExp, TRAIN_MAX, type RecallResult } from '../lib/training'
-import { canEvolve, targetOf } from '../lib/evolution'
+import { canEvolve, EVOLUTION_ONLY, targetOf } from '../lib/evolution'
 import { QUESTS, isClaimed, isDone, STATUE_MAX, statueCap, statueCost, statueMul } from '../lib/quests'
 
+export const ENCOUNTER_COST = 500
 export const BATTERY_ONE_COST = 150
 export const BATTERY_FULL_COST = 600
 
@@ -71,6 +72,9 @@ interface GameState {
   upgradeStatue: () => boolean
   claimQuest: (id: string) => boolean
   setTheme: (id: string) => void
+  toggleKeep: (monId: string) => void
+  /** 기이한만남의섬: 코인 500 또는 선물 티켓 1장으로 낯선 포켓몬과 만난다 */
+  encounter: (useTicket: boolean) => OwnedMon | null
 }
 
 /** 새로 합류하는 포켓몬의 레벨: 파티 평균보다 살짝 낮게 */
@@ -304,8 +308,31 @@ export const useGame = create<GameState>((set, get) => {
       if (q.reward.shell) ingredients.shell += q.reward.shell
       if (q.reward.rainbow) ingredients.rainbow += q.reward.rainbow
       const themes = q.reward.theme && !s.themes.includes(q.reward.theme) ? [...s.themes, q.reward.theme] : s.themes
-      commit({ claimed: [...s.claimed, id], coins: s.coins + (q.reward.coins ?? 0), ingredients, themes })
+      commit({ claimed: [...s.claimed, id], coins: s.coins + (q.reward.coins ?? 0), ingredients, themes, tickets: s.tickets + (q.reward.ticket ?? 0) })
       return true
+    },
+
+    toggleKeep: monId => {
+      const s = get().save
+      commit({ owned: s.owned.map(o => (o.id === monId ? { ...o, keep: !o.keep } : o)) })
+    },
+
+    encounter: useTicket => {
+      const s = get().save
+      if (useTicket ? s.tickets < 1 : s.coins < ENCOUNTER_COST) return null
+      const r = Math.random()
+      const pool = SPECIES.filter(x => !EVOLUTION_ONLY.has(x.id))
+      const legend = [144, 145, 146, 142, 151]
+      let id: number
+      if (r < 0.06) id = legend[Math.floor(Math.random() * legend.length)]
+      else {
+        const rar = r < 0.5 ? 1 : r < 0.85 ? 2 : 3
+        const c = pool.filter(x => x.rarity === rar)
+        id = c[Math.floor(Math.random() * c.length)].id
+      }
+      const { mon, patch } = newMon(s, id, newcomerLevel(s, 8))
+      commit({ ...patch, ...(useTicket ? { tickets: s.tickets - 1 } : { coins: s.coins - ENCOUNTER_COST }) })
+      return mon
     },
 
     setTheme: id => {

@@ -22,6 +22,8 @@ export interface OwnedMon {
   /** 기술 떠올리기 피로도와 마지막 시도 시각 */
   recalls?: number
   recallT?: number
+  /** 변함없는돌: 진화하지 않는다 */
+  keep?: boolean
 }
 
 export interface Stats {

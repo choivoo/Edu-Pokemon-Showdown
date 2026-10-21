@@ -26,7 +26,7 @@ function ShapePreview({ stone, size = 16 }: { stone: Stone; size?: number }) {
 }
 
 export default function TeamPanel() {
-  const { save, openPanel, setParty, placeStone, removeStone, levelUpCost, levelUpWithCoins, release, equipMoveStone, unequipMoveStone, evolve } = useGame()
+  const { save, openPanel, setParty, placeStone, removeStone, levelUpCost, levelUpWithCoins, release, equipMoveStone, unequipMoveStone, evolve, toggleKeep } = useGame()
   const [selId, setSelId] = useState(save.party[0] ?? save.owned[0]?.id)
   const [right, setRight] = useState<'mons' | 'stones' | 'moves' | 'bingo'>('mons')
   const [hold, setHold] = useState<{ id: string; rot: number } | null>(null)
@@ -220,6 +220,9 @@ export default function TeamPanel() {
                 <Btn key={c} color="red" onClick={() => { if (evolve(mon.id, c || undefined)) sfx.levelup() }} className="px-3 py-1 text-base">{label}</Btn>
               ))}
             </div>
+          )}
+          {evolutionOf(mon.species) && (
+            <button onClick={() => toggleKeep(mon.id)} className={`border-4 px-2 py-0.5 text-left text-sm ${mon.keep ? 'border-[#3f7fe8] bg-[#e6f0ff]' : 'border-[#e5a500]'}`}>변함없는돌 {mon.keep ? '지니는 중 (진화하지 않아요)' : '지니기 (진화를 막아요)'}</button>
           )}
           <div className="flex gap-2">
             <Btn color={inParty ? 'gray' : 'green'} onClick={toggleParty} className="flex-1 py-1.5 text-base">{inParty ? '파티에서 빼기' : '파티에 넣기'}</Btn>

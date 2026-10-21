@@ -139,3 +139,27 @@ describe('흩어지기', () => {
     expect(Math.hypot(f.x - u.x, f.y - u.y)).toBeGreaterThan(d0)
   })
 })
+
+describe('최종 보스 패턴', () => {
+  const boss = (id: number) => {
+    const b = createBattle([ally(150, 40, 0)], [[{ species: id, level: 20, boss: true }]], seq(12))
+    b.auto = false
+    return b
+  }
+  it('보스는 일정 시간마다 기가임팩트를 준비하고 쏜다', () => {
+    const b = boss(149)
+    const texts: string[] = []
+    for (let i = 0; i < 20 * 25; i++) { step(b, 0.05); b.events.forEach(e => e.k === 'banner' && texts.push(e.text)); b.events.length = 0 }
+    expect(texts.some(t => t.includes('기가임팩트'))).toBe(true)
+    expect(texts.some(t => t.includes('순간이동'))).toBe(true)
+  })
+  it('체력이 반 이하가 되면 사이코브레이크로 방어를 깎는다', () => {
+    const b = boss(150)
+    const u = b.units.find(x => x.boss)!
+    u.hp = Math.floor(u.maxHp * 0.4)
+    step(b, 0.05)
+    const a = b.units.find(x => x.side === 'ally')!
+    expect(a.debuff.def).toBeLessThan(0)
+    expect(u.buff.atk).toBeGreaterThan(0)
+  })
+})

@@ -113,3 +113,20 @@ describe('저장 키에 새 데이터가 담긴다', () => {
     expect(back.theme).toBe('dusk')
   })
 })
+
+describe('도감 151', () => {
+  it('1~151번이 모두 있다', () => {
+    for (let i = 1; i <= 151; i++) expect(() => getSpecies(i)).not.toThrow()
+  })
+  it('진화 단계는 순환하지 않는다', () => {
+    for (const from of Object.keys(EVOLUTIONS)) {
+      let cur = Number(from), n = 0
+      while (EVOLUTIONS[cur] && n < 5) { cur = EVOLUTIONS[cur].to; n++ }
+      expect(n).toBeLessThan(4)
+    }
+  })
+  it('변함없는돌을 지니면 진화하지 않는다', () => {
+    expect(canEvolve({ species: 4, level: 40, keep: true })).toBe(false)
+    expect(canEvolve({ species: 4, level: 40 })).toBe(true)
+  })
+})
