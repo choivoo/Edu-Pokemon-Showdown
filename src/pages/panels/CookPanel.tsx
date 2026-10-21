@@ -42,7 +42,7 @@ export default function CookPanel() {
       const mon = cookDish(sel)
       setCooking(false)
       setSel([])
-      if (mon) { setGot({ mon, isNew: !known.has(mon.species) }); sfx.levelup() }
+      if (mon) { setGot({ mon, isNew: !known.has(mon.species) }); sfx.cry(mon.species); setTimeout(() => sfx.levelup(), 320) }
     }, 1400)
   }
 
