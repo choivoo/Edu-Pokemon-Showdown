@@ -19,6 +19,10 @@ export interface SaveData {
   started: boolean
   name: string
   coins: number
+  /** Earned/free PM Tickets for non-cash decorations and upgrades. */
+  pmTickets: number
+  ticketClaimedAt: number
+  decorations: string[]
   ingredients: Record<IngredientId, number>
   /** Cooked dishes mature after exploration, not after a 1-second animation. */
   pot: CookingPot | null
@@ -50,7 +54,7 @@ export interface SaveData {
 const KEY = 'pokemon-quest-fan-edition:v1'
 
 export const defaultSave = (): SaveData => ({
-  version: 1, started: false, name: '', coins: 100,
+  version: 1, started: false, name: '', coins: 100, pmTickets: 0, ticketClaimedAt: 0, decorations: [],
   ingredients: { mushroomRed: 6, berryBlue: 6, nutYellow: 6, fossil: 6, rootRed: 6, rockBlue: 0, honey: 0, mushroomGray: 0, rainbow: 0, shell: 0 },
   pot: null, stones: [], owned: [], party: [], cleared: {}, seenStory: [], dex: [], endlessBest: 0, uid: 1, muted: false, exportedAt: 0, clearsSinceExport: 0,
   battery: freshBattery(Date.now()), moveStones: [],
@@ -62,6 +66,8 @@ export function migrate(s: SaveData): SaveData {
   return {
     ...s,
     pot: s.pot ?? null,
+    pmTickets: s.pmTickets ?? 0, ticketClaimedAt: s.ticketClaimedAt ?? 0,
+    decorations: Array.isArray(s.decorations) ? s.decorations : [],
     owned: s.owned.map(o => ({ ...o, bonus: o.bonus?.length ? o.bonus : rollBonuses(seededRng(o.id)), mstones: o.mstones ?? [] })),
     moveStones: s.moveStones ?? [],
     battery: s.battery ?? freshBattery(Date.now()),
