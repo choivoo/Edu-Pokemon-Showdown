@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { cook, cookingExpeditions, COOKING_TIERS, recipeFor, type CookingTier, type IngredientId, getIngredient, DISH_SIZE } from '../lib/cooking'
-import { getSpecies } from '../lib/roster'
+import { getSpecies, getMove } from '../lib/roster'
+import { questLearnset } from '../data/questSpecies'
 import { addExp, expToNext, MAX_LEVEL, type OwnedMon } from '../lib/stats'
 import { canPlace, findSpot, mergeCost, occupancy, type Stone, type ShapeId, type StoneKind } from '../lib/stones'
 import { usedMoveStoneIds, usedStoneIds } from '../lib/party'
@@ -117,10 +118,21 @@ export const useGame = create<GameState>((set, get) => {
     return save
   }
   const bump = (c: Record<string, number>, key: string, n = 1) => ({ ...c, [key]: (c[key] ?? 0) + n })
-  const newMon = (save: SaveData, speciesId: number, level: number): { mon: OwnedMon; patch: Partial<SaveData> } => {
-    const mon: OwnedMon = { id: `m${save.uid}`, species: speciesId, level, exp: 0, stones: [], bonus: rollBonuses(), mstones: [] }
-    const options = recallPool(mon)
-    if (options.length && Math.random() < 0.38) mon.move2 = options[Math.floor(Math.random() * options.length)].id
+  const newMon = (save: SaveData, speciesId: number, level: number, tier: CookingTier = 0): { mon: OwnedMon; patch: Partial<SaveData> } => {
+    const bonuses = [0, 50, 100, 300] as const
+    const maxIV = [10, 50, 100, 100] as const
+    const mon: OwnedMon = { id: `m${save.uid}`, species: speciesId, level, exp: 0, stones: [],
+      bonus: rollBonuses(), mstones: [], potBonus: bonuses[tier], ivHp: Math.floor(Math.random() * (maxIV[tier] + 1)), ivAtk: Math.floor(Math.random() * (maxIV[tier] + 1)) }
+    const pool = questLearnset(speciesId)
+    if (pool.length) {
+      const first = pool[Math.floor(Math.random() * pool.length)]
+      mon.move = first.id
+      const second = pool.filter(m => m.id !== first.id)
+      if (second.length && Math.random() < 0.38) mon.move2 = second[Math.floor(Math.random() * second.length)].id
+    } else {
+      const options = recallPool(mon)
+      if (options.length && Math.random() < 0.38) mon.move2 = options[Math.floor(Math.random() * options.length)].id
+    }
     return {
       mon,
       patch: { owned: [...save.owned, mon], uid: save.uid + 1, dex: save.dex.includes(speciesId) ? save.dex : [...save.dex, speciesId] },
@@ -190,7 +202,7 @@ export const useGame = create<GameState>((set, get) => {
     collectCooked: () => {
       const s = get().save
       if (!s.pot || s.pot.remaining > 0) return null
-      const { mon, patch } = newMon(s, s.pot.species, Math.min(100, Math.max(newcomerLevel(s), COOKING_TIERS[s.pot.tier ?? 0]?.minLevel ?? 5)))
+      const { mon, patch } = newMon(s, s.pot.species, Math.min(100, Math.max(newcomerLevel(s), COOKING_TIERS[s.pot.tier ?? 0]?.minLevel ?? 5)), s.pot.tier ?? 0)
       commit({ ...patch, pot: null, counters: bump(s.counters, 'cooked') })
       return mon
     },
@@ -288,7 +300,13 @@ export const useGame = create<GameState>((set, get) => {
     equipMoveStone: (monId, stoneId) => {
       const s = get().save
       const mon = s.owned.find(o => o.id === monId)
-      if (!mon || mon.mstones.length >= (mon.move2 ? 2 : MOVE_SLOTS) || usedMoveStoneIds(s).has(stoneId) || !s.moveStones.some(m => m.id === stoneId)) return false
+      const ms = s.moveStones.find(m => m.id === stoneId)
+      if (!mon || !ms || mon.mstones.length >= (mon.move2 ? 2 : MOVE_SLOTS) || usedMoveStoneIds(s).has(stoneId)) return false
+      const current = [mon.move, mon.move2].filter((x): x is string => !!x)
+      if (current.length && current.every(id => {
+        const move = getMove(id)
+        return move.stones && !move.stones.includes(ms.kind)
+      })) return false
       commit({ owned: s.owned.map(o => (o.id === monId ? { ...o, mstones: [...o.mstones, stoneId] } : o)) })
       return true
     },
