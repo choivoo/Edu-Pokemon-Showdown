@@ -22,7 +22,7 @@ function groups(part) {
  }).filter(g=>g.length)
 }
 function blocks(text,area,expected){
- if(area===11)return [{index:0,raw:text.slice(text.indexOf('Boss/Strong Pokémon')),label:'11-1'}]
+ if(area===11){const mark=text.search(/Boss\s*\/\s*Strong\b/i);return [{index:0,raw:mark>=0?text.slice(mark):'',label:'11-1'}]}
  const pattern=area===12 ? /\bPossible\s+Level\s+Selection\s*(\d+)\b/g : new RegExp('\\bStage\\s+'+area+'-(\\d+)\\b','g')
  const marks=[...text.matchAll(pattern)]
  if(marks.length<expected)throw Error('Missing labels '+area+': '+marks.length+'/'+expected)
@@ -32,7 +32,7 @@ function parse(block) {
  const [head,boss='']=block.raw.split(/Boss\s*\/\s*Strong\b/i)
  const segments=head.split(/\bSegment\s+\d+\b/g).slice(1).map(groups).filter(g=>g.length)
  const bossSets=groups(boss)
- if(!bossSets.length)throw Error('Missing boss for '+block.label+'; sample='+block.raw.slice(-350))
+ if(!bossSets.length&&block.label!=='5-1')throw Error('Missing boss for '+block.label+'; sample='+block.raw.slice(-350))
  if(!segments.length&&block.label!=='11-1')throw Error('Missing segments for '+block.label)
  const recommended=Number(head.match(/Recommended Team Strength:\s*([\d,]+)/)?.[1]?.replace(/,/g,'')??0)
  return {segments,bossSets,...(recommended?{recommended}:{}),source:'serebii-location-numerical'}
