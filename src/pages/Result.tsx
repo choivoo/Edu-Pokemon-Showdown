@@ -8,12 +8,13 @@ import Dialog from '../components/Dialog'
 import { bgm, sfx } from '../lib/sound'
 import { useBattery } from '../ui/BatteryMeter'
 import { MOVE_STONE_INFO } from '../lib/moveStones'
+import { fieldScene } from '../lib/storyCampaign'
 import { Btn, Panel, Portrait } from '../ui/kit'
 import Icon, { Coins } from '../ui/Icon'
 
 export default function Result() {
   const { result: r, save, go, startStage, markStory } = useGame()
-  const [story, setStory] = useState(r?.outroArea != null)
+  const [storyMode, setStoryMode] = useState<'field' | 'outro' | null>(() => r?.win && r.firstClear && r.stage.area >= 0 ? 'field' : r?.outroArea != null ? 'outro' : null)
   const bat = useBattery()
 
   useEffect(() => {
@@ -24,6 +25,7 @@ export default function Result() {
 
   if (!r) return null
   const { stage } = r
+  const field = stage.area >= 0 ? fieldScene(stage.area, stage.index) : undefined
   const camp = () => go('camp')
 
   let next: (() => void) | null = null
@@ -49,14 +51,14 @@ export default function Result() {
                 <div><p className="text-sm text-[#c06a00]">새 동료가 합류!</p><p className="text-xl">{getSpecies(r.recruited.species).name}</p><p className="text-sm">Lv{r.recruited.level}</p></div>
               </div>
             )}
-            {!r.win && <p className="text-base">팀 레벨을 올리거나 파워스톤을 배치하고 다시 도전해 보세요!</p>}
+            {!r.win && <p className="text-base">팀 레벨을 올리거나 P스톤을 배치하고 다시 도전해 보세요!</p>}
           </div>
           <div className="pq-inner flex-1 space-y-2 p-4 text-xl">
             {r.win && r.rewards ? (<>
               <div className="flex justify-between"><span>코인</span><b><Coins n={`+${r.rewards.coins}`} /></b></div>
               <div className="flex justify-between"><span>경험치 (파티 전원)</span><b>+{r.rewards.exp}</b></div>
               <div className="flex justify-between"><span>재료</span><span className="flex flex-wrap justify-end gap-2">{INGREDIENTS.filter(i => r.rewards!.ingredients[i.id]).map(i => <span key={i.id} className="inline-flex items-center"><Icon n={i.icon} s={28} />×{r.rewards!.ingredients[i.id]}</span>)}</span></div>
-              {r.stone && <div className="flex justify-between"><span>파워스톤</span><b className="flex items-center gap-1" style={{ color: STONE_INFO[r.stone.kind].color }}><Icon n={STONE_INFO[r.stone.kind].icon} s={26} />{stoneName(r.stone)} ({SHAPES[r.stone.shape].length}칸)</b></div>}
+              {r.stone && <div className="flex justify-between"><span>P스톤</span><b className="flex items-center gap-1" style={{ color: STONE_INFO[r.stone.kind].color }}><Icon n={STONE_INFO[r.stone.kind].icon} s={26} />{stoneName(r.stone)} ({SHAPES[r.stone.shape].length}칸)</b></div>}
               {r.moveStone && <div className="flex justify-between"><span>기술스톤</span><b className="flex items-center gap-1" style={{ color: MOVE_STONE_INFO[r.moveStone.kind].color }}><Icon n={MOVE_STONE_INFO[r.moveStone.kind].icon} s={26} />{MOVE_STONE_INFO[r.moveStone.kind].name}</b></div>}
               {r.levelUps.map(l => <p key={l.name} className="flex items-center gap-1 text-lg text-[#2e8f4a]"><Icon n="up" s={22} />{l.name} Lv{l.from} 에서 Lv{l.to}</p>)}
             </>) : <p className="text-center text-lg">아쉽지만 보상은 없어요.</p>}
@@ -69,7 +71,8 @@ export default function Result() {
           {next && <Btn color="green" onClick={next} disabled={nextStarts && bat.n <= 0} className="flex items-center gap-2">다음<Icon n="next" s={22} /></Btn>}
         </div>
       </Panel>
-      {story && r.outroArea != null && <Dialog lines={AREAS[r.outroArea].outro} name={save.name} onDone={() => { markStory(`outro-${r.outroArea}`); setStory(false) }} />}
+      {storyMode === 'field' && field && <Dialog key={field.id} lines={field.lines} name={save.name} onDone={() => { markStory(field.id); setStoryMode(r.outroArea != null ? 'outro' : null) }} />}
+      {storyMode === 'outro' && r.outroArea != null && <Dialog key={'outro-' + r.outroArea} lines={AREAS[r.outroArea].outro} name={save.name} onDone={() => { markStory('outro-' + r.outroArea); setStoryMode(null) }} />}
     </div>
   )
 }

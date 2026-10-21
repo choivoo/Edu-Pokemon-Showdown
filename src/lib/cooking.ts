@@ -73,25 +73,25 @@ const ALL_TYPES: PokemonType[] = ['normal', 'fire', 'water', 'electric', 'grass'
 
 /** 18가지 레시피. 번호가 낮은 것이 먼저 적용되고, 아무것도 맞지 않으면 1번(별모래 수프) */
 const RECIPES: { r: Recipe; ok: (t: Tally) => boolean }[] = [
-  { r: { no: 2, name: '노을 스튜', types: ['fire', 'fighting', 'dragon'], hint: '빨간 재료 듬뿍' }, ok: t => t.color.red >= PLENTY },
-  { r: { no: 3, name: '물결 주스', types: ['water', 'ice'], hint: '파란 재료 듬뿍' }, ok: t => t.color.blue >= PLENTY },
-  { r: { no: 4, name: '햇살 카레', types: ['normal', 'bug', 'electric'], hint: '노란 재료 듬뿍' }, ok: t => t.color.yellow >= PLENTY },
-  { r: { no: 5, name: '잿빛 그라탕', types: ['rock', 'ground', 'steel'], hint: '회색 재료 듬뿍' }, ok: t => t.color.gray >= PLENTY },
-  { r: { no: 6, name: '물빛 차우더', types: ['water', 'ice'], hint: '부드러운 재료 듬뿍 + 파란 재료 많이' }, ok: t => t.texture.soft >= PLENTY && t.color.blue >= MANY },
-  { r: { no: 7, name: '구름 크레이프', types: ['normal', 'fairy'], hint: '달콤한 재료 많이 + 회색 조금' }, ok: t => t.kind.sweet >= MANY && t.color.gray >= SOME },
-  { r: { no: 8, name: '보라 버섯죽', types: ['poison', 'ghost'], hint: '버섯 듬뿍 + 부드러운 재료 많이' }, ok: t => t.kind.mushroom >= PLENTY && t.texture.soft >= MANY },
-  { r: { no: 9, name: '황토 파이', types: ['ground', 'rock'], hint: '부드러운 재료 많이 + 광물 조금' }, ok: t => t.texture.soft >= MANY && t.kind.mineral >= SOME },
-  { r: { no: 10, name: '숲속 스무디', types: ['grass', 'bug'], hint: '식물 듬뿍 + 부드러운 재료 조금' }, ok: t => t.kind.plant >= PLENTY && t.texture.soft >= SOME },
-  { r: { no: 11, name: '꿀벌 퐁듀', types: ['bug', 'poison'], hint: '달콤한 재료 듬뿍 + 노란 재료 많이' }, ok: t => t.kind.sweet >= PLENTY && t.color.yellow >= MANY },
-  { r: { no: 12, name: '별빛 오믈렛', types: ['psychic', 'fairy', 'dark'], hint: '달콤한 재료 많이 + 딱딱한 재료 조금' }, ok: t => t.kind.sweet >= MANY && t.texture.hard >= SOME },
-  { r: { no: 13, name: '바위 찜', types: ['rock', 'steel', 'ground'], hint: '딱딱한 재료 듬뿍 + 광물 조금' }, ok: t => t.texture.hard >= PLENTY && t.kind.mineral >= SOME },
-  { r: { no: 14, name: '바람 샐러드', types: ['flying', 'dragon'], hint: '광물 많이 + 식물 조금' }, ok: t => t.kind.mineral >= MANY && t.kind.plant >= SOME },
-  { r: { no: 15, name: '불꽃 바비큐', types: ['fire', 'dragon'], hint: '버섯 많이 + 빨간 재료 조금' }, ok: t => t.kind.mushroom >= MANY && t.color.red >= SOME },
-  { r: { no: 16, name: '번개 소스', types: ['electric', 'steel'], hint: '부드러운 재료 듬뿍 + 노란 재료 많이' }, ok: t => t.texture.soft >= PLENTY && t.color.yellow >= MANY },
-  { r: { no: 17, name: '근육 샐러드', types: ['fighting', 'dark'], hint: '달콤한 재료 많이 + 버섯 조금' }, ok: t => t.kind.sweet >= MANY && t.kind.mushroom >= SOME },
-  { r: { no: 18, name: '전설의 수프', types: ALL_TYPES, hint: '신비로운 재료 듬뿍' }, ok: t => t.kind.mystic >= PLENTY },
+  { r: { no: 2, name: '레드네모루루스튜', types: ['fire', 'fighting', 'dragon'], hint: '빨간 재료 듬뿍' }, ok: t => t.color.red >= PLENTY },
+  { r: { no: 3, name: '블루네모루루쥬스', types: ['water', 'ice'], hint: '파란 재료 듬뿍' }, ok: t => t.color.blue >= PLENTY },
+  { r: { no: 4, name: '옐로네모루루카레', types: ['normal', 'bug', 'electric'], hint: '노란 재료 듬뿍' }, ok: t => t.color.yellow >= PLENTY },
+  { r: { no: 5, name: '화이트네모루루그라탕', types: ['rock', 'ground', 'steel'], hint: '회색 재료 듬뿍' }, ok: t => t.color.gray >= PLENTY },
+  { r: { no: 6, name: '네모루루워터카우다', types: ['water', 'ice'], hint: '부드러운 재료 듬뿍 + 파란 재료 많이' }, ok: t => t.texture.soft >= PLENTY && t.color.blue >= MANY },
+  { r: { no: 7, name: '네모루루실크레이프', types: ['normal', 'fairy'], hint: '달콤한 재료 많이 + 회색 조금' }, ok: t => t.kind.sweet >= MANY && t.color.gray >= SOME },
+  { r: { no: 8, name: '네모루루오물단팥죽', types: ['poison', 'ghost'], hint: '버섯 듬뿍 + 부드러운 재료 많이' }, ok: t => t.kind.mushroom >= PLENTY && t.texture.soft >= MANY },
+  { r: { no: 9, name: '네모루루클레이차우더', types: ['ground', 'rock'], hint: '부드러운 재료 많이 + 광물 조금' }, ok: t => t.texture.soft >= MANY && t.kind.mineral >= SOME },
+  { r: { no: 10, name: '네모루루건강스무디', types: ['grass', 'bug'], hint: '식물 듬뿍 + 부드러운 재료 조금' }, ok: t => t.kind.plant >= PLENTY && t.texture.soft >= SOME },
+  { r: { no: 11, name: '네모루루허니퐁듀', types: ['bug', 'poison'], hint: '달콤한 재료 듬뿍 + 노란 재료 많이' }, ok: t => t.kind.sweet >= PLENTY && t.color.yellow >= MANY },
+  { r: { no: 12, name: '네모루루염력자오로스', types: ['psychic', 'fairy', 'dark'], hint: '달콤한 재료 많이 + 딱딱한 재료 조금' }, ok: t => t.kind.sweet >= MANY && t.texture.hard >= SOME },
+  { r: { no: 13, name: '네모루루암석찜', types: ['rock', 'steel', 'ground'], hint: '딱딱한 재료 듬뿍 + 광물 조금' }, ok: t => t.texture.hard >= PLENTY && t.kind.mineral >= SOME },
+  { r: { no: 14, name: '네모루루윈도리아', types: ['flying', 'dragon'], hint: '광물 많이 + 식물 조금' }, ok: t => t.kind.mineral >= MANY && t.kind.plant >= SOME },
+  { r: { no: 15, name: '네모루루파이야베스', types: ['fire', 'dragon'], hint: '버섯 많이 + 빨간 재료 조금' }, ok: t => t.kind.mushroom >= MANY && t.color.red >= SOME },
+  { r: { no: 16, name: '네모루루찌리리조또', types: ['electric', 'steel'], hint: '부드러운 재료 듬뿍 + 노란 재료 많이' }, ok: t => t.texture.soft >= PLENTY && t.color.yellow >= MANY },
+  { r: { no: 17, name: '네모루루머슬오레', types: ['fighting', 'dark'], hint: '달콤한 재료 많이 + 버섯 조금' }, ok: t => t.kind.sweet >= MANY && t.kind.mushroom >= SOME },
+  { r: { no: 18, name: '네모루루레전드수프', types: ALL_TYPES, hint: '신비로운 재료 듬뿍' }, ok: t => t.kind.mystic >= PLENTY },
 ]
-const BASIC: Recipe = { no: 1, name: '별모래 수프', types: ALL_TYPES, hint: '아무 재료나' }
+const BASIC: Recipe = { no: 1, name: '네모루루수프', types: ALL_TYPES, hint: '아무 재료나' }
 
 export const ALL_RECIPES: Recipe[] = [BASIC, ...RECIPES.map(x => x.r)].sort((a, b) => a.no - b.no)
 

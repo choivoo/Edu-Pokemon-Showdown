@@ -20,7 +20,7 @@ export default function ShopPanel() {
   const groups = STONE_KINDS.flatMap(kind => SHAPE_IDS.flatMap(shape => ([1, 2] as const).map(star => ({ kind: kind as StoneKind, shape, star, n: free.filter(s => s.kind === kind && s.shape === shape && s.star === star).length })))).filter(g => g.n > 0)
 
   return (
-    <Panel title="상점" onClose={() => openPanel(null)} w={900}>
+    <Panel title="프렌들리숍" onClose={() => openPanel(null)} w={900}>
       <div className="pq-inner mb-2 flex items-center gap-3 p-2 text-lg">
         <span className="font-bold">배터리</span>
         <BatteryMeter dark />
@@ -52,7 +52,7 @@ export default function ShopPanel() {
           <p className="pt-2 text-xs text-[#8a5a10]">무지개머티리얼과 신비의 조개껍질은 팔지 않아요. 마지막 지역과 끝없는 별길에서 구할 수 있어요.</p>
         </div>
         <div className="pq-inner scroll-thin flex-1 space-y-2 overflow-y-auto p-3">
-          <p className="text-xl font-bold">파워스톤 합성</p>
+          <p className="text-xl font-bold">P스톤 합성</p>
           <p className="text-sm leading-snug">격자에 놓지 않은 같은 종류·모양·별의 스톤 2개를 합치면 별이 1개 늘어요.</p>
           {groups.length === 0 && <p className="p-3 text-center text-base">합칠 수 있는 스톤이 없어요.</p>}
           {groups.map(g => (

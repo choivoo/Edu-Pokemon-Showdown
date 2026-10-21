@@ -56,10 +56,12 @@ export default function Camp() {
         </button>
       )}
 
+      <Btn color="blue" onClick={() => openPanel('story')} className="absolute bottom-[124px] left-4 z-10 flex items-center gap-2 px-4 py-1.5 text-base"><Icon n="book" s={22} />모험일지</Btn>
+
       {/* 하단 바: 메뉴 / 파티 / 탐험 */}
       <div className="absolute inset-x-0 bottom-0 flex h-[112px] items-center justify-between gap-3 px-4 pb-3 pt-4">
         <div className="flex gap-2">
-          {([['dex', 'book', '도감'], ['shop', 'cart', '상점'], ['train', 'sword', '특훈'], ['quest', 'flag', '퀘스트']] as const).map(([p, icon, label]) => (
+          {([['dex', 'book', '도감'], ['shop', 'cart', '프렌들리숍'], ['train', 'sword', '특훈'], ['quest', 'flag', '퀘스트']] as const).map(([p, icon, label]) => (
             <Btn key={p} onClick={() => openPanel(p)} className="flex h-[78px] w-[76px] flex-col items-center justify-center gap-1 whitespace-nowrap px-0 py-0 text-sm"><span className="relative"><Icon n={icon} s={34} />{p === 'quest' && claimable(save).length > 0 && <span className="blink absolute -right-3 -top-2 h-4 w-4 border-2 border-[#2b2838] bg-[#e8524a]" />}</span>{label}</Btn>
           ))}
         </div>
