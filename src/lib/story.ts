@@ -5,7 +5,7 @@
  */
 import type { DialogLine } from './stages'
 import type { SaveData } from './storage'
-import { AREAS, stageId } from './stages'
+import { stageId } from './stages'
 
 interface Beat { title: string; scene: string; discovery: string; answer: string }
 export interface StoryEpisode {
