@@ -5,7 +5,7 @@ import { computeStats, expToNext, powerRating } from './stats'
 import { SHAPE_WEIGHTS, type Stone, type StoneKind } from './stones'
 import { MOVE_STONE_KINDS, type MoveStoneKind } from './moveStones'
 import type { Species } from '../types'
-import { FAN_AREA_COUNT, ORIGINAL_AREAS, ORIGINAL_BOSS_AREA, ORIGINAL_FIRST, HAPPENSTANCE_AREA, HAPPENSTANCE } from './originalCampaign'
+import { ORIGINAL_AREAS, ORIGINAL_BOSS_AREA, ORIGINAL_FIRST, HAPPENSTANCE_AREA, HAPPENSTANCE } from './originalCampaign'
 
 export type Theme = 'beach' | 'forest' | 'cave' | 'gorge' | 'volcano' | 'altar'
 export interface DialogLine { speaker: string | null; text: string }
