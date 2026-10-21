@@ -56,6 +56,11 @@ export interface Unit {
   reviveHp: number
   effectResist: number
   statusResist: number
+  typeMoveAtk: Record<string,number>
+  typeMoveWait: Record<string,number>
+  typeDamageResist: Record<string,number>
+  statusTypeResist: Record<string,number>
+  critTakenResist: number
   /** 필살기로 얻은 공격력 기합 (until 까지 mul 배) */
   spirit: { mul: number; until: number }
   /** 보조기로 받은 증감 (until 까지) */
@@ -152,17 +157,20 @@ function makeUnit(b: Battle, side: Side, speciesId: number, level: number, stats
     uid: b.nextUid++, side, speciesId, name: sp.name, types: sp.types, level, maxHp, hp: maxHp,
     atk: Math.floor(stats.atk * atkMul), def: Math.floor(stats.def * m.def), spe: stats.spe, crit: stats.crit,
     basic, special, secondary, spCd2: secondary ? 4 : 0,
-    spMax2: secondary ? Math.max(1, (secondary.wait ?? (secondary.power >= 100 ? 10 : 8)) * (1 - stats.spCd)) : 0,
+    spMax2: secondary ? Math.max(1, (secondary.wait ?? (secondary.power >= 100 ? 10 : 8)) * (1 - stats.spCd) * (1 - (stats.typeMoveWait?.[secondary.type] ?? 0))) : 0,
     boss, ownedId, slot, x, y, face: side === 'ally' ? 1 : -1, moving: false,
     range: boss ? 96 : ranged ? RANGED_RANGE : MELEE_RANGE,
     speed: Math.min(190, Math.min(150, 62 + stats.spe * 0.55) * (1 + stats.moveSpd)),
-    radius: boss ? 62 : elite ? 36 : 28,
+    radius: (boss ? 62 : elite ? 36 : 28) * (1 + (stats.bodySize ?? 0)),
     atkCd: 0.4 + b.rng() * 0.9,
     fx,
-    spMax: Math.max(1, (special.wait ?? (special.power >= 100 ? 10 : 8)) * (1 - 0.05 * fx.quick) * (1 + 0.5 * fx.repeat) * (1 - stats.spCd)),
+    spMax: Math.max(1, (special.wait ?? (special.power >= 100 ? 10 : 8)) * (1 - 0.05 * fx.quick) * (1 + 0.5 * fx.repeat) * (1 - stats.spCd) * (1 - (stats.typeMoveWait?.[special.type] ?? 0))),
     critDmg: stats.critDmg, atkCdCut: stats.atkCd, lifesteal: stats.lifesteal, regen: stats.regen, waveHeal: stats.waveHeal,
     koHeal: stats.koHeal ?? 0, reviveSpeed: stats.reviveSpeed ?? 0, reviveHp: stats.reviveHp ?? 0,
     effectResist: stats.effectResist ?? 0, statusResist: stats.statusResist ?? 0,
+    typeMoveAtk: stats.typeMoveAtk ?? {}, typeMoveWait: stats.typeMoveWait ?? {},
+    typeDamageResist: stats.typeDamageResist ?? {}, statusTypeResist: stats.statusTypeResist ?? {},
+    critTakenResist: stats.critTakenResist ?? 0,
     spirit: { mul: 0, until: 0 },
     buff: { atk: 0, def: 0, speed: 0, until: 0 }, debuff: { atk: 0, def: 0, speed: 0, until: 0 }, status: null, scatterT: 0, elite,
     spCd: side === 'ally' ? 3.5 : 6 + b.rng() * 3,
@@ -242,7 +250,7 @@ const stunned = (u: Unit) => u.status?.kind === 'sleep' || u.status?.kind === 'f
 export const isBuffed = (b: Battle, u: Unit) => b.t < u.spirit.until
 
 function strike(b: Battle, from: Unit, to: Unit, move: Move, special: boolean, powerMul = 1, delay = 0.12) {
-  const power = move.power * powerMul * (from.types.includes(move.type) ? STAB : 1)
+  const power = move.power * powerMul * (from.types.includes(move.type) ? STAB : 1) * (1 + (from.typeMoveAtk[move.type] ?? 0))
   const crit = b.rng() < from.crit
   const atk = atkOf(b, from)
   let r = calcDamage({ level: from.level, power, atk, def: defOf(b, to), moveType: move.type, defenderTypes: to.types, rng: b.rng, crit })
@@ -261,7 +269,7 @@ const STATUS_SECS: Record<StatusKind, number> = { poison: 7, paralyze: 5, burn: 
 
 /** 상태이상은 한 번에 하나만 걸린다. 보스는 절반만 걸린다. */
 function applyStatus(b: Battle, to: Unit, kind: StatusKind, secs = STATUS_SECS[kind]) {
-  if (!to.alive || to.status || b.rng() < to.statusResist) return
+  if (!to.alive || to.status || b.rng() < Math.min(1,to.statusResist + (to.statusTypeResist[kind] ?? 0))) return
   to.status = { kind, until: b.t + secs * (to.boss ? 0.5 : 1), tick: 0 }
   b.events.push({ k: 'status', uid: to.uid, kind })
 }
@@ -381,11 +389,12 @@ function applyHit(b: Battle, p: Pending) {
   const to = unitById(b, p.to)
   if (!to || !to.alive) return
   if (to.scatterT > 0 && b.rng() < (p.special ? 0.55 : 0.3)) return
-  to.hp = Math.max(0, to.hp - p.amount)
+  const resisted = Math.round(p.amount * Math.max(0.05, 1 - (to.typeDamageResist[p.type] ?? 0)) * (p.crit ? Math.max(0,1-to.critTakenResist) : 1))
+  to.hp = Math.max(0, to.hp - resisted)
   to.hurt = 0.3
   // 잠듦은 맞으면 깬다
   if (to.status?.kind === 'sleep') to.status = null
-  b.events.push({ k: 'hit', from: p.from, to: p.to, amount: p.amount, eff: p.eff, crit: p.crit, type: p.type, special: p.special })
+  b.events.push({ k: 'hit', from: p.from, to: p.to, amount: resisted, eff: p.eff, crit: p.crit, type: p.type, special: p.special })
   const from = unitById(b, p.from)
   if (from && from.alive && from.lifesteal > 0 && !p.special && p.amount > 0) {
     const heal = Math.max(1, Math.floor(from.maxHp * from.lifesteal))
