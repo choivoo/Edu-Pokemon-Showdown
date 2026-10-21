@@ -2,10 +2,11 @@ import { create } from 'zustand'
 import { cook, cookingExpeditions, COOKING_TIERS, recipeFor, type CookingTier, type IngredientId, getIngredient, DISH_SIZE } from '../lib/cooking'
 import { getSpecies } from '../lib/roster'
 import { addExp, expToNext, MAX_LEVEL, type OwnedMon } from '../lib/stats'
-import { canPlace, findSpot, mergeCost, occupancy, type Stone, type ShapeId, type StoneKind } from '../lib/stones'
+import { canPlace, socketAccepts, mergeCost, occupancy, type Stone, type ShapeId, type StoneKind } from '../lib/stones'
 import { usedMoveStoneIds, usedStoneIds } from '../lib/party'
 import { type MoveStone, MOVE_SLOTS } from '../lib/moveStones'
 import { rollBonuses } from '../lib/bingo'
+import { DECORATIONS, DECOR_MAX, decorationBonus } from '../lib/decorations'
 import { BATTERY_MAX, batteryNow, charge, consume } from '../lib/battery'
 import { AREAS, rollRewards, stageCount, type Rewards, type Stage, stageId } from '../lib/stages'
 import { ORIGINAL_FIRST, ORIGINAL_LAST, ORIGINAL_BOSS_AREA, ORIGINAL_STATUE_COUNT, HAPPENSTANCE_AREA, originalUnlocked } from '../lib/originalCampaign'
@@ -65,13 +66,15 @@ interface GameState {
   buyBattery: (full: boolean) => boolean
   equipMoveStone: (monId: string, stoneId: string) => boolean
   unequipMoveStone: (monId: string, stoneId: string) => void
-  finishBattle: (win: boolean, stage: Stage, kills?: number) => void
+  finishBattle: (win: boolean, stage: Stage, kills?: number, timeSec?: number) => void
   /** 특훈: 경험치(exp) 또는 기술 떠올리기(move). 재료로 쓴 포켓몬은 사라진다 */
   train: (targetId: string, foodIds: string[], mode: 'exp' | 'move') => { ok: boolean; exp?: number; recall?: RecallResult } | null
   evolve: (monId: string, choice?: string) => number | null
   upgradeStatue: () => boolean
   claimQuest: (id: string) => boolean
   setTheme: (id: string) => void
+  buyDecoration: (id: string) => boolean
+  toggleDecoration: (id: string) => boolean
 }
 
 /** 새로 합류하는 포켓몬의 레벨: 파티 평균보다 살짝 낮게 */
@@ -174,7 +177,7 @@ export const useGame = create<GameState>((set, get) => {
       const ingredients = { ...s.ingredients }
       for (const [id, n] of Object.entries(need) as [IngredientId, number][]) ingredients[id] -= n
       const visitor = cook(sel)
-      const total = cookingExpeditions(sel, tier)
+      const total = Math.max(1, cookingExpeditions(sel, tier) - decorationBonus(s.decorations).cook)
       const recipe = recipeFor(sel).no
       commit({ ingredients, pot: { species: visitor.id, remaining: total, total, recipe, ...(tier ? { tier } : {}) } })
       return true
@@ -195,7 +198,7 @@ export const useGame = create<GameState>((set, get) => {
       const mon = s.owned.find(o => o.id === monId)
       const stone = s.stones.find(t => t.id === stoneId)
       if (!mon || !stone || usedStoneIds(s).has(stoneId)) return false
-      if (!canPlace(mon.level, occupancy(mon.stones, s.stones), stone.shape, rot, x, y)) return false
+      if (!canPlace(mon.level, occupancy(mon.stones, s.stones), stone.shape, rot, x, y) || !socketAccepts(mon.id, mon.species, stone.kind, stone.shape, x, y, rot)) return false
       commit({ owned: s.owned.map(o => (o.id === monId ? { ...o, stones: [...o.stones, { stone: stoneId, x, y, rot }] } : o)) })
       return true
     },
@@ -204,7 +207,11 @@ export const useGame = create<GameState>((set, get) => {
       const mon = s.owned.find(o => o.id === monId)
       const stone = s.stones.find(t => t.id === stoneId)
       if (!mon || !stone) return false
-      const spot = findSpot(mon.level, occupancy(mon.stones, s.stones), stone.shape)
+      const used = occupancy(mon.stones, s.stones)
+      const spots = [] as Array<{ x: number; y: number; rot: number }>
+      for (let y = 0; y < 3; y++) for (let x = 0; x < 3; x++)
+        for (let rot = 0; rot < 4; rot++) if (canPlace(mon.level, used, stone.shape, rot, x, y) && socketAccepts(mon.id, mon.species, stone.kind, stone.shape, x, y, rot)) spots.push({ x, y, rot })
+      const spot = spots[0]
       return spot ? get().placeStone(monId, stoneId, spot.x, spot.y, spot.rot) : false
     },
     removeStone: (monId, stoneId) => {
@@ -215,7 +222,7 @@ export const useGame = create<GameState>((set, get) => {
     mergeStones: (kind, shape, star) => {
       const s = get().save
       const used = usedStoneIds(s)
-      const same = s.stones.filter(x => x.kind === kind && x.shape === shape && x.star === star && !used.has(x.id))
+      const same = s.stones.filter(x => x.kind === kind && x.shape === shape && x.star === star && x.value === undefined && !used.has(x.id))
       const cost = mergeCost({ star, shape })
       if (same.length < 2 || s.coins < cost) return false
       const [a, b] = same
@@ -227,7 +234,7 @@ export const useGame = create<GameState>((set, get) => {
     buyIngredient: (id, qty) => {
       const s = get().save
       const cost = getIngredient(id).price * qty
-      if (s.coins < cost) return false
+      if (s.coins < cost || cost <= 0) return false
       commit({ coins: s.coins - cost, ingredients: { ...s.ingredients, [id]: s.ingredients[id] + qty } })
       return true
     },
@@ -340,15 +347,32 @@ export const useGame = create<GameState>((set, get) => {
       const s = get().save
       if (s.themes.includes(id)) commit({ theme: id })
     },
+    buyDecoration: id => {
+      const s = get().save
+      const decor = DECORATIONS.find(d => d.id === id)
+      if (!decor || s.decorations.includes(id) || s.coins < decor.cost) return false
+      const decorations = [...s.decorations, id]
+      commit({ coins: s.coins - decor.cost, decorations, placedDecorations: s.placedDecorations.length < DECOR_MAX ? [...s.placedDecorations, id] : s.placedDecorations })
+      return true
+    },
+    toggleDecoration: id => {
+      const s = get().save
+      if (!s.decorations.includes(id)) return false
+      const placedDecorations = s.placedDecorations.includes(id) ? s.placedDecorations.filter(d => d !== id)
+        : s.placedDecorations.length < DECOR_MAX ? [...s.placedDecorations, id] : null
+      if (!placedDecorations) return false
+      commit({ placedDecorations })
+      return true
+    },
 
-    finishBattle: (win, stage, kills = 0) => {
+    finishBattle: (win, stage, kills = 0, timeSec) => {
       const s = get().save
       if (!win) {
         if (s.pot && s.pot.remaining > 0) commit({ pot: { ...s.pot, remaining: s.pot.remaining - 1 } })
         set({ result: { win: false, stage, rewards: null, firstClear: false, recruited: null, levelUps: [], stone: null, moveStone: null, outroArea: null }, screen: 'result' })
         return
       }
-      const rewards = rollRewards(stage)
+      const rewards = rollRewards(stage, Math.random, ((s.counters?.clears ?? 0) + 1) % 10 === 0, decorationBonus(s.decorations))
       const firstClear = stage.area >= 0 ? !s.cleared[stage.id] : stage.endlessFloor! > s.endlessBest
       // 파티 전원에게 경험치
       const levelUps: BattleResult['levelUps'] = []
@@ -382,7 +406,9 @@ export const useGame = create<GameState>((set, get) => {
         if (!dex.includes(stage.recruit)) dex = [...dex, stage.recruit]
       }
       const pot = s.pot && s.pot.remaining > 0 ? { ...s.pot, remaining: s.pot.remaining - 1 } : s.pot
-      commit({ coins: s.coins + rewards.coins, ingredients, owned, stones, moveStones, cleared, endlessBest, uid, dex, pot, clearsSinceExport: s.clearsSinceExport + 1, counters: bump(bump(bump(s.counters, 'clears'), 'kills', kills), 'bosses', stage.boss ? 1 : 0) })
+      const clearTimes = stage.timeLimitSec && timeSec && timeSec > 0 && timeSec <= stage.timeLimitSec && (!s.clearTimes[stage.id] || timeSec < s.clearTimes[stage.id])
+        ? { ...s.clearTimes, [stage.id]: Math.round(timeSec * 10) / 10 } : s.clearTimes
+      commit({ coins: s.coins + rewards.coins, ingredients, owned, stones, moveStones, cleared, clearTimes, endlessBest, uid, dex, pot, clearsSinceExport: s.clearsSinceExport + 1, counters: bump(bump(bump(s.counters, 'clears'), 'kills', kills), 'bosses', stage.boss ? 1 : 0) })
       set({
         result: { win: true, stage, rewards, firstClear, recruited, levelUps, stone, moveStone, outroArea: firstClear && stage.boss && stage.area >= 0 ? stage.area : null },
         screen: 'result',

@@ -2,7 +2,18 @@
 export type StoneKind = 'hp' | 'atk' | 'def' | 'spd' | 'crit'
 export type ShapeId = 'dot' | 'bar2' | 'bar3' | 'ell'
 
-export interface Stone { id: string; kind: StoneKind; star: 1 | 2 | 3; shape: ShapeId }
+export type StoneEffectKind = 'critRate' | 'critDmg' | 'hitHealing' | 'naturalHealing' | 'waveHealing' | 'moveSpeed'
+export const STONE_EFFECTS: Record<StoneEffectKind, string> = {
+  critRate: '급소 확률', critDmg: '급소 피해', hitHealing: '공격 시 회복',
+  naturalHealing: '자연 회복', waveHealing: '웨이브 회복', moveSpeed: '이동 속도',
+}
+/** Current reward stones use a flat HP/ATK value and up to three extra effects.
+ * Optional fields preserve all v1/v2 legacy stone and encrypted save data. */
+export interface Stone {
+  id: string; kind: StoneKind; star: 1 | 2 | 3; shape: ShapeId
+  value?: number
+  effects?: Partial<Record<StoneEffectKind, number>>
+}
 export interface Placement { stone: string; x: number; y: number; rot: number }
 
 export const GRID_W = 3
@@ -67,6 +78,28 @@ export function findSpot(level: number, occ: Map<string, number>, shape: ShapeId
 }
 
 export const stoneCells = (s: Stone) => SHAPES[s.shape].length
-export const stoneName = (s: Stone) => `${STONE_INFO[s.kind].name} ${s.star}성`
+export const stoneName = (s: Stone) =>
+  `${STONE_INFO[s.kind].name} ${s.star}성${s.value !== undefined ? ' +' + s.value : ''}`
+
+/** Each freshly recruited Pokémon receives a stable, individual 3×3 socket pattern.
+ * Central slot always accepts either HP or ATK; the others are randomized.
+ * Pattern is derived from the individual save ID so no extra data needs storing. */
+export type SocketKind = 'atk' | 'hp' | 'both'
+export function socketKind(monId: string, species: number, x: number, y: number): SocketKind {
+  if (x < 0 || x >= GRID_W || y < 0 || y >= GRID_H) return 'both'
+  if (x === 1 && y === 1) return 'both'
+  const seed = `${monId}:${species}:${x},${y}`
+  let h = 2166136261
+  for (let i = 0; i < seed.length; i++) h = Math.imul(h ^ seed.charCodeAt(i), 16777619)
+  const n = (h >>> 0) % 9
+  return n < 3 ? 'both' : n < 6 ? 'hp' : 'atk'
+}
+export function socketAccepts(monId: string, species: number, kind: StoneKind, shape: ShapeId, x: number, y: number, rot: number): boolean {
+  // Existing fan-made DEF/SPD/CRIT stones can still be used in shared sockets.
+  return cellsOf(shape, rot).every(([dx, dy]) => {
+    const socket = socketKind(monId, species, x + dx, y + dy)
+    return socket === 'both' || socket === kind || !['hp', 'atk'].includes(kind)
+  })
+}
 /** 같은 종류·모양·별 2개를 합성하면 별 +1 (최대 3). 비용은 별 × 칸 수 × 40 코인 */
 export const mergeCost = (s: Pick<Stone, 'star' | 'shape'>) => s.star * SHAPES[s.shape].length * 40

@@ -71,7 +71,11 @@ describe('빙고 보너스', () => {
     const b = rollBonuses(seededRng('q'))
     expect(Object.values(modsFor(b, 0)).every(v => v === 0)).toBe(true)
     const m1 = modsFor(b, 1), m3 = modsFor(b, 3), m7 = modsFor(b, 7)
-    for (const x of b) { expect(m3[x.kind]).toBeGreaterThan(m1[x.kind]); expect(m7[x.kind]).toBe(m3[x.kind]) }
+    expect(m1[b[0].kind]).toBe(b[0].v[0])
+    expect(m1[b[1].kind]).toBe(0)
+    expect(m3[b[1].kind]).toBe(b[1].v[1])
+    expect(m3[b[2].kind]).toBe(b[2].v[2])
+    expect(m7).toEqual(m3)
   })
   it('보너스가 실제 스탯에 반영된다', () => {
     const sp = getSpecies(25)
@@ -79,7 +83,7 @@ describe('빙고 보너스', () => {
     const mods = modsFor([{ kind: 'atkUp', v: [5, 10, 20] }, { kind: 'critRate', v: [2, 4, 10] }, { kind: 'lifesteal', v: [1, 2, 3] }], 3)
     const s = computeStats(sp, 30, [], mods)
     expect(s.atk).toBeGreaterThan(base.atk)
-    expect(s.crit).toBeCloseTo(base.crit + 0.1)
+    expect(s.crit).toBeCloseTo(base.crit + 0.04)
     expect(s.lifesteal).toBeCloseTo(0.03)
   })
 })

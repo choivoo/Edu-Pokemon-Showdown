@@ -130,6 +130,7 @@ function StagePanel({ area, onClose, onGo }: { area: number; onClose: () => void
         <div className="pq-inner flex flex-1 flex-col gap-2 p-4 text-lg">
           <p className="text-2xl font-bold text-[#c06a00]">{st.name}</p>
           <p>적 Lv{st.level} · {st.wavePlan.length}웨이브{st.boss ? ' · 보스!' : ''}{st.timeLimitSec ? ' · 제한시간 5분' : ''}</p>
+          {st.timeLimitSec && <p className="text-base text-[#8a5913]">최고 기록: {save.clearTimes[st.id] ? `${Math.floor(save.clearTimes[st.id] / 60)}분 ${(save.clearTimes[st.id] % 60).toFixed(1)}초` : '아직 기록 없음'}</p>}
           <p>추천 전투력 <b className={mine >= rec ? 'text-[#2e8f4a]' : 'text-[#d23c36]'}>{rec}</b> <span className="text-base">(내 파티 {mine})</span></p>
           <p className="flex flex-wrap items-center gap-1">재료 {a.drops.map(d => <Icon key={d} n={getIngredient(d).icon} s={24} />)} <Coins n={st.coins} s={20} className="ml-2" /> <span className="ml-2">EXP {st.exp}</span></p>
           <p className="flex flex-wrap items-center gap-1 text-base">지역 보너스 타입 {AREA_BONUS[area].map(t => <TypeBadge key={t} type={t} />)} <span>체력·공격 ×{AREA_BONUS_MUL}</span></p>

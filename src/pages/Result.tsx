@@ -45,6 +45,7 @@ export default function Result() {
           <div className="flex w-[300px] flex-col items-center gap-3">
             <p className={`font-title text-4xl ${r.win ? 'text-[#e8860a]' : 'text-[#d23c36]'}`}>{r.win ? 'CLEAR!' : 'FAILED'}</p>
             <p className="text-xl">{stage.name}</p>
+            {r.win && stage.timeLimitSec && save.clearTimes[stage.id] && <p className="text-base text-yellow-200">최고 기록 {save.clearTimes[stage.id].toFixed(1)}초</p>}
             {r.recruited && (
               <div className="pq-inner flex w-full items-center gap-3 p-3">
                 <Portrait id={r.recruited.species} size={72} />

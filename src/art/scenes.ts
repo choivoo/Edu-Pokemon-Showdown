@@ -6,6 +6,7 @@ import { eachDot, textWidth } from './font'
 import { hash, INK, make, shade } from './px'
 import { frontSprite } from '../data/sprites'
 import { sprite } from '../engine/render'
+import { decorationById } from '../lib/decorations'
 
 const W = ENV_W * DOT
 const H = ENV_H * DOT
@@ -79,9 +80,27 @@ export function drawCampWorld(t: number, cooking: boolean) {
 }
 
 /** 캠프: 도트 바닥 + 돌아다니는 동료(PokeAPI 스프라이트) */
-export function drawCamp(ctx: CanvasRenderingContext2D, t: number, mons: number[], cooking: boolean) {
+export function drawCamp(ctx: CanvasRenderingContext2D, t: number, mons: number[], cooking: boolean, decorations: string[] = []) {
   drawCampWorld(t, cooking)
   flush(ctx)
+  // Procedurally painted 2D furniture (no retail 3D art or sprites).
+  const furnitureSpots = [{ x: 120, y: 270 }, { x: 310, y: 230 }, { x: 875, y: 275 }, { x: 925, y: 405 }, { x: 155, y: 475 }]
+  decorations.slice(0, furnitureSpots.length).forEach((id, i) => {
+    const decor = decorationById(id)
+    if (!decor) return
+    const { x, y } = furnitureSpots[i]
+    ctx.fillStyle = '#272238'
+    ctx.fillRect(x - 31, y + 8, 64, 12)
+    ctx.fillStyle = decor.color
+    ctx.fillRect(x - 25, y - 43, 50, 51)
+    ctx.fillStyle = '#fff2ce'
+    ctx.fillRect(x - 18, y - 36, 35, 8)
+    ctx.fillRect(x - 18, y - 23, 22, 7)
+    ctx.fillStyle = '#333042'
+    ctx.font = 'bold 12px sans-serif'
+    ctx.textAlign = 'center'
+    ctx.fillText(decor.name, x, y + 35)
+  })
   const list = mons.slice(0, 8)
   list.forEach((id, i) => {
     const ph = hash(id, i) * 6.28, sp = 0.18 + hash(i, 3) * 0.15
