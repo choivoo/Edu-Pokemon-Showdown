@@ -3,6 +3,8 @@ import { isClaimed, isDone, QUESTS, THEMES, type Reward } from '../../lib/quests
 import { Btn, Panel } from '../../ui/kit'
 import Icon from '../../ui/Icon'
 import { sfx } from '../../lib/sound'
+import StoryJournal from './StoryJournal'
+import { useState } from 'react'
 
 function RewardText({ r }: { r: Reward }) {
   const t = THEMES.find(x => x.id === r.theme)
@@ -18,9 +20,12 @@ function RewardText({ r }: { r: Reward }) {
 
 export default function QuestPanel() {
   const { save, openPanel, claimQuest, setTheme } = useGame()
+  const [tab, setTab] = useState<'quests'|'story'>('quests')
   const sorted = [...QUESTS].sort((a, b) => Number(isClaimed(save, a)) - Number(isClaimed(save, b)) || Number(isDone(save, b)) - Number(isDone(save, a)))
   return (
-    <Panel title="퀘스트와 굿즈" onClose={() => openPanel(null)} w={900}>
+    <Panel title="퀘스트 · 모험일지" onClose={() => openPanel(null)} w={900}>
+      <div className="mb-2 flex gap-2"><Btn color={tab==='quests'?'yellow':'gray'} onClick={()=>setTab('quests')}>퀘스트 / 굿즈</Btn><Btn color={tab==='story'?'yellow':'gray'} onClick={()=>setTab('story')}>모험일지 · 46편</Btn></div>
+      {tab === 'story' ? <div style={{height:340}}><StoryJournal /></div> : (
       <div className="flex gap-3" style={{ height: 380 }}>
         <div className="pq-inner scroll-thin flex-1 space-y-1.5 overflow-y-auto p-2">
           {sorted.map(q => {
@@ -51,7 +56,7 @@ export default function QuestPanel() {
             )
           })}
         </div>
-      </div>
+      </div>)}
     </Panel>
   )
 }

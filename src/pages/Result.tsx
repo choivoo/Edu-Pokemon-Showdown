@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useGame } from '../store/gameStore'
+import { stageStory } from '../lib/story'
 import { AREAS, getEndlessStage, getStage, STAGES_PER_AREA } from '../lib/stages'
 import { INGREDIENTS } from '../lib/cooking'
 import { getSpecies } from '../lib/roster'
@@ -14,6 +15,7 @@ import Icon, { Coins } from '../ui/Icon'
 export default function Result() {
   const { result: r, save, go, startStage, markStory } = useGame()
   const [story, setStory] = useState(r?.outroArea != null)
+  const [chapter, setChapter] = useState(!!r?.firstClear && (r?.stage.area ?? -1) >= 0)
   const bat = useBattery()
 
   useEffect(() => {
@@ -69,7 +71,8 @@ export default function Result() {
           {next && <Btn color="green" onClick={next} disabled={nextStarts && bat.n <= 0} className="flex items-center gap-2">다음<Icon n="next" s={22} /></Btn>}
         </div>
       </Panel>
-      {story && r.outroArea != null && <Dialog lines={AREAS[r.outroArea].outro} name={save.name} onDone={() => { markStory(`outro-${r.outroArea}`); setStory(false) }} />}
+      {chapter && stage.area >= 0 && stageStory(stage.area, stage.index) && <Dialog key={stage.id} lines={stageStory(stage.area, stage.index)!.lines} name={save.name} onDone={() => { markStory(`chapter-${stage.area}-${stage.index}`); setChapter(false) }} />}
+      {!chapter && story && r.outroArea != null && <Dialog lines={AREAS[r.outroArea].outro} name={save.name} onDone={() => { markStory(`outro-${r.outroArea}`); setStory(false) }} />}
     </div>
   )
 }
