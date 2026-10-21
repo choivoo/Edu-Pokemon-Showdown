@@ -290,7 +290,8 @@ export function rollRewards(stage: Stage, rng: Rng = Math.random): Rewards {
   const stars = area ? area.stars : ([40, 40, 20] as [number, number, number])
   const gotStone = stage.boss || rng() < 0.35
   const shape = SHAPE_WEIGHTS[weighted(SHAPE_WEIGHTS.map(w => w[1]), rng)][0]
-  const stone = gotStone ? { kind: pick<StoneKind>(['hp', 'atk'], rng), star: (weighted(stars, rng) + 1) as 1 | 2 | 3, shape } : null
+  const stone = gotStone ? { kind: pick<StoneKind>(['hp', 'atk'], rng), star: (weighted(stars, rng) + 1) as 1 | 2 | 3, shape,
+    value: Math.max(10, Math.round((stage.level * 5 + 15) * (0.82 + rng() * 0.36))) } : null
   const moveStone = rng() < (stage.boss ? 0.7 : 0.2) ? pick<MoveStoneKind>(MOVE_STONE_KINDS, rng) : null
   return { coins: stage.coins, exp: stage.exp, ingredients, stone, moveStone }
 }
