@@ -2,7 +2,7 @@ import type { PokemonType, Rng } from '../types'
 import { type IngredientId } from './cooking'
 import { SPECIES } from './roster'
 import { computeStats, expToNext, powerRating } from './stats'
-import { SHAPE_WEIGHTS, type Stone, STONE_KINDS, type StoneKind } from './stones'
+import { SHAPE_WEIGHTS, type Stone, type StoneKind } from './stones'
 import { MOVE_STONE_KINDS, type MoveStoneKind } from './moveStones'
 import type { Species } from '../types'
 import { FAN_AREA_COUNT, ORIGINAL_AREAS, ORIGINAL_BOSS_AREA, ORIGINAL_FIRST, HAPPENSTANCE_AREA, HAPPENSTANCE } from './originalCampaign'
@@ -282,7 +282,7 @@ export function rollRewards(stage: Stage, rng: Rng = Math.random): Rewards {
   const stars = area ? area.stars : ([40, 40, 20] as [number, number, number])
   const gotStone = stage.boss || rng() < 0.35
   const shape = SHAPE_WEIGHTS[weighted(SHAPE_WEIGHTS.map(w => w[1]), rng)][0]
-  const stone = gotStone ? { kind: pick<StoneKind>(STONE_KINDS, rng), star: (weighted(stars, rng) + 1) as 1 | 2 | 3, shape } : null
+  const stone = gotStone ? { kind: pick<StoneKind>(['hp', 'atk'], rng), star: (weighted(stars, rng) + 1) as 1 | 2 | 3, shape } : null
   const moveStone = rng() < (stage.boss ? 0.7 : 0.2) ? pick<MoveStoneKind>(MOVE_STONE_KINDS, rng) : null
   return { coins: stage.coins, exp: stage.exp, ingredients, stone, moveStone }
 }
