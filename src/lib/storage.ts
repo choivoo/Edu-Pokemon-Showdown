@@ -10,6 +10,8 @@ export interface CookingPot {
   remaining: number
   total: number
   recipe: number
+  /** 0=base 1=bronze 2=silver 3=gold; absent in older encrypted saves. */
+  tier?: 0 | 1 | 2 | 3
 }
 
 export interface SaveData {
