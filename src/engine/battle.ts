@@ -155,7 +155,7 @@ function makeUnit(b: Battle, side: Side, speciesId: number, level: number, stats
   const atkMul = side === 'enemy' ? m.atk * ENEMY_ATK : m.atk
   const maxHp = Math.max(1, Math.floor(stats.maxHp * m.hp * (side==='enemy' ? 0.78 * (o.difficulty ?? 1) : 1)))
   const special = getMove(o.move ?? sp.special)
-  const secondary = o.move2 ? getMove(o.move2) : null
+  const secondary = getMove(o.move2 ?? sp.basic)
   const basic = getMove(sp.basic)
   const ranged = RANGED_TYPES.includes(basic.type) && !boss
   const home = FORMATION[slot] ?? FORMATION[0]
@@ -579,7 +579,7 @@ export function step(b: Battle, dt: number): void {
         if (u.status?.kind === 'chain') { u.moving = false; continue }
         u.moving = true
         const k = Math.min(speedOf(b, u) * dt, d)
-        const orbit = Math.sin(b.t*0.85 + u.uid*2.4)*0.32
+        const orbit = Math.sin(b.t*0.85 + u.uid*2.4)*0.64
         u.x += (((t.x - u.x) / d)*Math.cos(orbit) - ((t.y-u.y)/d)*Math.sin(orbit)) * k
         u.y += (((t.y - u.y) / d)*Math.cos(orbit) + ((t.x-u.x)/d)*Math.sin(orbit)) * k
         u.x=Math.max(FIELD.x0+u.radius,Math.min(FIELD.x1-u.radius,u.x))
