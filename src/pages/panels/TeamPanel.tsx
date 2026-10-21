@@ -208,7 +208,7 @@ export default function TeamPanel() {
                     </div>
                   </div>
                 ))}
-
+              </div>
             ) : (
               <div className="space-y-1.5">
                 {freeStones.length === 0 && <p className="p-4 text-center text-base">남은 스톤이 없어요. 탐험에서 얻어 보세요!</p>}
