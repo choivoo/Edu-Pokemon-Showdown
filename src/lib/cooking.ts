@@ -30,7 +30,7 @@ export const INGREDIENTS: Ingredient[] = [
   { id: 'berryBlue', name: '블리열매', icon: 'berryBlue', color: 'blue', texture: 'soft', kind: 'sweet', rarity: 0, price: 10 },
   { id: 'nutYellow', name: '규토리', icon: 'nutYellow', color: 'yellow', texture: 'hard', kind: 'plant', rarity: 0, price: 10 },
   { id: 'fossil', name: '화석', icon: 'fossil', color: 'gray', texture: 'hard', kind: 'mineral', rarity: 0, price: 10 },
-  { id: 'rootRed', name: '큰뿌리', icon: 'rootRed', color: 'red', texture: 'soft', kind: 'plant', rarity: 0, price: 10 },
+  { id: 'rootRed', name: '큰뿌리', icon: 'rootRed', color: 'red', texture: 'soft', kind: 'plant', rarity: 1, price: 10 },
   { id: 'rockBlue', name: '차가운바위', icon: 'rockBlue', color: 'blue', texture: 'hard', kind: 'mineral', rarity: 1, price: 28 },
   { id: 'honey', name: '달콤한꿀', icon: 'honey', color: 'yellow', texture: 'soft', kind: 'sweet', rarity: 1, price: 28 },
   { id: 'mushroomGray', name: '향기버섯', icon: 'mushroomGray', color: 'gray', texture: 'soft', kind: 'mushroom', rarity: 1, price: 28 },
@@ -53,9 +53,14 @@ export const COOKING_TIERS = [
   { name: '금 냄비', perSlot: 20, minLevel: 70, unlockArea: 16 },
 ] as const
 /** Cooking duration depends on ingredient quality and pot material. */
+export const COOKING_DURATIONS = [
+  { basic: 2, good: 4, great: 5, special: 6 },
+  { basic: 2, good: 4, great: 5, special: 6 },
+  { basic: 3, good: 5, great: 6, special: 7 },
+  { basic: 4, good: 6, great: 7, special: 8 },
+] as const
 export const cookingExpeditions = (sel: IngredientId[], tier: CookingTier = 0): number =>
-  ({ basic: 2, good: 4, great: 5, special: 6 })[gradeOf(sel)] +
-    (tier === 3 ? 2 : tier === 2 ? 1 : 0) + (sel.includes('shell') ? 1 : 0)
+  COOKING_DURATIONS[tier][gradeOf(sel)] + (sel.includes('shell') ? 1 : 0)
 
 /** 냄비에 든 재료의 성질별 개수. 무지개 재료는 모든 색·식감·종류에 +1, 조개껍질은 신비로움에 +1 */
 export interface Tally { color: Record<Color, number>; texture: Record<Texture, number>; kind: Record<Kind | 'mystic', number> }
@@ -120,8 +125,9 @@ export const GRADE_LABEL: Record<Grade, string> = { basic: '기본', good: '좋�
 
 /** 재료 희귀도의 합이 클수록 요리 등급이 높다 (0 / 1~2 / 3~4 / 5 이상) */
 export function gradeOf(sel: IngredientId[]): Grade {
-  const sum = sel.reduce((a, id) => a + getIngredient(id).rarity, 0)
-  return sum >= 5 ? 'special' : sum >= 3 ? 'great' : sum >= 1 ? 'good' : 'basic'
+  // Small=1, precious=2, Rainbow=3 and Mystical Shell=2.
+  const points = sel.reduce((a, id) => a + (id === 'rainbow' ? 3 : id === 'shell' ? 2 : getIngredient(id).rarity === 0 ? 1 : 2), 0)
+  return points >= 10 ? 'special' : points >= 8 ? 'great' : points >= 6 ? 'good' : 'basic'
 }
 
 /** 포켓몬 희귀도 1~3이 나올 가중치 (4는 요리로 나오지 않는다) */
