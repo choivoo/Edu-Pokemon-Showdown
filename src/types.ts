@@ -10,6 +10,25 @@ export interface Move {
   name: string
   type: PokemonType
   power: number
+  /** 버프/디버프/상태이상 기술이면 지정 (없으면 평범한 공격기) */
+  role?: 'buff' | 'debuff' | 'status'
+  fx?: SupportFx
+  /** 이 타입의 포켓몬이 떠올릴 수 있다 (보조기) */
+  learn?: PokemonType[]
+}
+
+export type StatusKind = 'poison' | 'paralyze' | 'burn' | 'sleep' | 'freeze' | 'confuse' | 'chain'
+
+export interface SupportFx {
+  /** 공격력/방어력 증감 비율 (0.25 = 25%) */
+  atk?: number
+  def?: number
+  /** 이동·공격 속도 증감 비율 */
+  speed?: number
+  /** 아군 회복 비율 (최대 체력 기준) */
+  heal?: number
+  status?: StatusKind
+  secs?: number
 }
 
 export type Rarity = 1 | 2 | 3 | 4
