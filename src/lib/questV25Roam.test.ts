@@ -7,6 +7,7 @@ import { verifiedRecipeOdds } from '../data/verifiedRecipeOdds'
 import { attractionOdds } from './cooking'
 import { createBattle, movePartyTo, clearPartyWaypoint, step, useSpecial, FIELD } from '../engine/battle'
 import { computeStats } from './stats'
+import { defaultDualMoves } from './dualMoves'
 import { getSpecies } from './roster'
 import { QUEST_MOVE_BY_NAME } from '../data/questMoves'
 const random=()=>.5
@@ -92,5 +93,22 @@ describe('Quest moves resolve collision on impact frames',()=>{
    expect(useSpecial(hit.b,hit.hero.uid)).toBe(true)
    for(let i=0;i<15;i++)step(hit.b,.05)
    expect(hit.enemy.hp).toBeLessThan(full2)
+ })
+})
+
+describe('Every starting species can finish the introductory expedition',()=>{
+ it('keeps 1-1 accessible with any of the five starter Pokémon',()=>{
+  for(const speciesId of [1,4,7,25,133]){
+   for(const seed of [3,11]){
+    let n=seed>>>0
+    const rng=()=>{n=(Math.imul(n,1664525)+1013904223)>>>0;return n/4294967296}
+    const stage=getStage(ORIGINAL_FIRST,0)
+    const b=createBattle([{ownedId:'starter',speciesId,level:5,
+     stats:computeStats(getSpecies(speciesId),5),...defaultDualMoves(speciesId)}],buildWaves(stage,rng),rng,stage)
+    b.auto=true
+    for(let i=0;i<3500 && b.phase!=='lost' && b.phase!=='won';i++)step(b,.1)
+    expect(b.phase,`starter ${speciesId} seed ${seed}`).toBe('won')
+   }
+  }
  })
 })
