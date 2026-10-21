@@ -251,7 +251,7 @@ function joinLate(b: Battle, kind: 'call' | 'new' | 'bossHp') {
 export function createBattle(allies: AllyInput[], waves: WaveEnemy[][], rng: Rng = Math.random, stage?: Pick<Stage,'area'|'index'>): Battle {
   const b: Battle = {
     late: [], scatterCd: 0, surrounded: false, waveKills: 0, t: 0, units: [], waves, wave: 0, phase: 'fight', phaseT: 0, pending: [], queue: [], events: [],
-    auto: false, kills: 0, nextUid: 1, rng, manualPoint: null, manualDirection: null, balance: stage ? encounterBalance(stage) : { hp: 1, attack: 1, defense: 1, allyHeal: 0.1, bossHp: 1 },
+    auto: false, kills: 0, nextUid: 1, rng, manualPoint: null, manualDirection: null, balance: stage ? encounterBalance(stage, allies.length) : { hp: 1, attack: 1, defense: 1, allyHeal: 0.1, bossHp: 1 },
   }
   allies.forEach((a, i) => b.units.push(makeUnit(b, 'ally', a.speciesId, a.level, a.stats, i, false, { ownedId: a.ownedId, fx: a.fx, move: a.move, move2: a.move2, fx2: a.fx2 })))
   spawnWave(b)
