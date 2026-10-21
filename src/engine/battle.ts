@@ -59,6 +59,8 @@ export interface Unit {
   elite: boolean
   alive: boolean
   deadT: number
+  /** Original Quest: allies can revive after 25 seconds while the party survives. */
+  revives: number
   lunge: number
   hurt: number
 }
@@ -151,7 +153,7 @@ function makeUnit(b: Battle, side: Side, speciesId: number, level: number, stats
     spirit: { mul: 0, until: 0 },
     buff: { atk: 0, def: 0, speed: 0, until: 0 }, debuff: { atk: 0, def: 0, speed: 0, until: 0 }, status: null, scatterT: 0, elite,
     spCd: side === 'ally' ? 3.5 : 6 + b.rng() * 3,
-    alive: true, deadT: 0, lunge: 0, hurt: 0,
+    alive: true, deadT: 0, revives: 0, lunge: 0, hurt: 0,
   }
 }
 
@@ -408,12 +410,29 @@ function separate(b: Battle) {
   }
 }
 
+export const ALLY_REVIVE_SECONDS = 25
 export function step(b: Battle, dt: number): void {
   if (b.phase === 'won' || b.phase === 'lost') return
   b.t += dt
 
   for (const u of b.units) {
-    if (!u.alive) { u.deadT += dt; continue }
+    if (!u.alive) {
+      u.deadT += dt
+      if (b.phase === 'fight' && u.side === 'ally' && u.deadT >= ALLY_REVIVE_SECONDS &&
+          b.units.some(other => other !== u && other.side === 'ally' && other.alive)) {
+        u.alive = true
+        u.revives++
+        u.hp = Math.max(1, Math.floor(u.maxHp * Math.max(0.1, 0.5 / u.revives)))
+        u.deadT = 0
+        u.spCd = Math.min(u.spMax, 2)
+        const home = FORMATION[u.slot] ?? FORMATION[0]
+        u.x = home.x
+        u.y = home.y
+        b.events.push({ k: 'heal', uid: u.uid, amount: u.hp })
+        b.events.push({ k: 'banner', text: u.name + '이(가) 다시 일어났다!', tone: 'info' })
+      }
+      continue
+    }
     u.lunge = Math.max(0, u.lunge - dt)
     u.hurt = Math.max(0, u.hurt - dt)
   }
