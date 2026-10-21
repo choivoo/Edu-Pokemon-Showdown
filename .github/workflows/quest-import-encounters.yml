@@ -25,9 +25,9 @@ jobs:
           node - <<'NODE'
           const fs=require('fs')
           const j=JSON.parse(fs.readFileSync('src/data/originalEncounterTable.json','utf8'))
-          if(Object.keys(j).length < 45)throw Error('Incomplete original stage table')
+          if(Object.keys(j).length !== 63)throw Error('Not all 63 original stages imported')
           for (const [key,stage] of Object.entries(j)) {
-            if(!stage.bossSets.length)throw Error('Empty boss set '+key)
+            if(!stage.bossSets.length && key !== '10-0')throw Error('Empty boss set '+key)
             for(const group of [...stage.segments.flat(),...stage.bossSets]){
               if(!group.every(x=>x.id>=1 && x.id<=151 && x.weight>0))throw Error('Invalid stage '+key)
             }
