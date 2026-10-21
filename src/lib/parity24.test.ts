@@ -6,7 +6,7 @@ import { ORIGINAL_STAGE_COUNTS } from './originalCampaign'
 import { getStage, buildWaves } from './stages'
 import { QUEST_MOVE_BY_NAME } from '../data/questMoves'
 import { getSpecies } from './roster'
-import { createBattle, useSpecial, step } from '../engine/battle'
+import { createBattle, step } from '../engine/battle'
 import { computeStats } from './stats'
 
 describe('all 151 Pokémon original recipe weight sources',()=>{
