@@ -2,7 +2,7 @@
 export type StoneKind = 'hp' | 'atk' | 'def' | 'spd' | 'crit'
 export type ShapeId = 'dot' | 'bar2' | 'bar3' | 'ell'
 
-export interface Stone { id: string; kind: StoneKind; star: 1 | 2 | 3; shape: ShapeId }
+export interface Stone { id: string; kind: StoneKind; star: 1 | 2 | 3; shape: ShapeId; /** Authentic P Stone gives flat ATK/HP; legacy custom stones use percentage. */ value?: number }
 export interface Placement { stone: string; x: number; y: number; rot: number }
 
 export const GRID_W = 3
