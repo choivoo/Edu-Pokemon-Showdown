@@ -230,6 +230,8 @@ export function buildWaves(stage: Stage, rng: Rng = Math.random): WaveEnemy[][] 
   const eventsOn = !((stage.area === 0 || stage.area === ORIGINAL_FIRST) && stage.index < 2)
   const mk = (level: number, extra: Partial<WaveEnemy> = {}): WaveEnemy => ({ species: pick(pool, rng), level, ...extra })
   return stage.wavePlan.map((count, wi) => {
+    // 12-BOSS: Legendary birds guard the last room before Mew/Mewtwo.
+    if (postgame && stage.index === 8 && wi === 2) return [144, 145, 146].map(id => ({ species: id, level: stage.level - 2, elite: true }))
     const last = wi === stage.wavePlan.length - 1
     if (stage.boss && last) {
       const bossId = postgame ? pick(stage.index === 8 ? [150, 151] : [3, 6, 9, 18, 65, 68, 76, 94, 103, 115, 127, 130, 131, 143, 144, 145, 146, 149, 150, 151], rng) : area ? area.boss : pick(SPECIES.filter(s => s.rarity === 3).map(s => s.id), rng)
