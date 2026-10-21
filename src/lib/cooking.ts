@@ -101,7 +101,7 @@ export const ALL_RECIPES: Recipe[] = [BASIC, ...RECIPES.map(x => x.r)].sort((a, 
 export function recipeFor(sel: IngredientId[]): Recipe {
   const t = tally(sel)
   const legend = RECIPES[RECIPES.length - 1]
-  if (sel.includes('shell') || legend.ok(t) && sel.includes('shell')) return legend.r
+  if (sel.includes('shell')) return legend.r
   return RECIPES.find(x => x.ok(t))?.r ?? BASIC
 }
 
