@@ -5,7 +5,7 @@ import { getMove, getSpecies } from '../lib/roster'
 import { computeStats, type Stats } from '../lib/stats'
 import type { WaveEnemy } from '../lib/stages'
 import { type MoveFx, NO_FX, SPIRIT_ATK, SPIRIT_SECONDS } from '../lib/moveStones'
-import { moveHits, moveProfile } from '../lib/moveProfiles'
+import { moveHits, moveProfile, type MoveProfile } from '../lib/moveProfiles'
 
 export type Side = 'ally' | 'enemy'
 
@@ -91,7 +91,9 @@ export type FxEvent =
   | { k: 'buff'; uid: number; good: boolean }
   | { k: 'flee'; uid: number }
 
-interface Pending { at: number; from: number; to: number; amount: number; eff: number; crit: boolean; type: PokemonType; special: boolean; status?: StatusKind; sourceQuest?: boolean }
+interface Pending { at: number; from: number; to: number; amount: number; eff: number; crit: boolean; type: PokemonType; special: boolean; status?: StatusKind; sourceQuest?: boolean;
+ geometry?: { from: { x: number; y: number }; aim: { x: number; y: number }; profile: MoveProfile }
+}
 
 export type Phase = 'fight' | 'advance' | 'won' | 'lost'
 
@@ -270,7 +272,15 @@ function strike(b: Battle, from: Unit, to: Unit, move: Move, special: boolean, p
     r = { damage: Math.max(1, Math.floor(neutral.damage * 0.25)), effectiveness: 0.25, crit }
   }
   const amount = r.crit && from.critDmg > 0 ? Math.floor(r.damage * (1 + from.critDmg)) : r.damage
-  b.pending.push({ at: b.t + delay, from: from.uid, to: to.uid, amount, eff: r.effectiveness, crit: r.crit, type: move.type, special, status: move.id.startsWith('quest-') ? moveProfile(move).status : undefined, sourceQuest: move.id.startsWith('quest-') })
+  const quest = move.id.startsWith('quest-')
+  const profile = quest ? moveProfile(move) : undefined
+  // Snapshot firing direction and impact area; enemies may dodge by moving
+  // out of the hitbox before the move's active frames arrive.
+  const geometry = special && profile ? {
+    from: { x:from.x, y:from.y }, aim: { x:to.x,y:to.y }, profile,
+  } : undefined
+  b.pending.push({ at:b.t+delay,from:from.uid,to:to.uid,amount,eff:r.effectiveness,crit:r.crit,type:move.type,special,
+    status:profile?.status,sourceQuest:quest,geometry })
 }
 
 const travel = (a: Unit, c: Unit) => Math.max(0.12, dist(a, c) / 560)
@@ -404,6 +414,7 @@ export function scatter(b: Battle): boolean {
 function applyHit(b: Battle, p: Pending) {
   const to = unitById(b, p.to)
   if (!to || !to.alive) return
+  if (p.geometry && !moveHits(p.geometry.profile,p.geometry.from,p.geometry.aim,to,to.radius)) return
   if (to.scatterT > 0 && b.rng() < (p.special ? 0.55 : 0.3)) return
   const resisted = Math.round(p.amount * Math.max(0.05, 1 - (to.typeDamageResist[p.type] ?? 0)) * (p.crit ? Math.max(0,1-to.critTakenResist) : 1))
   to.hp = Math.max(0, to.hp - resisted)
@@ -462,7 +473,7 @@ function separate(b: Battle) {
 }
 
 export const ALLY_REVIVE_SECONDS = 25
-export function step(b: Battle, dt: number): void {
+function stepFixed(b: Battle, dt: number): void {
   if (b.phase === 'won' || b.phase === 'lost') return
   b.t += dt
 
@@ -516,7 +527,7 @@ export function step(b: Battle, dt: number): void {
       u.atkCd -= u.status?.kind === 'paralyze' ? dt * 0.5 : dt
       u.spCd = Math.max(0, u.spCd - dt)
       u.spCd2 = Math.max(0, u.spCd2 - dt)
-      const automated = u.boss || (u.side === 'ally' && b.auto) || u.side === 'enemy' && u.special.role
+      const automated = u.side === 'enemy' || (u.side === 'ally' && b.auto)
       if (automated && u.scatterT <= 0) {
         const primary = u.spCd <= 0
         const secondary = !!u.secondary && u.spCd2 <= 0 && u.side === 'ally'
@@ -543,7 +554,15 @@ export function step(b: Battle, dt: number): void {
       if (!t) { u.moving = false; continue }
       const d = dist(u, t)
       u.face = t.x >= u.x ? 1 : -1
-      if (d > u.range + t.radius * 0.4) {
+      // Ranged AI makes room when rushed. Bosses hold formation rather than
+      // endlessly flee so a 2D melee team can still damage them.
+      if(u.side==='enemy' && !u.boss && u.range>MELEE_RANGE+30 && d<u.range*0.43 && u.status?.kind!=='chain') {
+        const retreat = Math.min(speedOf(b,u)*dt*.55,Math.max(0,u.range*.5-d))
+        const separation = u.uid%2===0 ? 1 : -1
+        u.x += (u.x-t.x)/Math.max(1,d)*retreat
+        u.y += ((u.y-t.y)/Math.max(1,d)+separation*.35)*retreat
+        u.moving=true
+      } else if (d > u.range + t.radius * 0.4) {
         if (u.status?.kind === 'chain') { u.moving = false; continue }
         u.moving = true
         const k = Math.min(speedOf(b, u) * dt, d)
@@ -618,4 +637,19 @@ export function step(b: Battle, dt: number): void {
       b.phase = 'fight'
     }
   }
+}
+
+/** Actual gameplay runs collision, cooldowns and simple AI at fixed 60 FPS
+ * for browser frame intervals. Big one-shot test/offline time skips retain
+ * the original fast-forward path without thousands of wasted UI frames.
+ */
+export function step(b:Battle,dt:number):void {
+ if (!Number.isFinite(dt)||dt<=0) return
+ if(dt>0.5){stepFixed(b,dt);return}
+ const count=Math.max(1,Math.ceil(dt*60))
+ const slice=dt/count
+ for(let i=0;i<count;i++){
+   if(b.phase==='won'||b.phase==='lost')break
+   stepFixed(b,slice)
+ }
 }
