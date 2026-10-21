@@ -231,7 +231,7 @@ export const useGame = create<GameState>((set, get) => {
     buyIngredient: (id, qty) => {
       const s = get().save
       const cost = getIngredient(id).price * qty
-      if (s.coins < cost) return false
+      if (s.coins < cost || cost <= 0) return false
       commit({ coins: s.coins - cost, ingredients: { ...s.ingredients, [id]: s.ingredients[id] + qty } })
       return true
     },
@@ -352,7 +352,7 @@ export const useGame = create<GameState>((set, get) => {
         set({ result: { win: false, stage, rewards: null, firstClear: false, recruited: null, levelUps: [], stone: null, moveStone: null, outroArea: null }, screen: 'result' })
         return
       }
-      const rewards = rollRewards(stage)
+      const rewards = rollRewards(stage, Math.random, ((s.counters?.clears ?? 0) + 1) % 10 === 0)
       const firstClear = stage.area >= 0 ? !s.cleared[stage.id] : stage.endlessFloor! > s.endlessBest
       // 파티 전원에게 경험치
       const levelUps: BattleResult['levelUps'] = []
