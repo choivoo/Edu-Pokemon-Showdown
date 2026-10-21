@@ -49,8 +49,8 @@ export function recallPool(m: OwnedMon): Move[] {
 
 export interface RecallResult { ok: boolean; mon: OwnedMon; move: Move | null }
 
-export function recall(target: OwnedMon, foods: OwnedMon[], now: number, rng: Rng): RecallResult {
-  const chance = recallChance(target, foods, now)
+export function recall(target: OwnedMon, foods: OwnedMon[], now: number, rng: Rng, multiplier = 1): RecallResult {
+  const chance = Math.min(0.95, recallChance(target, foods, now) * multiplier)
   const fatigue = recallFatigue(target, now)
   const next: OwnedMon = { ...target, recalls: fatigue + 1, recallT: now }
   const pool = recallPool(target)
