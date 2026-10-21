@@ -16,7 +16,7 @@ export const modsOf = (save: SaveData, mon: OwnedMon): Mods => modsFor(mon.bonus
 export const equippedMoveStones = (save: SaveData, mon: OwnedMon): MoveStone[] => mon.mstones.map(id => save.moveStones.find(s => s.id === id)).filter((s): s is MoveStone => !!s)
 export const moveFxOf = (save: SaveData, mon: OwnedMon): MoveFx => moveFx(equippedMoveStones(save, mon))
 
-export const statsOf = (save: SaveData, mon: OwnedMon): Stats => computeStats(getSpecies(mon.species), mon.level, placedStones(save, mon), modsOf(save, mon))
+export const statsOf = (save: SaveData, mon: OwnedMon): Stats => computeStats(getSpecies(mon.species), mon.level, placedStones(save, mon), modsOf(save, mon), mon)
 export const powerOf = (save: SaveData, mon: OwnedMon) => powerRating(statsOf(save, mon))
 export const partyMons = (save: SaveData): OwnedMon[] => save.party.map(id => save.owned.find(o => o.id === id)).filter((o): o is OwnedMon => !!o)
 export const partyPower = (save: SaveData) => partyMons(save).reduce((a, m) => a + powerOf(save, m), 0)
