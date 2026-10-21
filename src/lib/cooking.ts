@@ -2,6 +2,7 @@ import type { PokemonType, Rng, Species } from '../types'
 import { SPECIES } from './roster'
 import { EVOLUTION_ONLY } from './evolution'
 import { questStats } from '../data/questSpecies'
+import { verifiedRecipeOdds } from '../data/verifiedRecipeOdds'
 
 // 재료는 원작처럼 "색 / 식감 / 종류" 세 가지 성질을 가진다. 어떤 성질이 얼마나 들어갔는지로 레시피가 정해진다.
 export type IngredientId =
@@ -153,6 +154,8 @@ export function attractPool(recipe: Recipe): Species[] {
 export interface AttractionOdds { species: Species; probability: number; weight: number }
 export function attractionOdds(sel: IngredientId[]): AttractionOdds[] {
   const recipe=recipeFor(sel)
+  const verified=verifiedRecipeOdds(recipe.no,gradeOf(sel))
+  if(verified) return verified.map(e=>({species:SPECIES.find(s=>s.id===e.id)!,weight:e.probability,probability:e.probability}))
   const pool=attractPool(recipe)
   if (!pool.length) return []
   if (recipe.no===18) {
