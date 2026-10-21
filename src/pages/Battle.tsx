@@ -99,7 +99,7 @@ export default function Battle() {
       if (hudT > 0.1) { hudT = 0; setHud(snapshot(b)) }
       if ((b.phase === 'won' || b.phase === 'lost') && !finished.current) {
         endT += real
-        if (endT > 1.3) { finished.current = true; setHud(snapshot(b)); finishBattle(b.phase === 'won', stage, b.kills) }
+        if (endT > (b.phase === 'won' ? 2.65 : 1.3)) { finished.current = true; setHud(snapshot(b)); finishBattle(b.phase === 'won', stage, b.kills) }
       }
       raf = requestAnimationFrame(loop)
     }
