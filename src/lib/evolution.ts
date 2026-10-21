@@ -1,4 +1,5 @@
 import type { OwnedMon } from './stats'
+import type { Stone } from './stones'
 
 /** 진화 정보: 진화 전 → { 진화 후, 필요한 레벨 } (레벨은 그대로 이어진다) */
 export const EVOLUTIONS: Record<number, { to: number; level: number }> = {
@@ -7,8 +8,8 @@ export const EVOLUTIONS: Record<number, { to: number; level: number }> = {
   7: { to: 8, level: 16 }, 8: { to: 9, level: 36 },
   16: { to: 17, level: 18 }, 17: { to: 18, level: 36 },
   19: { to: 20, level: 20 },
-  25: { to: 26, level: 25 },
-  133: { to: 135, level: 20 },
+  25: { to: 26, level: 22 },
+  133: { to: 135, level: 36 },
   41: { to: 42, level: 22 },
   52: { to: 53, level: 28 },
   54: { to: 55, level: 33 },
@@ -32,9 +33,9 @@ export const EVOLUTIONS: Record<number, { to: number; level: number }> = {
   30: { to: 31, level: 32 },
   32: { to: 33, level: 16 },
   33: { to: 34, level: 32 },
-  35: { to: 36, level: 30 },
+  35: { to: 36, level: 22 },
   37: { to: 38, level: 36 },
-  39: { to: 40, level: 30 },
+  39: { to: 40, level: 22 },
   46: { to: 47, level: 24 },
   48: { to: 49, level: 31 },
   50: { to: 51, level: 26 },
@@ -73,10 +74,24 @@ export const targetOf = (species: number, choice?: string) => (species === 133 &
 
 export const evolutionOf = (id: number) => EVOLUTIONS[id] ?? null
 export const canEvolve = (m: Pick<OwnedMon, 'species' | 'level'>) => {
-  if (m.species === 133) return m.level >= 20
+  if (m.species === 133) return m.level >= 36
   const e = EVOLUTIONS[m.species]
   return !!e && m.level >= e.level
 }
 
 /** 요리에서는 나오지 않고 진화로만 만나는 포켓몬 (처음부터 요리로 나오던 종은 그대로 둔다) */
+/** Original Quest: auto-evolution after reaching a level, unless Everstone is on. */
+export function autoEvolve(mon: OwnedMon, stones: Stone[]): OwnedMon {
+  if (mon.everstone || !canEvolve(mon)) return mon
+  let choice: string | undefined
+  if (mon.species === 133) {
+    const worn = mon.stones.map(p => stones.find(s => s.id === p.stone))
+    const hp = worn.filter(s => s?.kind === 'hp').length
+    const atk = worn.filter(s => s?.kind === 'atk').length
+    choice = hp > atk ? 'water' : atk > hp ? 'fire' : 'electric'
+  }
+  const to = targetOf(mon.species, choice)
+  return to ? { ...mon, species: to, move: undefined } : mon
+}
+
 export const EVOLUTION_ONLY = new Set([...Object.values(EVOLUTIONS).map(e => e.to), 134, 136, 124, 125, 126, 142, 151])

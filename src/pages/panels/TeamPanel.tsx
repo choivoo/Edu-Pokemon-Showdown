@@ -26,7 +26,7 @@ function ShapePreview({ stone, size = 16 }: { stone: Stone; size?: number }) {
 }
 
 export default function TeamPanel() {
-  const { save, openPanel, setParty, placeStone, removeStone, levelUpCost, levelUpWithCoins, release, equipMoveStone, unequipMoveStone, evolve } = useGame()
+  const { save, openPanel, setParty, placeStone, removeStone, levelUpCost, levelUpWithCoins, release, equipMoveStone, unequipMoveStone, evolve, toggleEverstone } = useGame()
   const [selId, setSelId] = useState(save.party[0] ?? save.owned[0]?.id)
   const [right, setRight] = useState<'mons' | 'stones' | 'moves' | 'bingo'>('mons')
   const [hold, setHold] = useState<{ id: string; rot: number } | null>(null)
@@ -44,6 +44,7 @@ export default function TeamPanel() {
   const usedMove = usedMoveStoneIds(save)
   const freeMove = save.moveStones.filter(m => !usedMove.has(m.id))
   const equipped = equippedMoveStones(save, mon)
+  const moveSlots = mon.move2 ? 2 : MOVE_SLOTS
   const bingos = bingoOf(save, mon)
   const bingoCells = new Set(completeLines(occ).flat())
   const holdStone = hold ? save.stones.find(s => s.id === hold.id) : undefined
@@ -97,7 +98,7 @@ export default function TeamPanel() {
               <span key={k as string} className="rounded-lg px-1 py-0.5 text-white" style={{ background: c as string }}>{k}<br /><b className="text-base">{v}</b></span>
             ))}
           </div>
-          <p className="flex items-center gap-1 text-sm"><Icon n="sword" s={18} />{powerRating(stats)} · {getMove(sp.basic).name}(자동) · <Icon n="star" s={16} />{getMove(mon.move ?? sp.special).name}</p>
+          <p className="flex items-center gap-1 text-sm"><Icon n="sword" s={18} />{powerRating(stats)} · {getMove(sp.basic).name}(자동) · <Icon n="star" s={16} />{getMove(mon.move ?? sp.special).name}{mon.move2 ? ' / ' + getMove(mon.move2).name : ''}</p>
 
           <div className="flex gap-3">
             <div className="pq-dark relative p-2" style={{ width: GRID_W * CELL + 16 }} onMouseLeave={() => setHover(null)}>
@@ -165,9 +166,9 @@ export default function TeamPanel() {
               </div>
             ) : right === 'moves' ? (
               <div className="space-y-1.5">
-                <p className="text-sm font-bold">장착 중 ({equipped.length}/{MOVE_SLOTS}) · 필살기에 적용돼요</p>
+                <p className="text-sm font-bold">장착 중 ({equipped.length}/{moveSlots}) · 필살기에 적용돼요</p>
                 <div className="grid grid-cols-3 gap-2">
-                  {Array.from({ length: MOVE_SLOTS }, (_, i) => {
+                  {Array.from({ length: moveSlots }, (_, i) => {
                     const m = equipped[i]
                     return (
                       <button key={i} disabled={!m} onClick={() => m && unequipMoveStone(mon.id, m.id)} className="flex h-[78px] flex-col items-center justify-center gap-0.5 border-4 border-dashed border-[#c98a00] bg-white/60 text-xs">
@@ -179,7 +180,7 @@ export default function TeamPanel() {
                 <p className="pt-1 text-sm font-bold">보유한 기술스톤</p>
                 {freeMove.length === 0 && <p className="p-3 text-center text-sm">남은 기술스톤이 없어요. 탐험에서 가끔 얻을 수 있어요!</p>}
                 {freeMove.map(m => (
-                  <button key={m.id} disabled={equipped.length >= MOVE_SLOTS} onClick={() => { if (equipMoveStone(mon.id, m.id)) sfx.select() }} className="flex w-full items-center gap-2 border-4 border-[#c98a00] bg-white/60 px-2 py-1 text-left disabled:opacity-50">
+                  <button key={m.id} disabled={equipped.length >= moveSlots} onClick={() => { if (equipMoveStone(mon.id, m.id)) sfx.select() }} className="flex w-full items-center gap-2 border-4 border-[#c98a00] bg-white/60 px-2 py-1 text-left disabled:opacity-50">
                     <Icon n={MOVE_STONE_INFO[m.kind].icon} s={32} />
                     <span className="flex-1"><b className="text-base">{MOVE_STONE_INFO[m.kind].name}</b><br /><span className="text-xs text-[#8a5a10]">{MOVE_STONE_INFO[m.kind].detail}</span></span>
                   </button>
@@ -187,14 +188,14 @@ export default function TeamPanel() {
               </div>
             ) : right === 'bingo' ? (
               <div className="space-y-2 text-sm">
-                <p className="leading-snug">P스톤 격자의 <b>가로 또는 세로 한 줄을 스톤으로 모두 채우면</b> 빙고! 이 포켓몬만의 보너스 3개가 켜져요. 줄이 많을수록(최대 3줄) 효과가 커져요.</p>
+                <p className="leading-snug">P스톤 격자의 <b>가로 또는 세로 한 줄을 스톤으로 모두 채우면</b> 빙고! 3/6/9개의 스톤을 장착하고 줄을 완성할 때마다 보너스가 하나씩 켜져요.</p>
                 <p className="flex items-center gap-1 text-lg font-bold text-[#c06a00]"><Icon n="bingo" s={26} />완성한 빙고 {bingos}줄{bingos > 3 ? ' (3줄까지 인정)' : ''}</p>
-                {mon.bonus.map(b => (
+                {mon.bonus.map((b, bi) => (
                   <div key={b.kind} className="border-4 border-[#c98a00] bg-white/60 p-2">
-                    <p className="text-base font-bold">{BONUS_INFO[b.kind].label}</p>
+                    <p className="text-base font-bold">{bi + 1}번째 빙고 {bingos > bi ? '활성' : '잠김'} · {BONUS_INFO[b.kind].label}</p>
                     <div className="mt-1 grid grid-cols-3 gap-1 text-center text-xs">
                       {b.v.map((v, i) => (
-                        <span key={i} className={`border-2 py-0.5 ${Math.min(3, bingos) === i + 1 ? 'border-[#e8524a] bg-[#ffe9a0] font-bold' : 'border-[#e5c36a]'}`}>{i + 1}빙고 +{v}{BONUS_INFO[b.kind].unit}</span>
+                        <span key={i} className={`border-2 py-0.5 ${bingos > bi && bi === i ? 'border-[#e8524a] bg-[#ffe9a0] font-bold' : 'border-[#e5c36a]'}`}>{i + 1}빙고 +{v}{BONUS_INFO[b.kind].unit}</span>
                       ))}
                     </div>
                   </div>
@@ -207,13 +208,19 @@ export default function TeamPanel() {
                   <button key={s.id} onClick={() => { sfx.select(); setHold({ id: s.id, rot: 0 }); setMsg('') }} className={`flex w-full items-center gap-3 rounded-lg border-4 px-2 py-1 text-left ${hold?.id === s.id ? 'border-[#e8524a] bg-white' : 'border-[#e5a500]'}`}>
                     <span className="flex w-16 justify-center"><ShapePreview stone={s} /></span>
                     <span className="flex flex-1 items-center gap-1 text-lg"><Icon n={STONE_INFO[s.kind].icon} s={26} />{STONE_INFO[s.kind].name} <Stars n={s.star} s={14} /></span>
-                    <span className="text-sm">{STONE_INFO[s.kind].desc} +{Math.round(STONE_INFO[s.kind].per * s.star * SHAPES[s.shape].length * 100)}%</span>
+                    <span className="text-sm">{STONE_INFO[s.kind].desc} +{s.value !== undefined ? s.value : Math.round(STONE_INFO[s.kind].per * s.star * SHAPES[s.shape].length * 100) + '%'}</span>
                   </button>
                 ))}
               </div>
             )}
           </div>
-          {canEvolve(mon) && (
+          <div className="flex items-center justify-between gap-2 rounded border-2 border-[#d7bc7a] bg-[#fff5d7] px-2 py-1 text-xs">
+            <span>레벨에 도달하면 자동 진화해요. 진화를 원치 않으면 변함없는돌을 켜세요.</span>
+            <Btn color={mon.everstone ? 'red' : 'gray'} onClick={() => { toggleEverstone(mon.id); sfx.select() }} className="shrink-0 px-2 py-1 text-xs">
+              변함없는돌 {mon.everstone ? 'ON' : 'OFF'}
+            </Btn>
+          </div>
+          {canEvolve(mon) && !mon.everstone && (
             <div className="flex items-center gap-2 border-4 border-[#e8524a] bg-[#fff0b8] px-2 py-1">
               <span className="flex-1 text-base font-bold text-[#c03a30]">{getSpecies(mon.species).name}이(가) 진화할 수 있어요! (레벨 {evolutionOf(mon.species)!.level})</span>
               {(mon.species === 133 ? [['fire', '불꽃'], ['water', '물'], ['electric', '번개']] : [['', '진화']]).map(([c, label]) => (

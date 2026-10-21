@@ -18,14 +18,14 @@ interface Hud {
   time: number
   phase: BattleState['phase']
   scatterLeft: number
-  allies: { uid: number; id: number; name: string; level: number; hp: number; maxHp: number; cd: number; max: number; alive: boolean; slot: number; move: string; type: string }[]
+  allies: { uid: number; id: number; name: string; level: number; hp: number; maxHp: number; cd: number; max: number; alive: boolean; slot: number; move: string; type: string; move2?: string; type2?: string; cd2?: number; max2?: number }[]
 }
 
 const snapshot = (b: BattleState): Hud => ({
   wave: Math.min(b.wave + 1, b.waves.length), waves: b.waves.length, kills: b.kills, time: b.t, phase: b.phase,
   scatterLeft: Math.max(0, b.scatterCd - b.t),
   allies: b.units.filter(u => u.side === 'ally').sort((a, c) => a.slot - c.slot).map(u => ({
-    uid: u.uid, id: u.speciesId, name: u.name, level: u.level, hp: u.hp, maxHp: u.maxHp, cd: u.spCd, max: u.spMax, alive: u.alive, slot: u.slot, move: u.special.name, type: u.special.type,
+    uid: u.uid, id: u.speciesId, name: u.name, level: u.level, hp: u.hp, maxHp: u.maxHp, cd: u.spCd, max: u.spMax, alive: u.alive, slot: u.slot, move: u.special.name, type: u.special.type, ...(u.secondary ? { move2: u.secondary.name, type2: u.secondary.type, cd2: u.spCd2, max2: u.spMax2 } : {}),
   })),
 })
 
@@ -51,7 +51,7 @@ export default function Battle() {
       let stats = statsOf(save, o)
       // 지역 보너스 타입은 그 지역에서 더 강하다
       if (hasAreaBonus(stage.area, getSpecies(o.species).types)) stats = { ...stats, maxHp: Math.round(stats.maxHp * AREA_BONUS_MUL), atk: Math.round(stats.atk * AREA_BONUS_MUL) }
-      return { ownedId: o.id, speciesId: o.species, level: o.level, stats, fx: moveFxOf(save, o), move: o.move }
+      return { ownedId: o.id, speciesId: o.species, level: o.level, stats, fx: moveFxOf(save, o), move: o.move, move2: o.move2 }
     })
     const waves = buildWaves(stage)
     preload([...allies.map(a => a.speciesId), ...waves.flat().map(w => w.species)])
@@ -144,7 +144,6 @@ export default function Battle() {
       {/* 하단 중앙: 빨강/초록/파랑 포켓몬 바 */}
       <div className="pointer-events-none absolute bottom-3 flex gap-2" style={{ left: 112, right: 112 }}>
         {hud?.allies.map(a => {
-          const ready = a.cd <= 0 && a.alive && hud.phase === 'fight'
           const hpr = a.hp / a.maxHp
           return (
             <div key={a.uid} className={`pointer-events-auto flex h-[92px] min-w-0 flex-1 items-center gap-1.5 border-4 border-[#2b2838] px-1.5 ${a.alive ? '' : 'grayscale'}`} style={{ background: SLOT_COLORS[a.slot % 3] }}>
@@ -154,16 +153,26 @@ export default function Battle() {
                 <div className="mt-1 h-3 overflow-hidden border-2 border-[#2b2838] bg-black/40"><div className="h-full" style={{ width: `${hpr * 100}%`, background: hpr > 0.5 ? '#46d2ff' : hpr > 0.2 ? '#f5d02e' : '#ff5a4a' }} /></div>
                 <div className="mt-0.5 text-xs">{Math.ceil(a.hp)}/{a.maxHp}</div>
               </div>
-              <button
-                disabled={!ready}
-                onClick={() => { if (b && useSpecial(b, a.uid)) setHud(snapshot(b)) }}
-                className={`pq-btn relative h-[68px] w-[68px] shrink-0 overflow-hidden px-0.5 text-sm ${ready ? 'blink' : ''}`}
-                style={{ background: ready ? TYPE_COLOR[a.type as keyof typeof TYPE_COLOR] : '#556' }}
-              >
-                <span className="flex justify-center"><Icon n="star" s={28} /></span>
-                <span className="block text-xs leading-tight">{!a.alive ? '기절' : ready ? a.move : a.cd > 0 ? `${Math.ceil(a.cd)}초` : '…'}</span>
-                {a.alive && !ready && <span className="absolute inset-x-0 bottom-0 bg-yellow-300" style={{ height: 6, width: `${(1 - a.cd / a.max) * 100}%` }} />}
-              </button>
+              <div className="flex shrink-0 gap-1">
+                {([0, ...(a.move2 ? [1] : [])] as number[]).map(i => {
+                  const cd = i ? a.cd2 ?? 0 : a.cd
+                  const max = i ? a.max2 ?? 1 : a.max
+                  const name = i ? a.move2 ?? a.move : a.move
+                  const type = i ? a.type2 ?? a.type : a.type
+                  const canUse = a.alive && hud.phase === 'fight' && cd <= 0
+                  return (
+                    <button key={i} disabled={!canUse}
+                      onClick={() => { if (b && useSpecial(b, a.uid, i as 0 | 1)) setHud(snapshot(b)) }}
+                      className={`pq-btn relative h-[68px] w-[62px] shrink-0 overflow-hidden px-0.5 text-xs ${canUse ? 'blink' : ''}`}
+                      style={{ background: canUse ? TYPE_COLOR[type as keyof typeof TYPE_COLOR] : '#556' }}
+                      title={name}>
+                      <span className="flex justify-center"><Icon n="star" s={24} /></span>
+                      <span className="block truncate text-xs leading-tight">{!a.alive ? '기절' : canUse ? name : cd > 0 ? Math.ceil(cd) + '초' : '…'}</span>
+                      {a.alive && !canUse && <span className="absolute inset-x-0 bottom-0 bg-yellow-300" style={{ height: 6, width: `${(1 - cd / max) * 100}%` }} />}
+                    </button>
+                  )
+                })}
+              </div>
             </div>
           )
         })}

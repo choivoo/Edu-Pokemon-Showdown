@@ -2,7 +2,7 @@
 export type StoneKind = 'hp' | 'atk' | 'def' | 'spd' | 'crit'
 export type ShapeId = 'dot' | 'bar2' | 'bar3' | 'ell'
 
-export interface Stone { id: string; kind: StoneKind; star: 1 | 2 | 3; shape: ShapeId }
+export interface Stone { id: string; kind: StoneKind; star: 1 | 2 | 3; shape: ShapeId; /** Authentic P Stone gives flat ATK/HP; legacy custom stones use percentage. */ value?: number }
 export interface Placement { stone: string; x: number; y: number; rot: number }
 
 export const GRID_W = 3
@@ -67,6 +67,6 @@ export function findSpot(level: number, occ: Map<string, number>, shape: ShapeId
 }
 
 export const stoneCells = (s: Stone) => SHAPES[s.shape].length
-export const stoneName = (s: Stone) => `${STONE_INFO[s.kind].name} ${s.star}성`
+export const stoneName = (s: Stone) => `${STONE_INFO[s.kind].name} ${s.value !== undefined ? '+' + s.value : s.star + '성'}`
 /** 같은 종류·모양·별 2개를 합성하면 별 +1 (최대 3). 비용은 별 × 칸 수 × 40 코인 */
 export const mergeCost = (s: Pick<Stone, 'star' | 'shape'>) => s.star * SHAPES[s.shape].length * 40

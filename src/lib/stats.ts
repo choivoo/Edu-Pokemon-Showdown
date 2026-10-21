@@ -19,9 +19,13 @@ export interface OwnedMon {
   mstones: string[]
   /** 특훈으로 떠올린 필살기 (없으면 기본 필살기) */
   move?: string
+  /** Original Quest Pokémon can learn a second optional special move. */
+  move2?: string
   /** 기술 떠올리기 피로도와 마지막 시도 시각 */
   recalls?: number
   recallT?: number
+  /** When enabled, stop normal automatic level evolution. */
+  everstone?: boolean
 }
 
 export interface Stats {
@@ -45,7 +49,13 @@ export const BASE_CRIT = 0.06
 /** 레벨과 배치한 파워스톤을 반영한 전투 스탯 (칸 수 × 별 개수만큼 효과가 커진다) */
 export function computeStats(sp: Species, level: number, stones: Stone[] = [], mods: Mods = NO_MODS): Stats {
   let hp = 1, atk = 1, def = 1, spd = 1, crit = BASE_CRIT
+  let flatHp = 0, flatAtk = 0
   for (const s of stones) {
+    if (s.value !== undefined && (s.kind === 'hp' || s.kind === 'atk')) {
+      if (s.kind === 'hp') flatHp += s.value
+      else flatAtk += s.value
+      continue
+    }
     const v = STONE_INFO[s.kind].per * s.star * SHAPES[s.shape].length
     if (s.kind === 'hp') hp += v
     else if (s.kind === 'atk') atk += v
@@ -56,8 +66,8 @@ export function computeStats(sp: Species, level: number, stones: Stone[] = [], m
   hp += mods.hpUp / 100
   atk += mods.atkUp / 100
   return {
-    maxHp: Math.floor(calcMaxHp(sp.stats.hp, level) * HP_SCALE * hp),
-    atk: Math.floor(calcStat(sp.stats.atk, level) * atk),
+    maxHp: Math.floor((calcMaxHp(sp.stats.hp, level) * HP_SCALE + flatHp) * hp),
+    atk: Math.floor((calcStat(sp.stats.atk, level) + flatAtk) * atk),
     def: Math.floor(calcStat(sp.stats.def, level) * def),
     spe: Math.floor(calcStat(sp.stats.spe, level) * spd),
     crit: crit + mods.critRate / 100,

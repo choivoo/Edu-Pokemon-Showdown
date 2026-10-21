@@ -11,8 +11,9 @@ import { AREAS, rollRewards, stageCount, type Rewards, type Stage, stageId } fro
 import { ORIGINAL_FIRST, ORIGINAL_LAST, ORIGINAL_BOSS_AREA, ORIGINAL_STATUE_COUNT, HAPPENSTANCE_AREA, originalUnlocked } from '../lib/originalCampaign'
 import { defaultSave, loadSave, resetSave, type SaveData, writeSave } from '../lib/storage'
 import { setMuted } from '../lib/sound'
-import { recall, trainExp, TRAIN_MAX, type RecallResult } from '../lib/training'
-import { canEvolve, targetOf } from '../lib/evolution'
+import { recall, recallPool, trainExp, TRAIN_MAX, type RecallResult } from '../lib/training'
+import { autoEvolve, canEvolve, targetOf } from '../lib/evolution'
+import { MEMBER_REWARD_TICKETS, memberRewardReady, buyableDecoration, ingredientBonus, maxBatteryBonus, moveSuccessBonus, recycledIngredientBonus, trainingExpBonus } from '../lib/decorations'
 import { QUESTS, isClaimed, isDone, STATUE_MAX, statueCap, statueCost, statueMul } from '../lib/quests'
 
 export const BATTERY_ONE_COST = 150
@@ -69,7 +70,11 @@ interface GameState {
   /** 특훈: 경험치(exp) 또는 기술 떠올리기(move). 재료로 쓴 포켓몬은 사라진다 */
   train: (targetId: string, foodIds: string[], mode: 'exp' | 'move') => { ok: boolean; exp?: number; recall?: RecallResult } | null
   evolve: (monId: string, choice?: string) => number | null
+  toggleEverstone: (monId: string) => void
   upgradeStatue: () => boolean
+  claimMemberTickets: () => number
+  buyDecoration: (id: string) => boolean
+  recycleStone: (stoneId: string) => boolean
   claimQuest: (id: string) => boolean
   setTheme: (id: string) => void
 }
@@ -114,6 +119,8 @@ export const useGame = create<GameState>((set, get) => {
   const bump = (c: Record<string, number>, key: string, n = 1) => ({ ...c, [key]: (c[key] ?? 0) + n })
   const newMon = (save: SaveData, speciesId: number, level: number): { mon: OwnedMon; patch: Partial<SaveData> } => {
     const mon: OwnedMon = { id: `m${save.uid}`, species: speciesId, level, exp: 0, stones: [], bonus: rollBonuses(), mstones: [] }
+    const options = recallPool(mon)
+    if (options.length && Math.random() < 0.38) mon.move2 = options[Math.floor(Math.random() * options.length)].id
     return {
       mon,
       patch: { owned: [...save.owned, mon], uid: save.uid + 1, dex: save.dex.includes(speciesId) ? save.dex : [...save.dex, speciesId] },
@@ -219,7 +226,8 @@ export const useGame = create<GameState>((set, get) => {
       const cost = mergeCost({ star, shape })
       if (same.length < 2 || s.coins < cost) return false
       const [a, b] = same
-      const merged: Stone = { id: `s${s.uid}`, kind, shape, star: (star + 1) as 2 | 3 }
+      const merged: Stone = { id: `s${s.uid}`, kind, shape, star: (star + 1) as 2 | 3,
+        ...(a.value !== undefined || b.value !== undefined ? { value: Math.round(Math.max(a.value ?? 0, b.value ?? 0) * 1.15) } : {}) }
       commit({ stones: [...s.stones.filter(x => x.id !== a.id && x.id !== b.id), merged], coins: s.coins - cost, uid: s.uid + 1 })
       return true
     },
@@ -241,8 +249,9 @@ export const useGame = create<GameState>((set, get) => {
       const cost = get().levelUpCost(monId)
       const m = s.owned.find(o => o.id === monId)
       if (!m || cost === 0 || s.coins < cost) return false
-      const { mon } = addExp(m, expToNext(m.level) - m.exp)
-      commit({ coins: s.coins - cost, owned: s.owned.map(o => (o.id === monId ? mon : o)) })
+      const mon = autoEvolve(addExp(m, expToNext(m.level) - m.exp).mon, s.stones)
+      commit({ coins: s.coins - cost, owned: s.owned.map(o => (o.id === monId ? mon : o)),
+        dex: s.dex.includes(mon.species) ? s.dex : [...s.dex, mon.species] })
       return true
     },
 
@@ -257,7 +266,8 @@ export const useGame = create<GameState>((set, get) => {
 
     startStage: stage => {
       const s = get().save
-      const next = consume(s.battery, Date.now())
+      if (stage.area >= 0 && (!areaUnlocked(s, stage.area) || (stage.area !== HAPPENSTANCE_AREA && stage.index > 0 && !isCleared(s, stage.area, stage.index - 1)))) return false
+      const next = consume(s.battery, Date.now(), BATTERY_MAX + maxBatteryBonus(s.decorations))
       if (!next) return false
       commit({ battery: next })
       set({ stage, result: null, screen: 'battle' })
@@ -267,17 +277,18 @@ export const useGame = create<GameState>((set, get) => {
     buyBattery: full => {
       const s = get().save
       const now = Date.now()
-      const have = batteryNow(s.battery, now).n
+      const cap = BATTERY_MAX + maxBatteryBonus(s.decorations)
+      const have = batteryNow(s.battery, now, cap).n
       const cost = full ? BATTERY_FULL_COST : BATTERY_ONE_COST
-      if (s.coins < cost || have >= BATTERY_MAX) return false
-      commit({ coins: s.coins - cost, battery: charge(s.battery, now, full ? BATTERY_MAX : 1) })
+      if (s.coins < cost || have >= cap) return false
+      commit({ coins: s.coins - cost, battery: charge(s.battery, now, full ? cap : 1, cap) })
       return true
     },
 
     equipMoveStone: (monId, stoneId) => {
       const s = get().save
       const mon = s.owned.find(o => o.id === monId)
-      if (!mon || mon.mstones.length >= MOVE_SLOTS || usedMoveStoneIds(s).has(stoneId) || !s.moveStones.some(m => m.id === stoneId)) return false
+      if (!mon || mon.mstones.length >= (mon.move2 ? 2 : MOVE_SLOTS) || usedMoveStoneIds(s).has(stoneId) || !s.moveStones.some(m => m.id === stoneId)) return false
       commit({ owned: s.owned.map(o => (o.id === monId ? { ...o, mstones: [...o.mstones, stoneId] } : o)) })
       return true
     },
@@ -295,25 +306,62 @@ export const useGame = create<GameState>((set, get) => {
       const rest = s.owned.filter(o => !gone.has(o.id))
       const counters = bump(s.counters, 'trained')
       if (mode === 'exp') {
-        const exp = trainExp(target, foods)
-        const { mon } = addExp(target, exp)
-        commit({ owned: rest.map(o => (o.id === targetId ? mon : o)), counters })
+        const exp = Math.round(trainExp(target, foods) * trainingExpBonus(s.decorations))
+        const mon = autoEvolve(addExp(target, exp).mon, s.stones)
+        commit({ owned: rest.map(o => (o.id === targetId ? mon : o)), counters,
+          dex: s.dex.includes(mon.species) ? s.dex : [...s.dex, mon.species] })
         return { ok: true, exp }
       }
-      const r = recall(target, foods, Date.now(), Math.random)
+      const r = recall(target, foods, Date.now(), Math.random, moveSuccessBonus(s.decorations))
       commit({ owned: rest.map(o => (o.id === targetId ? r.mon : o)), counters: r.ok ? bump(counters, 'recalled') : counters })
       return { ok: r.ok, recall: r }
     },
 
+    toggleEverstone: monId => {
+      const s = get().save
+      if (!s.owned.some(m => m.id === monId)) return
+      commit({ owned: s.owned.map(m => m.id === monId ? { ...m, everstone: !m.everstone } : m) })
+    },
     evolve: (monId, choice) => {
       const s = get().save
       const m = s.owned.find(o => o.id === monId)
       if (!m || !canEvolve(m)) return null
+      if (m.everstone) return null
       const to = targetOf(m.species, choice)
       if (!to) return null
       // 새 종은 기본 필살기로 돌아간다 (떠올린 기술은 유지)
       commit({ owned: s.owned.map(o => (o.id === monId ? { ...o, species: to } : o)), dex: s.dex.includes(to) ? s.dex : [...s.dex, to], counters: bump(s.counters, 'evolved') })
       return to
+    },
+
+    claimMemberTickets: () => {
+      const s = get().save
+      const now = Date.now()
+      if (!memberRewardReady(s, now)) return 0
+      commit({ pmTickets: s.pmTickets + MEMBER_REWARD_TICKETS, ticketClaimedAt: now })
+      return MEMBER_REWARD_TICKETS
+    },
+
+    buyDecoration: id => {
+      const s = get().save
+      const item = buyableDecoration(id)
+      if (!item || s.decorations.includes(id) || s.pmTickets < item.tickets) return false
+      commit({ pmTickets: s.pmTickets - item.tickets, decorations: [...s.decorations, id] })
+      return true
+    },
+
+    recycleStone: stoneId => {
+      const s = get().save
+      const stone = s.stones.find(x => x.id === stoneId)
+      if (!stone || usedStoneIds(s).has(stoneId)) return false
+      const ingredient: IngredientId = stone.kind === 'atk' ? 'mushroomRed' :
+        stone.kind === 'hp' ? 'berryBlue' : 'fossil'
+      const amount = Math.ceil((stone.star * 2 + 1) * recycledIngredientBonus(s.decorations))
+      commit({
+        stones: s.stones.filter(x => x.id !== stoneId),
+        ingredients: { ...s.ingredients, [ingredient]: s.ingredients[ingredient] + amount },
+      })
+      return true
     },
 
     upgradeStatue: () => {
@@ -332,7 +380,7 @@ export const useGame = create<GameState>((set, get) => {
       if (q.reward.shell) ingredients.shell += q.reward.shell
       if (q.reward.rainbow) ingredients.rainbow += q.reward.rainbow
       const themes = q.reward.theme && !s.themes.includes(q.reward.theme) ? [...s.themes, q.reward.theme] : s.themes
-      commit({ claimed: [...s.claimed, id], coins: s.coins + (q.reward.coins ?? 0), ingredients, themes })
+      commit({ claimed: [...s.claimed, id], coins: s.coins + (q.reward.coins ?? 0), pmTickets: s.pmTickets + (q.reward.tickets ?? 0), ingredients, themes })
       return true
     },
 
@@ -357,11 +405,12 @@ export const useGame = create<GameState>((set, get) => {
         // 번영의 석상: 아직 레벨이 낮은 포켓몬은 경험치를 더 받는다
         const mul = Math.max(o.level <= originalStatueExpCap(s) ? 1.5 : 1, o.level < statueCap(s.statue) ? statueMul(s.statue) : 1)
         const r = addExp(o, Math.round(rewards.exp * mul))
-        if (r.gained > 0) levelUps.push({ name: getSpecies(o.species).name, from: o.level, to: r.mon.level })
-        return r.mon
+        const grown = autoEvolve(r.mon, s.stones)
+        if (r.gained > 0) levelUps.push({ name: grown.species !== o.species ? getSpecies(o.species).name + ' → ' + getSpecies(grown.species).name : getSpecies(o.species).name, from: o.level, to: grown.level })
+        return grown
       })
       const ingredients = { ...s.ingredients }
-      for (const [id, n] of Object.entries(rewards.ingredients) as [IngredientId, number][]) ingredients[id] += n
+      for (const [id, n] of Object.entries(rewards.ingredients) as [IngredientId, number][]) ingredients[id] += ingredientBonus(id, n, s.decorations)
       let uid = s.uid
       let stones = s.stones
       let stone: Stone | null = null
@@ -375,7 +424,7 @@ export const useGame = create<GameState>((set, get) => {
       else endlessBest = Math.max(endlessBest, stage.endlessFloor!)
 
       let recruited: OwnedMon | null = null
-      let dex = s.dex
+      let dex = [...new Set([...s.dex, ...owned.map(o => o.species)])]
       if (firstClear && stage.recruit) {
         recruited = { id: `m${uid++}`, species: stage.recruit, level: Math.max(newcomerLevel(s), stage.level - 3), exp: 0, stones: [], bonus: rollBonuses(), mstones: [] }
         owned = [...owned, recruited]

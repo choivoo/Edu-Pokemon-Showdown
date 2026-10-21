@@ -1,5 +1,5 @@
 import { type Battle, type FxEvent, isBuffed, type Unit } from './battle'
-import { backSprite, frontSprite } from '../data/sprites'
+import { backSprite, frontSprite, fallbackSpriteOnError } from '../data/sprites'
 import { TYPE_COLOR } from '../lib/typeChart'
 import type { Theme } from '../lib/stages'
 import { drawBattleWorld, flush } from '../art/world'
@@ -16,6 +16,10 @@ export function sprite(url: string): HTMLImageElement {
   if (!img) {
     img = new Image()
     img.crossOrigin = 'anonymous'
+    img.onerror = () => {
+      const m = url.match(/\/(\d+)\.png$/)
+      if (m) fallbackSpriteOnError(img!, Number(m[1]), url.includes('/back/') ? 'back' : 'front')
+    }
     img.src = url
     cache.set(url, img)
   }
