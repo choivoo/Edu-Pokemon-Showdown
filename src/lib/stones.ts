@@ -1,11 +1,11 @@
-// 파워스톤: 포켓몬마다 있는 격자(4x3)에 모양이 다른 조각을 배치한다. (원작의 파워스톤 격자를 단순화)
+// P애뮬릿: 3x3의 파워스톤 소켓 9칸. 과거 팬 에디션의 다칸 스톤은 저장 호환용으로 허용.
 export type StoneKind = 'hp' | 'atk' | 'def' | 'spd' | 'crit'
 export type ShapeId = 'dot' | 'bar2' | 'bar3' | 'ell'
 
 export interface Stone { id: string; kind: StoneKind; star: 1 | 2 | 3; shape: ShapeId }
 export interface Placement { stone: string; x: number; y: number; rot: number }
 
-export const GRID_W = 4
+export const GRID_W = 3
 export const GRID_H = 3
 
 export const STONE_INFO: Record<StoneKind, { name: string; icon: string; desc: string; color: string; per: number }> = {
@@ -24,7 +24,7 @@ export const SHAPES: Record<ShapeId, [number, number][]> = {
   ell: [[0, 0], [0, 1], [1, 1]],
 }
 /** 드롭 확률 가중치 */
-export const SHAPE_WEIGHTS: [ShapeId, number][] = [['dot', 50], ['bar2', 28], ['ell', 14], ['bar3', 8]]
+export const SHAPE_WEIGHTS: [ShapeId, number][] = [['dot', 100]]
 
 /** 90도씩 rot번 회전한 칸 좌표 (좌상단 기준으로 정규화) */
 export function cellsOf(shape: ShapeId, rot: number): [number, number][] {
@@ -36,8 +36,9 @@ export function cellsOf(shape: ShapeId, rot: number): [number, number][] {
 }
 
 /** 레벨이 오를수록 해금되는 칸 (중앙에서 바깥쪽으로) */
-const UNLOCK_ORDER: [number, number][] = [[1, 1], [2, 1], [1, 0], [2, 0], [1, 2], [2, 2], [0, 1], [3, 1], [0, 0], [3, 0], [0, 2], [3, 2]]
-export const unlockedCount = (level: number) => Math.min(UNLOCK_ORDER.length, 4 + Math.floor((level - 1) / 5))
+const UNLOCK_ORDER: [number, number][] = [[1, 1], [1, 0], [0, 1], [2, 1], [1, 2], [0, 0], [2, 0], [0, 2], [2, 2]]
+/** Progressively open nine slots. New players start with one open socket. */
+export const unlockedCount = (level: number) => Math.min(UNLOCK_ORDER.length, 1 + Math.floor((Math.max(1, level) - 1) / 10))
 export const unlockedSet = (level: number): Set<string> => new Set(UNLOCK_ORDER.slice(0, unlockedCount(level)).map(([x, y]) => `${x},${y}`))
 
 /** 배치된 칸 → 배치 인덱스 */
