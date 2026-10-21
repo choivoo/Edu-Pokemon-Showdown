@@ -128,10 +128,10 @@ export const RANGED_TYPES: PokemonType[] = ['fire', 'water', 'electric', 'psychi
 export const STAB = 1.3
 export const AOE_RADIUS = 150
 
-const BOSS = { hp: 3, atk: 1.12, def: 1.05 }
+const BOSS = { hp: 2.35, atk: 1.03, def: 1.0 }
 const ELITE = { hp: 1.7, atk: 1.1, def: 1.05 }
 /** 아군은 스톤으로 강해지므로 일반 적의 공격은 살짝 낮춘다 */
-const ENEMY_ATK = 1.0
+const ENEMY_ATK = 0.72
 
 const MELEE_RANGE = 52
 const RANGED_RANGE = 190
@@ -147,14 +147,14 @@ function makeUnit(b: Battle, side: Side, speciesId: number, level: number, stats
   const sp = getSpecies(speciesId)
   const m = boss ? BOSS : elite ? ELITE : { hp: 1, atk: 1, def: 1 }
   const atkMul = side === 'enemy' ? m.atk * ENEMY_ATK : m.atk
-  const maxHp = Math.floor(stats.maxHp * m.hp)
+  const maxHp = Math.floor(stats.maxHp * m.hp * (side==='enemy' ? 0.78 : 1))
   const special = getMove(o.move ?? sp.special)
   const secondary = o.move2 ? getMove(o.move2) : null
   const basic = getMove(sp.basic)
   const ranged = RANGED_TYPES.includes(basic.type) && !boss
   const home = FORMATION[slot] ?? FORMATION[0]
-  const x = o.pos?.x ?? (side === 'ally' ? home.x : boss ? 760 : 640 + b.rng() * 220)
-  const y = o.pos?.y ?? (side === 'ally' ? home.y : boss ? 325 : FIELD.y0 + 30 + (slot / 2) * (FIELD.y1 - FIELD.y0 - 60) + (b.rng() - 0.5) * 30)
+  const x = o.pos?.x ?? (side === 'ally' ? home.x : boss ? 760 : FIELD.x0 + 80 + b.rng() * (FIELD.x1-FIELD.x0-160))
+  const y = o.pos?.y ?? (side === 'ally' ? home.y : boss ? 325 : FIELD.y0 + 35 + b.rng() * (FIELD.y1-FIELD.y0-70))
   return {
     uid: b.nextUid++, side, speciesId, name: sp.name, types: sp.types, level, maxHp, hp: maxHp,
     atk: Math.floor(stats.atk * atkMul), def: Math.floor(stats.def * m.def), spe: stats.spe, crit: stats.crit,
@@ -547,8 +547,11 @@ export function step(b: Battle, dt: number): void {
         if (u.status?.kind === 'chain') { u.moving = false; continue }
         u.moving = true
         const k = Math.min(speedOf(b, u) * dt, d)
-        u.x += ((t.x - u.x) / d) * k
-        u.y += ((t.y - u.y) / d) * k
+        const orbit = Math.sin(b.t*0.85 + u.uid*2.4)*0.32
+        u.x += (((t.x - u.x) / d)*Math.cos(orbit) - ((t.y-u.y)/d)*Math.sin(orbit)) * k
+        u.y += (((t.y - u.y) / d)*Math.cos(orbit) + ((t.x-u.x)/d)*Math.sin(orbit)) * k
+        u.x=Math.max(FIELD.x0+u.radius,Math.min(FIELD.x1-u.radius,u.x))
+        u.y=Math.max(FIELD.y0+u.radius,Math.min(FIELD.y1-u.radius,u.y))
       } else {
         u.moving = false
         if (u.atkCd <= 0) {
