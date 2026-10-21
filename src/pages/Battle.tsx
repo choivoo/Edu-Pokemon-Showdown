@@ -59,6 +59,7 @@ export default function Battle() {
     setHud(snapshot(b))
     const regionMusic = (['tide', 'grove', 'echo', 'spark', 'ember', 'astral'] as const)[stage.area] ?? 'battle'
     bgm.play(stage.boss ? 'boss' : regionMusic)
+    if (stage.boss && stage.area >= 0) sfx.cry(AREAS[stage.area].boss)
 
     const ctx = canvas.current!.getContext('2d')!
     const theme = stage.area >= 0 ? AREAS[stage.area].theme : (['beach', 'forest', 'cave', 'gorge', 'volcano', 'altar'] as const)[stage.index % 6]
