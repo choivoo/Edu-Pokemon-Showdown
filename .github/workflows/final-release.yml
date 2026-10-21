@@ -1,0 +1,47 @@
+name: 2D Adventure 2.0.0 Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    if: github.repository == 'choivoo/Pokemon-Quest-fan.Edition'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Test and build
+        run: |
+          npm ci
+          npm run typecheck
+          npm test
+          npm run build
+          test -s dist/index.html
+      - name: Package 2D Adventure
+        run: |
+          zip -qr pokemon-quest-fan-edition-v2.0.0-web.zip dist
+          unzip -t pokemon-quest-fan-edition-v2.0.0-web.zip
+      - name: Publish unofficial release if absent
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view v2.0.0 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Preserving the existing v2.0.0 release"
+            exit 0
+          fi
+          gh release create v2.0.0 pokemon-quest-fan-edition-v2.0.0-web.zip \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "Pokémon Quest Fan Edition 2.0.0 — 2D Adventure (Unofficial)" \
+            --notes-file FINAL_RELEASE_NOTES.md
