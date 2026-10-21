@@ -18,6 +18,8 @@ export interface OwnedMon {
   bonus: Bonus[]
   /** 장착한 기술스톤 id (최대 3) */
   mstones: string[]
+  /** Optional per-stone move slot assignment (0=main,1=secondary). */
+  moveStoneSlots?: Array<0 | 1>
   /** 특훈으로 떠올린 필살기 (없으면 기본 필살기) */
   move?: string
   /** Original Quest Pokémon can learn a second optional special move. */
