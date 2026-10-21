@@ -22,6 +22,8 @@ export default function BatteryMeter({ compact = false, dark = false }: { compac
 
 export const useBattery = () => {
   const battery = useGame(s => s.save.battery)
+  const decorations = useGame(s => s.save.decorations)
+  const cap = BATTERY_MAX + maxBatteryBonus(decorations)
   const [now, setNow] = useState(() => Date.now())
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(t) }, [])
   return batteryNow(battery, now, cap)
