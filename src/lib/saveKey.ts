@@ -50,7 +50,7 @@ async function pipe(bytes: Uint8Array, stream: CompressionStream | Decompression
 
 // ---------- 저장 데이터 압축 표현 (배열 기반으로 크기를 줄임) ----------
 type PackedMon = [string, number, number, number, Array<[string, number, number, number]>, Array<[string, number, number, number]>?, string[]?, string?, number?, number?]
-type Packed = [number, number, string, number, [string, number][], Array<[string, string, number, string, number?, Record<string, number>?, string[]?, string[]?]>, PackedMon[], string[], string[], number[], number, number, number, number, number, number?, number?, Array<[string, string]>?, Record<string, number>?, string[]?, number?, string[]?, string?, [number, number, number, number, number?]?, Record<string, number>?]
+type Packed = [number, number, string, number, [string, number][], Array<[string, string, number, string, number?, Record<string, number>?]>, PackedMon[], string[], string[], number[], number, number, number, number, number, number?, number?, Array<[string, string]>?, Record<string, number>?, string[]?, number?, string[]?, string?, [number, number, number, number, number?]?, Record<string, number>?, string[]?, string[]?]
 
 export function pack(s: SaveData): Packed {
   return [
