@@ -58,7 +58,7 @@ export default function Result() {
               <div className="flex justify-between"><span>코인</span><b><Coins n={`+${r.rewards.coins}`} /></b></div>
               <div className="flex justify-between"><span>경험치 (파티 전원)</span><b>+{r.rewards.exp}</b></div>
               <div className="flex justify-between"><span>재료</span><span className="flex flex-wrap justify-end gap-2">{INGREDIENTS.filter(i => r.rewards!.ingredients[i.id]).map(i => <span key={i.id} className="inline-flex items-center"><Icon n={i.icon} s={28} />×{r.rewards!.ingredients[i.id]}</span>)}</span></div>
-              {r.stone && <div className="flex justify-between"><span>파워스톤</span><b className="flex items-center gap-1" style={{ color: STONE_INFO[r.stone.kind].color }}><Icon n={STONE_INFO[r.stone.kind].icon} s={26} />{stoneName(r.stone)} ({SHAPES[r.stone.shape].length}칸)</b></div>}
+              {r.stone && <div className="flex justify-between"><span>P스톤</span><b className="flex items-center gap-1" style={{ color: STONE_INFO[r.stone.kind].color }}><Icon n={STONE_INFO[r.stone.kind].icon} s={26} />{stoneName(r.stone)} ({SHAPES[r.stone.shape].length}칸)</b></div>}
               {r.moveStone && <div className="flex justify-between"><span>기술스톤</span><b className="flex items-center gap-1" style={{ color: MOVE_STONE_INFO[r.moveStone.kind].color }}><Icon n={MOVE_STONE_INFO[r.moveStone.kind].icon} s={26} />{MOVE_STONE_INFO[r.moveStone.kind].name}</b></div>}
               {r.levelUps.map(l => <p key={l.name} className="flex items-center gap-1 text-lg text-[#2e8f4a]"><Icon n="up" s={22} />{l.name} Lv{l.from} 에서 Lv{l.to}</p>)}
             </>) : <p className="text-center text-lg">아쉽지만 보상은 없어요.</p>}
