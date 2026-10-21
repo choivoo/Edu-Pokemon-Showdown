@@ -2,7 +2,7 @@ import type { PokemonType, Rng } from '../types'
 import { type IngredientId } from './cooking'
 import { SPECIES } from './roster'
 import { computeStats, expToNext, powerRating } from './stats'
-import { SHAPE_WEIGHTS, type Stone, type StoneKind } from './stones'
+import { SHAPE_WEIGHTS, type Stone, type StoneKind, type StoneEffectKind } from './stones'
 import { MOVE_STONE_KINDS, type MoveStoneKind } from './moveStones'
 import type { Species } from '../types'
 import { ORIGINAL_AREAS, ORIGINAL_BOSS_AREA, ORIGINAL_FIRST, HAPPENSTANCE_AREA, HAPPENSTANCE } from './originalCampaign'
@@ -275,7 +275,7 @@ function weighted(w: number[], rng: Rng): number {
 }
 
 /** 클리어 보상: 코인/경험치/재료/파워스톤 */
-export function rollRewards(stage: Stage, rng: Rng = Math.random): Rewards {
+export function rollRewards(stage: Stage, rng: Rng = Math.random, expeditionBonus = false): Rewards {
   const area = stage.area >= 0 ? AREAS[stage.area] : null
   const drops: IngredientId[] = area ? area.drops : ['mushroomRed', 'berryBlue', 'nutYellow', 'fossil', 'rootRed', 'rockBlue', 'honey', 'mushroomGray']
   const ingredients: Rewards['ingredients'] = {}
@@ -288,9 +288,22 @@ export function rollRewards(stage: Stage, rng: Rng = Math.random): Rewards {
   if ((stage.area === HAPPENSTANCE_AREA || stage.area < 0) && rng() < (stage.boss ? 0.9 : 0.35)) ingredients.rainbow = 1
   if (stage.area === HAPPENSTANCE_AREA && rng() < (0.15 + stage.index * 0.06)) ingredients.shell = 1
   const stars = area ? area.stars : ([40, 40, 20] as [number, number, number])
-  const gotStone = stage.boss || rng() < 0.35
+  const gotStone = expeditionBonus || stage.boss || rng() < 0.35
   const shape = SHAPE_WEIGHTS[weighted(SHAPE_WEIGHTS.map(w => w[1]), rng)][0]
-  const stone = gotStone ? { kind: pick<StoneKind>(['hp', 'atk'], rng), star: (weighted(stars, rng) + 1) as 1 | 2 | 3, shape } : null
+  let stone: Omit<Stone, 'id'> | null = null
+  if (gotStone) {
+    const star = expeditionBonus ? 3 : (weighted(stars, rng) + 1) as 1 | 2 | 3
+    // Base value scales with expedition danger; bronze/silver/gold unlock 1/2/3 additional effects.
+    const value = Math.max(12, Math.round((10 + stage.level * 7.5) * (0.75 + rng() * 0.5)))
+    const effects: NonNullable<Stone['effects']> = {}
+    const pool: StoneEffectKind[] = ['critRate','critDmg','hitHealing','naturalHealing','waveHealing','moveSpeed']
+    for (let i = 0; i < star; i++) {
+      const ix = Math.floor(rng() * pool.length)
+      const kind = pool.splice(ix, 1)[0]
+      effects[kind] = Math.max(1, Math.round((2 + rng() * 5) * (1 + stage.level / 150)))
+    }
+    stone = { kind: pick<StoneKind>(['hp', 'atk'], rng), star, shape, value, effects }
+  }
   const moveStone = rng() < (stage.boss ? 0.7 : 0.2) ? pick<MoveStoneKind>(MOVE_STONE_KINDS, rng) : null
   return { coins: stage.coins, exp: stage.exp, ingredients, stone, moveStone }
 }
