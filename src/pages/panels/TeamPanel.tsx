@@ -188,7 +188,7 @@ export default function TeamPanel() {
               </div>
             ) : right === 'bingo' ? (
               <div className="space-y-2 text-sm">
-                <p className="leading-snug">P스톤 격자의 <b>가로 또는 세로 한 줄을 스톤으로 모두 채우면</b> 빙고! 3/6/9개의 스톤을 장착하고 줄을 완성할 때마다 보너스가 하나씩 켜져요.</p>
+                <p className="leading-snug">P스톤 격자의 <b>가로 또는 세로 한 줄을 스톤으로 모두 채우면</b> 빙고! 가로·세로 빙고 줄을 1·2·3개 완성할 때마다 각각의 보너스가 켜져요.</p>
                 <p className="flex items-center gap-1 text-lg font-bold text-[#c06a00]"><Icon n="bingo" s={26} />완성한 빙고 {bingos}줄{bingos > 3 ? ' (3줄까지 인정)' : ''}</p>
                 {mon.bonus.map((b, bi) => (
                   <div key={b.kind} className="border-4 border-[#c98a00] bg-white/60 p-2">
