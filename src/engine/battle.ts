@@ -90,7 +90,7 @@ export type FxEvent =
   | { k: 'buff'; uid: number; good: boolean }
   | { k: 'flee'; uid: number }
 
-interface Pending { at: number; from: number; to: number; amount: number; eff: number; crit: boolean; type: PokemonType; special: boolean; status?: StatusKind }
+interface Pending { at: number; from: number; to: number; amount: number; eff: number; crit: boolean; type: PokemonType; special: boolean; status?: StatusKind; sourceQuest?: boolean }
 
 export type Phase = 'fight' | 'advance' | 'won' | 'lost'
 
@@ -261,7 +261,7 @@ function strike(b: Battle, from: Unit, to: Unit, move: Move, special: boolean, p
     r = { damage: Math.max(1, Math.floor(neutral.damage * 0.25)), effectiveness: 0.25, crit }
   }
   const amount = r.crit && from.critDmg > 0 ? Math.floor(r.damage * (1 + from.critDmg)) : r.damage
-  b.pending.push({ at: b.t + delay, from: from.uid, to: to.uid, amount, eff: r.effectiveness, crit: r.crit, type: move.type, special, status: move.id.startsWith('quest-') ? moveProfile(move).status : undefined })
+  b.pending.push({ at: b.t + delay, from: from.uid, to: to.uid, amount, eff: r.effectiveness, crit: r.crit, type: move.type, special, status: move.id.startsWith('quest-') ? moveProfile(move).status : undefined, sourceQuest: move.id.startsWith('quest-') })
 }
 
 const travel = (a: Unit, c: Unit) => Math.max(0.12, dist(a, c) / 560)
@@ -409,7 +409,7 @@ function applyHit(b: Battle, p: Pending) {
   }
   if (from && from.alive && p.special && from.side !== to.side && to.hp > 0) {
     if(p.status) {if(b.rng()<STATUS_CHANCE)applyStatus(b,to,p.status)}
-    else if(b.rng()<STATUS_CHANCE && !p.status) applyStatus(b, to, TYPE_STATUS[p.type])
+    else if(!p.sourceQuest && b.rng()<STATUS_CHANCE) applyStatus(b, to, TYPE_STATUS[p.type])
   }
   if (to.hp <= 0) {
     to.alive = false
