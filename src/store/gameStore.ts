@@ -20,7 +20,7 @@ export const BATTERY_FULL_COST = 600
 
 export type Screen = 'title' | 'intro' | 'camp' | 'island' | 'battle' | 'result'
 /** 화면 위에 겹쳐 뜨는 창 (원작처럼 한 화면 안에서 열고 닫는다) */
-export type Panel = 'team' | 'cook' | 'dex' | 'shop' | 'save' | 'train' | 'quest' | null
+export type Panel = 'team' | 'cook' | 'dex' | 'shop' | 'save' | 'train' | 'quest' | 'story' | null
 
 export interface BattleResult {
   win: boolean
