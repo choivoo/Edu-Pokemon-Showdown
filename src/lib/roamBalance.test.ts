@@ -6,7 +6,7 @@ import { computeStats } from './stats'
 import { getSpecies } from './roster'
 import { getStage } from './stages'
 
-const starter=(id:string,slot:number)=>({
+const starter=(id:string)=>({
   ownedId:id,speciesId:25,level:5,stats:computeStats(getSpecies(25),5),
 })
 
@@ -27,14 +27,14 @@ describe('Forgiving starter expedition difficulty',()=>{
   it('uses the real number of allies when the encounter is created',()=>{
     const stage=getStage(ORIGINAL_FIRST,0)
     const waves=[[{species:19,level:5}]]
-    const solo=createBattle([starter('a',0)],waves,()=>0.5,stage)
-    const trio=createBattle([starter('a',0),starter('b',1),starter('c',2)],waves,()=>0.5,stage)
+    const solo=createBattle([starter('a')],waves,()=>0.5,stage)
+    const trio=createBattle([starter('a'),starter('b'),starter('c')],waves,()=>0.5,stage)
     expect(solo.units.find(u=>u.side==='enemy')!.maxHp).toBeLessThan(trio.units.find(u=>u.side==='enemy')!.maxHp)
     expect(solo.balance.allyHeal).toBeGreaterThan(trio.balance.allyHeal)
   })
 })
 describe('Free-roaming 2D party controls',()=>{
-  const battle=()=>createBattle([starter('a',0)],[[{species:19,level:1}]],()=>0.5)
+  const battle=()=>createBattle([starter('a')],[[{species:19,level:1}]],()=>0.5)
   it('normalizes held diagonals so they do not sprint faster',()=>{
     const b=battle()
     steerParty(b,1,-1)
