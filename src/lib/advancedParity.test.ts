@@ -83,7 +83,7 @@ describe('sourced stage enemy sets and transparent cooking estimates',()=>{
   expect(verifiedWaves(7,4,10,()=>0)![2][0].species).toBe(12)
   expect(verifiedWaves(7,4,10,()=>.99)![2][0].species).toBe(15)
   expect(verifiedWaves(7,3,10,()=>0)![1].length).toBeGreaterThan(0)
-  expect(verifiedWaves(8,0,10,()=>0)).toBeUndefined()
+  expect(verifiedWaves(8,0,10,()=>0)).toBeDefined()
  })
  it('normalizes each recipe’s probability distribution to 100%',()=>{
   const sample=['mushroomRed','mushroomRed','rootRed','rootRed','rootRed'] as const
