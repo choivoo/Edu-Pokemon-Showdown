@@ -5,6 +5,7 @@ import { INGREDIENTS } from '../lib/cooking'
 import { getSpecies } from '../lib/roster'
 import { stoneName, SHAPES, STONE_INFO } from '../lib/stones'
 import Dialog from '../components/Dialog'
+import { chronicleFor } from '../lib/chronicles'
 import { bgm, sfx } from '../lib/sound'
 import { useBattery } from '../ui/BatteryMeter'
 import { MOVE_STONE_INFO } from '../lib/moveStones'
@@ -13,7 +14,7 @@ import Icon, { Coins } from '../ui/Icon'
 
 export default function Result() {
   const { result: r, save, go, startStage, markStory } = useGame()
-  const [story, setStory] = useState(r?.outroArea != null)
+  const [story, setStory] = useState(!!r?.win && !!r?.firstClear && r.stage.area >= 0)
   const bat = useBattery()
 
   useEffect(() => {
@@ -24,6 +25,7 @@ export default function Result() {
 
   if (!r) return null
   const { stage } = r
+  const chapter = stage.area >= 0 ? chronicleFor(stage.area, stage.index) : null
   const camp = () => go('camp')
 
   let next: (() => void) | null = null
@@ -69,7 +71,7 @@ export default function Result() {
           {next && <Btn color="green" onClick={next} disabled={nextStarts && bat.n <= 0} className="flex items-center gap-2">다음<Icon n="next" s={22} /></Btn>}
         </div>
       </Panel>
-      {story && r.outroArea != null && <Dialog lines={AREAS[r.outroArea].outro} name={save.name} onDone={() => { markStory(`outro-${r.outroArea}`); setStory(false) }} />}
+      {story && chapter && <Dialog lines={[...chapter.lines, ...(r.outroArea !== null ? AREAS[r.outroArea].outro : [])]} name={save.name} onDone={() => { markStory(`chronicle-${stage.id}`); if (r.outroArea !== null) markStory(`outro-${r.outroArea}`); setStory(false) }} />}
     </div>
   )
 }
