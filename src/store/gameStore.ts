@@ -11,7 +11,7 @@ import { AREAS, rollRewards, stageCount, type Rewards, type Stage, stageId } fro
 import { ORIGINAL_FIRST, ORIGINAL_LAST, ORIGINAL_BOSS_AREA, ORIGINAL_STATUE_COUNT, HAPPENSTANCE_AREA, originalUnlocked } from '../lib/originalCampaign'
 import { defaultSave, loadSave, resetSave, type SaveData, writeSave } from '../lib/storage'
 import { setMuted } from '../lib/sound'
-import { recall, trainExp, TRAIN_MAX, type RecallResult } from '../lib/training'
+import { recall, recallPool, trainExp, TRAIN_MAX, type RecallResult } from '../lib/training'
 import { autoEvolve, canEvolve, targetOf } from '../lib/evolution'
 import { MEMBER_REWARD_TICKETS, memberRewardReady, buyableDecoration, ingredientBonus, maxBatteryBonus, moveSuccessBonus, recycledIngredientBonus, trainingExpBonus } from '../lib/decorations'
 import { QUESTS, isClaimed, isDone, STATUE_MAX, statueCap, statueCost, statueMul } from '../lib/quests'
@@ -119,6 +119,8 @@ export const useGame = create<GameState>((set, get) => {
   const bump = (c: Record<string, number>, key: string, n = 1) => ({ ...c, [key]: (c[key] ?? 0) + n })
   const newMon = (save: SaveData, speciesId: number, level: number): { mon: OwnedMon; patch: Partial<SaveData> } => {
     const mon: OwnedMon = { id: `m${save.uid}`, species: speciesId, level, exp: 0, stones: [], bonus: rollBonuses(), mstones: [] }
+    const options = recallPool(mon)
+    if (options.length && Math.random() < 0.38) mon.move2 = options[Math.floor(Math.random() * options.length)].id
     return {
       mon,
       patch: { owned: [...save.owned, mon], uid: save.uid + 1, dex: save.dex.includes(speciesId) ? save.dex : [...save.dex, speciesId] },
@@ -285,7 +287,7 @@ export const useGame = create<GameState>((set, get) => {
     equipMoveStone: (monId, stoneId) => {
       const s = get().save
       const mon = s.owned.find(o => o.id === monId)
-      if (!mon || mon.mstones.length >= MOVE_SLOTS || usedMoveStoneIds(s).has(stoneId) || !s.moveStones.some(m => m.id === stoneId)) return false
+      if (!mon || mon.mstones.length >= (mon.move2 ? 2 : MOVE_SLOTS) || usedMoveStoneIds(s).has(stoneId) || !s.moveStones.some(m => m.id === stoneId)) return false
       commit({ owned: s.owned.map(o => (o.id === monId ? { ...o, mstones: [...o.mstones, stoneId] } : o)) })
       return true
     },
