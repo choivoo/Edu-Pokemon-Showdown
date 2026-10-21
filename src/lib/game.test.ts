@@ -72,6 +72,17 @@ describe('cooking', () => {
     expect(cookingExpeditions(ids('rainbow','rainbow','honey','fossil','fossil'))).toBe(6)
   })
 
+  it('신비의 조개껍질을 사용해야 전설의 수프가 만들어지고 전설 5종을 모집할 수 있다', () => {
+    const normal = ids('rainbow', 'rainbow', 'rainbow', 'rainbow', 'honey')
+    expect(recipeFor(normal).no).not.toBe(18)
+    const legend = ids('shell', 'fossil', 'fossil', 'fossil', 'fossil')
+    expect(recipeFor(legend).no).toBe(18)
+    const legendaryIds = new Set([144, 145, 146, 150, 151])
+    for (const mon of attractPool(recipeFor(legend))) expect(legendaryIds.has(mon.id)).toBe(true)
+    for (let seed = 1; seed <= 50; seed++) expect(legendaryIds.has(cook(legend, seeded(seed)).id)).toBe(true)
+    for (let seed = 1; seed <= 50; seed++) expect(legendaryIds.has(cook(normal, seeded(seed)).id)).toBe(false)
+  })
+
   it('레시피는 18가지이며 번호가 겹치지 않는다', () => {
     expect(ALL_RECIPES).toHaveLength(18)
     expect(new Set(ALL_RECIPES.map(r => r.no)).size).toBe(18)
