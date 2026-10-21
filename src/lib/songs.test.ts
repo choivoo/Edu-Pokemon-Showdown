@@ -29,7 +29,7 @@ describe('음악', () => {
   })
 
   it('모든 곡이 정상적으로 불러와지고(마디 길이 검증 통과) 트랙이 있다', () => {
-    expect(ALL_TRACKS.length).toBe(10)
+    expect(ALL_TRACKS.length).toBe(16)
     for (const s of ALL_TRACKS) {
       expect(s.tracks.length).toBeGreaterThan(1)
       expect(s.bpm).toBeGreaterThan(60)
