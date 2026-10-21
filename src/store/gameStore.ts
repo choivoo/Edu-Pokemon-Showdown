@@ -226,7 +226,8 @@ export const useGame = create<GameState>((set, get) => {
       const cost = mergeCost({ star, shape })
       if (same.length < 2 || s.coins < cost) return false
       const [a, b] = same
-      const merged: Stone = { id: `s${s.uid}`, kind, shape, star: (star + 1) as 2 | 3 }
+      const merged: Stone = { id: `s${s.uid}`, kind, shape, star: (star + 1) as 2 | 3,
+        ...(a.value !== undefined || b.value !== undefined ? { value: Math.round(Math.max(a.value ?? 0, b.value ?? 0) * 1.15) } : {}) }
       commit({ stones: [...s.stones.filter(x => x.id !== a.id && x.id !== b.id), merged], coins: s.coins - cost, uid: s.uid + 1 })
       return true
     },
