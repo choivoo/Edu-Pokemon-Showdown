@@ -128,7 +128,7 @@ export default function Battle() {
       special: () => sfx.special(),
       faint: () => sfx.faint(),
       wave: (boss: boolean) => (boss ? sfx.crit() : sfx.step()),
-      bossDefeated: () => { sfx.bossFinale() },
+      bossDefeated: () => { bgm.duck(2.5); sfx.bossFinale() },
     }
     const loop = (nowMs: number) => {
       const real = Math.min(0.1, (nowMs - last) / 1000)
@@ -152,7 +152,7 @@ export default function Battle() {
       if (hudT > 0.1) { hudT = 0; setHud(snapshot(b)) }
       if ((b.phase === 'won' || b.phase === 'lost') && !finished.current) {
         endT += real
-        if (endT > (stage.area===6 && [0,1,3].includes(stage.index) ? 2.45 : 1.3)) { finished.current = true; setHud(snapshot(b)); finishBattle(b.phase === 'won', stage, b.kills) }
+        if (endT > (b.phase === 'won' && b.finaleFired ? 2.65 : 1.3)) { finished.current = true; setHud(snapshot(b)); finishBattle(b.phase === 'won', stage, b.kills) }
       }
       raf = requestAnimationFrame(loop)
     }
