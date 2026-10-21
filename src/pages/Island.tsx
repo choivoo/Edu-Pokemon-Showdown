@@ -28,7 +28,7 @@ export default function Island() {
   useCanvas(canvas, (ctx, t) => {
     if (mode === 'original') drawOriginalIsland(ctx, t, unlocked.slice(ORIGINAL_FIRST, ORIGINAL_LAST + 1), AREAS.slice(ORIGINAL_FIRST, ORIGINAL_LAST + 1).map((_, i) => areaCleared(save, ORIGINAL_FIRST + i)))
     else drawIsland(ctx, t, unlocked.slice(0, FAN_AREA_COUNT), endless)
-  }, [unlocked.join(), endless, mode])
+  }, [unlocked.join(), Object.keys(save.cleared).join(','), endless, mode])
 
   const mine = partyPower(save)
   const nextStage = (a: number) => Array.from({ length: stageCount(a) }, (_, i) => i).find(i => !isCleared(save, a, i)) ?? stageCount(a) - 1
