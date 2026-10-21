@@ -7,6 +7,8 @@ import { rollBonuses, seededRng } from './bingo'
 
 export interface CookingPot {
   species: number
+  /** Rare dishes can attract two or three Pokémon in one cooking batch. */
+  visitors?: number[]
   remaining: number
   total: number
   recipe: number
