@@ -12,7 +12,6 @@ import Icon, { Coins } from '../ui/Icon'
 import BatteryMeter from '../ui/BatteryMeter'
 import { bgm, sfx } from '../lib/sound'
 import { claimable, themeFilter } from '../lib/quests'
-import { DECORATIONS } from '../lib/decorations'
 
 export default function Camp() {
   const { save, go, openPanel, toggleMute } = useGame()
@@ -23,7 +22,8 @@ export default function Camp() {
   const key = ids.join(',')
   preload(ids)
   useEffect(() => { bgm.play('camp') }, [])
-  useCanvas(canvas, (ctx, t) => drawCamp(ctx, t, ids, false), [key])
+  const decorKey = save.decorations.join(',')
+  useCanvas(canvas, (ctx, t) => drawCamp(ctx, t, ids, false, save.decorations), [key, decorKey])
 
   const needBackup = save.exportedAt === 0 ? save.owned.length >= 6 : save.clearsSinceExport >= 3
   const firstTime = save.owned.length <= 3
@@ -59,18 +59,10 @@ export default function Camp() {
       )}
 
       {save.decorations.length > 0 && (
-        <button onClick={() => openPanel('shop')} aria-label="캠프 장식 관리" title="구매한 장식품. 효과는 항상 적용돼요."
-          className="absolute bottom-[124px] right-4 flex max-w-[420px] flex-wrap justify-end gap-1.5">
-          {save.decorations.slice(0, 7).map((id, i) => {
-            const deco = DECORATIONS.find(d => d.id === id)
-            if (!deco) return null
-            return <span key={id} className="flex flex-col items-center border-2 border-[#5b4835] bg-[#f6d88c]/90 px-2 py-1 shadow-[0_3px_0_#5b4835]"
-              title={deco.name + ': ' + deco.effect}>
-              <Icon n={id.includes('Flag') ? 'flag' : id.includes('Cushion') ? 'heart' : id.includes('Arch') ? 'star' : i % 2 ? 'gem' : 'sparkle'} s={22} />
-              <span className="max-w-[65px] truncate text-xs font-bold">{deco.name}</span>
-            </span>
-          })}
-          {save.decorations.length > 7 && <span className="border-2 border-[#5b4835] bg-[#fff3c8] px-2 py-1 text-xs font-bold">+{save.decorations.length - 7}</span>}
+        <button onClick={() => openPanel('shop')} aria-label="캠프 장식 관리"
+          title="구입한 가구를 캠프 풍경에 배치했어요. 장식 효과는 항상 적용됩니다."
+          className="absolute bottom-[124px] right-4 z-10 flex items-center gap-2 border-4 border-[#67563c] bg-[#ffe5a0]/95 px-3 py-1.5 text-sm font-bold text-[#6b4e2b] shadow-[3px_4px_0_#554333]">
+          <Icon n="sparkle" s={22} /> 장식 {save.decorations.length}개 · 관리
         </button>
       )}
 
