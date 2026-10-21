@@ -37,18 +37,75 @@ function noise(start: number, dur: number, vol = 0.1) {
   src.start(c.currentTime + start)
 }
 
+/**
+ * 각 포켓몬의 도감 번호를 씨앗으로 쓰는 오리지널 전자 울음소리.
+ * 실제 게임/애니의 울음 음원을 사용하지 않고, 음높이 궤적·공명·거친 숨결을 합성한다.
+ */
+function creatureCry(species: number) {
+  const c = audio(), out = masterOut()
+  if (!c || !out) return
+  const t = c.currentTime + 0.015
+  const id = Math.max(1, Math.floor(species))
+  const root = 170 + ((id * 53) % 245)
+  const length = 0.23 + ((id * 11) % 19) / 100
+  const voice = c.createGain()
+  const low = c.createBiquadFilter()
+  low.type = 'lowpass'; low.Q.value = 1.8
+  low.frequency.setValueAtTime(root * 6, t)
+  low.frequency.exponentialRampToValueAtTime(root * 2.5, t + length)
+  voice.gain.setValueAtTime(0.0001, t)
+  voice.gain.exponentialRampToValueAtTime(0.085, t + 0.025)
+  voice.gain.setValueAtTime(0.065, t + length * 0.44)
+  voice.gain.exponentialRampToValueAtTime(0.0001, t + length)
+  voice.connect(low).connect(out)
+  for (let i = 0; i < 3; i++) {
+    const o = c.createOscillator()
+    o.type = i === 0 ? 'sawtooth' : i === 1 ? 'triangle' : 'sine'
+    const partial = i === 0 ? 1 : i === 1 ? 1.52 : 2.02
+    const bend = (id % 3 === 0 ? 1.36 : id % 3 === 1 ? 0.75 : 1.12)
+    o.frequency.setValueAtTime(root * partial * (1 + i * 0.025), t)
+    o.frequency.exponentialRampToValueAtTime(root * partial * bend, t + length * 0.55)
+    o.frequency.exponentialRampToValueAtTime(root * partial * (0.7 + (id % 5) / 10), t + length)
+    const g = c.createGain(); g.gain.value = [0.55, 0.28, 0.12][i]
+    o.connect(g).connect(voice)
+    o.start(t); o.stop(t + length + 0.01)
+  }
+  // 작고 부드러운 숨결. 날카로운 백색 잡음이 아니라 저역을 통과시킨 톤.
+  const frames = Math.ceil(c.sampleRate * length)
+  const buf = c.createBuffer(1, frames, c.sampleRate)
+  const wave = buf.getChannelData(0)
+  let seed = (id * 1664525 + 1013904223) >>> 0
+  for (let j = 0; j < frames; j++) {
+    seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0
+    wave[j] = ((seed / 4294967296) * 2 - 1) * (1 - j / frames)
+  }
+  const breath = c.createBufferSource(), bFilter = c.createBiquadFilter(), bGain = c.createGain()
+  breath.buffer = buf; bFilter.type = 'lowpass'; bFilter.frequency.value = 1300 + id % 900
+  bGain.gain.value = 0.016
+  breath.connect(bFilter).connect(bGain).connect(out)
+  breath.start(t + 0.015)
+}
+
+function sparkle(notes: number[]) {
+  notes.forEach((n, i) => {
+    beep(n, i * 0.055, 0.15, 'sine', 0.055, n * 1.015)
+    beep(n * 2, i * 0.055 + 0.01, 0.07, 'triangle', 0.018)
+  })
+}
+
 export const sfx = {
-  select: () => beep(660, 0, 0.06),
-  correct: () => { beep(523, 0, 0.1); beep(659, 0.1, 0.1); beep(784, 0.2, 0.16) },
-  wrong: () => { beep(220, 0, 0.15, 'sawtooth'); beep(150, 0.15, 0.25, 'sawtooth') },
-  hit: () => { noise(0, 0.15); beep(200, 0, 0.12, 'square', 0.08, 80) },
-  superHit: () => { noise(0, 0.25, 0.14); beep(300, 0, 0.2, 'square', 0.1, 60) },
-  crit: () => { beep(880, 0, 0.06); beep(1180, 0.06, 0.12) },
-  faint: () => beep(400, 0, 0.6, 'triangle', 0.1, 60),
-  tick: () => beep(900, 0, 0.03, 'square', 0.04),
-  coin: () => { beep(988, 0, 0.07); beep(1319, 0.07, 0.16) },
-  special: () => { beep(440, 0, 0.08); beep(660, 0.06, 0.08); beep(880, 0.12, 0.2, 'square', 0.09, 1320) },
-  step: () => beep(130 + Math.random() * 30, 0, 0.05, 'triangle', 0.05),
+  select: () => { beep(630, 0, 0.046, 'sine', 0.040, 840); beep(1250, 0.018, 0.065, 'triangle', 0.014) },
+  correct: () => sparkle([523, 659, 784]),
+  wrong: () => { beep(280, 0, 0.16, 'triangle', 0.06, 200); beep(180, 0.12, 0.24, 'sawtooth', 0.025, 110) },
+  hit: () => { noise(0, 0.045, 0.045); beep(220, 0, 0.090, 'triangle', 0.065, 90) },
+  superHit: () => { noise(0, 0.095, 0.085); beep(420, 0, 0.20, 'sawtooth', 0.055, 85); beep(620, 0.012, 0.12, 'sine', 0.04, 200) },
+  crit: () => { sparkle([784, 988]); beep(250, 0.06, 0.14, 'triangle', 0.060, 150) },
+  faint: () => { beep(460, 0, 0.42, 'triangle', 0.07, 104); beep(590, 0.04, 0.27, 'sine', 0.032, 120) },
+  tick: () => beep(1100, 0, 0.018, 'sine', 0.023),
+  coin: () => sparkle([988, 1319]),
+  special: () => { beep(350, 0, 0.18, 'sine', 0.07, 660); beep(700, 0.075, 0.25, 'triangle', 0.065, 1200); sparkle([880, 1175]) },
+  step: () => beep(110 + Math.random() * 30, 0, 0.045, 'triangle', 0.025),
+  cry: creatureCry,
   // 짧은 효과 음악
   win: () => jingle('win'),
   lose: () => jingle('lose'),
