@@ -90,6 +90,7 @@ export type FxEvent =
   | { k: 'status'; uid: number; kind: StatusKind }
   | { k: 'buff'; uid: number; good: boolean }
   | { k: 'flee'; uid: number }
+  | { k: 'finisher'; x:number; y:number; boss:boolean }
 
 interface Pending { at: number; from: number; to: number; amount: number; eff: number; crit: boolean; type: PokemonType; special: boolean; status?: StatusKind; sourceQuest?: boolean }
 
@@ -115,6 +116,8 @@ export interface Battle {
   events: FxEvent[]
   /** Player-issued free-direction 2D rally point, in world coordinates. */
   rally: {x:number;y:number;expires:number}|null
+  /** Every stage has one and only one end-of-expedition explosion. */
+  finisherPlayed:boolean
   auto: boolean
   kills: number
   nextUid: number
@@ -223,7 +226,7 @@ function joinLate(b: Battle, kind: 'call' | 'new' | 'bossHp') {
 export function createBattle(allies: AllyInput[], waves: WaveEnemy[][], rng: Rng = Math.random): Battle {
   const b: Battle = {
     late: [], scatterCd: 0, surrounded: false, waveKills: 0, t: 0, units: [], waves, wave: 0, phase: 'fight', phaseT: 0, pending: [], queue: [], events: [],
-    rally: null, auto: false, kills: 0, nextUid: 1, rng,
+    rally: null, finisherPlayed:false, auto: false, kills: 0, nextUid: 1, rng,
   }
   allies.forEach((a, i) => b.units.push(makeUnit(b, 'ally', a.speciesId, a.level, a.stats, i, false, { ownedId: a.ownedId, fx: a.fx, move: a.move, move2: a.move2, fx2: a.fx2 })))
   spawnWave(b)
@@ -445,6 +448,10 @@ function applyHit(b: Battle, p: Pending) {
       }
     }
     b.events.push({ k: 'faint', uid: to.uid })
+    if(to.side==='enemy' && b.wave===b.waves.length-1 && (to.boss || to.elite) && !b.finisherPlayed){
+      b.finisherPlayed=true
+      b.events.push({k:'finisher',x:to.x,y:to.y,boss:to.boss})
+    }
     // 보스가 쓰러지면 부하들은 도망친다
     if (to.boss && to.side === 'enemy') {
       for (const m of b.units) if (m.side === 'enemy' && m.alive) { m.alive = false; m.deadT = 0; b.events.push({ k: 'flee', uid: m.uid }) }
@@ -618,6 +625,11 @@ export function step(b: Battle, dt: number): void {
       if (!alive(b, 'enemy').length && !b.pending.length && b.late.some(e => e.late === 'new')) joinLate(b, 'new')
     }
     if (!alive(b, 'enemy').length && !b.pending.length) {
+      if(b.wave===b.waves.length-1 && !b.finisherPlayed){
+        b.finisherPlayed=true
+        const last=b.units.filter(u=>u.side==='enemy').at(-1)
+        b.events.push({k:'finisher',x:last?.x??FIELD.x1/2,y:last?.y??FIELD.y1/2,boss:false})
+      }
       b.phase = 'advance'
       b.rally = null
       b.phaseT = ADVANCE_TIME
