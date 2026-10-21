@@ -18,7 +18,7 @@ export const BONUS_INFO: Record<BonusKind, { label: string; max: number; unit: s
 }
 export const BONUS_KINDS = Object.keys(BONUS_INFO) as BonusKind[]
 
-/** 빙고 1·2·3줄일 때의 값. 많이 완성할수록 커진다 */
+/** v[0], v[1], v[2] are the distinct bonuses unlocked by Bingo lines 1, 2, 3. */
 export interface Bonus { kind: BonusKind; v: [number, number, number] }
 
 const round1 = (x: number) => Math.round(x * 10) / 10
@@ -62,12 +62,13 @@ export function completeLines(occ: Map<string, number>): string[][] {
 export interface Mods { atkCd: number; spCd: number; critRate: number; critDmg: number; moveSpd: number; waveHeal: number; lifesteal: number; regen: number; atkUp: number; hpUp: number }
 export const NO_MODS: Mods = { atkCd: 0, spCd: 0, critRate: 0, critDmg: 0, moveSpd: 0, waveHeal: 0, lifesteal: 0, regen: 0, atkUp: 0, hpUp: 0 }
 
-/** 빙고 줄 수(최대 3줄까지 인정)에 맞는 보너스 값. 0줄이면 아무 효과 없음 */
+/** Each additional completed line unlocks its OWN Bingo Bonus; never all three at once. */
 export function modsFor(bonuses: Bonus[], bingos: number): Mods {
   const m = { ...NO_MODS }
-  if (bingos <= 0) return m
-  const tier = Math.min(3, bingos) - 1
-  for (const b of bonuses) m[b.kind] += b.v[tier]
+  for (let i = 0; i < Math.min(3, Math.max(0, bingos), bonuses.length); i++) {
+    const b = bonuses[i]
+    m[b.kind] += b.v[i]
+  }
   return m
 }
 
