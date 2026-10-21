@@ -67,7 +67,7 @@ describe('2D soundtrack and move geometry',()=>{
 })
 describe('sourced stage enemy sets and transparent cooking estimates',()=>{
  it('matches Serebii first-steppe weighted boss sets and Gloomy Grove',()=>{
-  expect(Object.keys(VERIFIED_ENCOUNTERS)).toHaveLength(24)
+  expect(Object.keys(VERIFIED_ENCOUNTERS)).toHaveLength(35)
   for(let s=0;s<4;s++){
    const waves=verifiedWaves(6,s,20,()=>0.5)!
    expect(waves).toHaveLength(3)
@@ -98,7 +98,20 @@ describe('sourced stage enemy sets and transparent cooking estimates',()=>{
   expect(verifiedWaves(10,2,10,()=>0)![2][0].species).toBe(95)
   expect(verifiedWaves(10,3,10,()=>0)![2].map(x=>x.species)).toEqual([105,105,105])
   expect(verifiedWaves(10,4,10,()=>0)![2][0].species).toBe(76)
-  expect(verifiedWaves(11,0,10,()=>0)).toBeUndefined()
+  expect(verifiedWaves(11,0,10,()=>0)![2][0].species).toBe(53)
+  expect(verifiedWaves(11,1,10,()=>0)![2][0].species).toBe(18)
+  expect(verifiedWaves(11,2,10,()=>0)![2][0].species).toBe(97)
+  expect(verifiedWaves(11,3,10,()=>0)![2][0].species).toBe(122)
+  expect(verifiedWaves(11,4,10,()=>0)![2][0].species).toBe(65)
+  expect(verifiedWaves(11,4,10,()=>0.999)![2][0].species).toBe(143)
+  expect(verifiedWaves(12,0,10,()=>0)![2][0].species).toBe(49)
+  expect(verifiedWaves(12,1,10,()=>0)![2].map(x=>x.species)).toEqual([110,110])
+  expect(verifiedWaves(12,2,10,()=>0)![2][0].species).toBe(71)
+  expect(verifiedWaves(12,3,10,()=>0)![2][0].species).toBe(89)
+  expect(verifiedWaves(12,4,10,()=>0)![2][0].species).toBe(45)
+  expect(verifiedWaves(12,5,10,()=>0)![2][0].species).toBe(123)
+  expect(verifiedWaves(12,5,10,()=>0.99)![2][0].species).toBe(127)
+  expect(verifiedWaves(13,0,10,()=>0)).toBeUndefined()
  })
  it('normalizes each recipe’s probability distribution to 100%',()=>{
   const sample=['mushroomRed','mushroomRed','rootRed','rootRed','rootRed'] as const
