@@ -141,10 +141,18 @@ const ENEMY_ATK = 0.96
 const MELEE_RANGE = 52
 const RANGED_RANGE = 190
 export const FORMATION = [{ x: 420, y: 650 }, { x: 360, y: 715 }, { x: 370, y: 595 }]
+/** Non-monotonic routes bend back to the west, north and south. */
 export function waveCenter(wave: number, total: number) {
-  const count = Math.max(1,total)
-  const step = count <= 3 ? 800 : count === 4 ? 600 : 440
-  return { x: 880 + step * wave, y: 660 + Math.sin(wave * 1.4) * 210 }
+  const nodes = total <= 1
+    ? [{x:1050,y:630}]
+    : total === 2
+      ? [{x:940,y:610},{x:1610,y:990}]
+      : total === 3
+        ? [{x:930,y:640},{x:1860,y:990},{x:1150,y:375}]
+        : total === 4
+          ? [{x:930,y:640},{x:1700,y:1010},{x:2480,y:625},{x:1530,y:330}]
+          : [{x:940,y:640},{x:1700,y:1080},{x:2420,y:690},{x:1970,y:340},{x:1170,y:750}]
+  return nodes[Math.max(0,Math.min(nodes.length-1,wave))]
 }
 
 const attackInterval = (spe: number) => 2.3 / (1 + spe / 130)
@@ -217,7 +225,7 @@ function spawnWave(b: Battle) {
     if (e.surround || surround) {
       const around = surroundPos(i, first.length)
       const node = waveCenter(b.wave,b.waves.length)
-      addEnemy(b,e,i,{x:around.x+node.x-880,y:around.y+node.y-660})
+      addEnemy(b,e,i,{x:around.x+node.x-930,y:around.y+node.y-640})
     } else addEnemy(b,e,i)
   })
   b.events.push({ k: 'wave', index: b.wave })
