@@ -275,11 +275,11 @@ function weighted(w: number[], rng: Rng): number {
 }
 
 /** 클리어 보상: 코인/경험치/재료/파워스톤 */
-export function rollRewards(stage: Stage, rng: Rng = Math.random, expeditionBonus = false): Rewards {
+export function rollRewards(stage: Stage, rng: Rng = Math.random, expeditionBonus = false, perks: { ingredient?: number; stone?: number; exp?: number } = {}): Rewards {
   const area = stage.area >= 0 ? AREAS[stage.area] : null
   const drops: IngredientId[] = area ? area.drops : ['mushroomRed', 'berryBlue', 'nutYellow', 'fossil', 'rootRed', 'rockBlue', 'honey', 'mushroomGray']
   const ingredients: Rewards['ingredients'] = {}
-  const n = 5 + Math.floor(rng() * 4) + (stage.boss ? 4 : 0)
+  const n = Math.round((5 + Math.floor(rng() * 4) + (stage.boss ? 4 : 0)) * (1 + Math.max(0, perks.ingredient ?? 0)))
   for (let i = 0; i < n; i++) {
     const id = pick(drops, rng)
     ingredients[id] = (ingredients[id] ?? 0) + 1
@@ -288,7 +288,7 @@ export function rollRewards(stage: Stage, rng: Rng = Math.random, expeditionBonu
   if ((stage.area === HAPPENSTANCE_AREA || stage.area < 0) && rng() < (stage.boss ? 0.9 : 0.35)) ingredients.rainbow = 1
   if (stage.area === HAPPENSTANCE_AREA && rng() < (0.15 + stage.index * 0.06)) ingredients.shell = 1
   const stars = area ? area.stars : ([40, 40, 20] as [number, number, number])
-  const gotStone = expeditionBonus || stage.boss || rng() < 0.35
+  const gotStone = expeditionBonus || stage.boss || rng() < Math.min(0.95, 0.35 + Math.max(0, perks.stone ?? 0))
   const shape = SHAPE_WEIGHTS[weighted(SHAPE_WEIGHTS.map(w => w[1]), rng)][0]
   let stone: Omit<Stone, 'id'> | null = null
   if (gotStone) {
@@ -305,7 +305,7 @@ export function rollRewards(stage: Stage, rng: Rng = Math.random, expeditionBonu
     stone = { kind: pick<StoneKind>(['hp', 'atk'], rng), star, shape, value, effects }
   }
   const moveStone = rng() < (stage.boss ? 0.7 : 0.2) ? pick<MoveStoneKind>(MOVE_STONE_KINDS, rng) : null
-  return { coins: stage.coins, exp: stage.exp, ingredients, stone, moveStone }
+  return { coins: stage.coins, exp: Math.round(stage.exp * (1 + Math.max(0, perks.exp ?? 0))), ingredients, stone, moveStone }
 }
 
 const AVG: Species = { id: 0, name: '', types: ['normal'], stats: { hp: 60, atk: 60, def: 60, spe: 60 }, rarity: 2, basic: '', special: '' }
