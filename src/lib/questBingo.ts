@@ -26,7 +26,7 @@ export const EMPTY_BINGO_EFFECTS=()=>({
  typeDamageResist:{} as Record<string,number>,statusTypeResist:{} as Record<string,number>
 })
 export type QuestBingoEffects=ReturnType<typeof EMPTY_BINGO_EFFECTS>
-const TYPE_NAMES=['normal','fire','water','electric','grass','ice','fighting','poison','ground','flying','psychic','bug','rock','ghost','dragon','steel','fairy'] as const
+const TYPE_NAMES=['normal','fire','water','electric','grass','ice','fighting','poison','ground','flying','psychic','bug','rock','ghost','dragon','dark','steel','fairy'] as const
 const keyFor=(text:string):PokemonType|undefined=>TYPE_NAMES.find(t=>new RegExp(t+'[- ]*type','i').test(text))
 const add=(o:Record<string,number>,k:string,v:number)=>{o[k]=(o[k]??0)+v}
 export function questBingoEffects(species:number,choices:readonly number[],bingos:number):QuestBingoEffects {
@@ -42,9 +42,9 @@ export function questBingoEffects(species:number,choices:readonly number[],bingo
   else if(/type moves? wait/.test(x)) {if(type)add(e.typeWait,type,pct)}
   else if(/type damage taken/.test(x)) {if(type)add(e.typeDamageResist,type,pct)}
   else if(/movement speed/.test(x))e.moveSpd+=pct
-  else if(/critical hit(?:s)? rate|critical hit rate|critical hit rate/.test(x))e.critRate+=pct
-  else if(/critical hit damage|crit hit damage/.test(x))e.critDmg+=pct
   else if(/taking critical hits?/.test(x))e.criticalTaken+=pct
+  else if(/critical hit(?:s)? rate|critical hit rate/.test(x))e.critRate+=pct
+  else if(/critical hit damage|crit hit damage/.test(x))e.critDmg+=pct
   else if(/healing per wave/.test(x))e.waveHeal+=pct
   else if(/healing from k\.o\./.test(x))e.koHeal+=pct
   else if(/hit healing/.test(x))e.lifesteal+=pct
