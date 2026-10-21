@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useGame } from '../store/gameStore'
-import { type AllyInput, type Battle as BattleState, createBattle, scatter, step, useSpecial } from '../engine/battle'
+import { type AllyInput, type Battle as BattleState, createBattle, rallyParty, scatter, step, useSpecial } from '../engine/battle'
 import { consumeEvents, drawBattle, H, newVisual, preload, SLOT_COLORS, W } from '../engine/render'
 import { AREAS, AREA_BONUS_MUL, buildWaves, hasAreaBonus, type Theme } from '../lib/stages'
 import { HAPPENSTANCE_AREA } from '../lib/originalCampaign'
@@ -112,8 +112,16 @@ export default function Battle() {
 
   return (
     <div className="absolute inset-0 bg-black">
-      <canvas ref={canvas} width={W} height={H} className="absolute inset-0 h-full w-full" />
+      <canvas ref={canvas} width={W} height={H} className="absolute inset-0 h-full w-full cursor-crosshair" title="전장 터치: 팀 자유 이동" onPointerDown={e=>{
+        const b=battle.current
+        if(!b||paused.current)return
+        const rect=e.currentTarget.getBoundingClientRect()
+        const x=(e.clientX-rect.left)*W/rect.width
+        const y=(e.clientY-rect.top)*H/rect.height
+        if(y>=185&&y<=475){if(rallyParty(b,x,y))sfx.step()}
+      }} />
 
+      <span className="pointer-events-none absolute left-3 top-[92px] rounded bg-[#173e34]/80 px-3 py-1 text-xs text-white">필드 터치 · 원하는 방향으로 이동 지시</span>
       {/* 좌상단: 일시정지 + 카운터 */}
       <div className="absolute left-3 top-3 flex items-center gap-2">
         <button onClick={() => { paused.current = !paused.current; setUiPaused(paused.current) }} className="pq-btn pq-red flex h-12 w-12 items-center justify-center"><Icon n={uiPaused ? 'play' : 'pause'} s={30} /></button>
