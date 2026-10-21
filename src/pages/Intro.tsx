@@ -3,7 +3,7 @@ import { useGame } from '../store/gameStore'
 import Dialog from '../components/Dialog'
 import { PROLOGUE } from '../lib/stages'
 import { getSpecies } from '../lib/roster'
-import { frontSprite } from '../data/sprites'
+import { frontSprite, fallbackSpriteOnError } from '../data/sprites'
 import TypeBadge from '../components/TypeBadge'
 import { bgm, sfx } from '../lib/sound'
 import { Btn, Panel } from '../ui/kit'
@@ -48,12 +48,12 @@ export default function Intro() {
             <div className="grid grid-cols-2 gap-3">
               {STARTERS.map(id => (
                 <button key={id} onClick={() => { sfx.select(); setPick(id) }} className={`rounded-xl border-4 p-1 ${pick === id ? 'border-[#e8524a] bg-white' : 'border-[#e5a500] bg-[#fff3c8]'}`}>
-                  <img src={frontSprite(id)} alt="" className="sprite h-24 w-24" />
+                  <img src={frontSprite(id)} alt="" onError={e => fallbackSpriteOnError(e.currentTarget, id)} className="sprite h-24 w-24 object-contain" />
                 </button>
               ))}
             </div>
             <div className="pq-inner flex flex-1 flex-col items-center justify-center gap-2 p-4">
-              <img src={frontSprite(pick)} alt="" className="sprite idle h-40 w-40" />
+              <img src={frontSprite(pick)} alt="" onError={e => fallbackSpriteOnError(e.currentTarget, pick)} className="sprite idle h-40 w-40 object-contain" />
               <p className="text-2xl">{sp.name}</p>
               <div className="flex gap-2">{sp.types.map(t => <TypeBadge key={t} type={t} />)}</div>
               <p className="text-sm">첫 동료 한 마리로 시작해요. 요리로 동료를 모으세요!</p>
