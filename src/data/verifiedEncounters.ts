@@ -3,14 +3,14 @@
  * Format is each segment's weighted species groups, not one global area pool.
  * Only accurately sourced routes are listed; others continue using procedural
  * waves and are NOT claimed to be exact original wave tables.
- * Source: serebii.net/quest/location/firststeppe.shtml and gloomygrove.shtml
+ * Source: serebii.net/quest/location/{firststeppe,gloomygrove,backforthbrook,parchedpeak,bellybuttoncave}.shtml
  */
 import type { Rng } from '../types'
 import type { WaveEnemy } from '../lib/stages'
 type Choice = {id:number; weight:number}
 type Group = readonly Choice[]
 type Segment = readonly Group[]
-interface Encounter { segments: readonly Segment[]; boss:Group }
+interface Encounter { segments: readonly Segment[]; boss:Group; bossExtra?:readonly Group[]; noBoss?: boolean }
 const g=(...entries:number[]):Group=>entries.map((id,i)=>({id,weight:i===0?1:1}))
 const w=(...entries:[number,number][]):Group=>entries.map(([id,weight])=>({id,weight}))
 export const VERIFIED_ENCOUNTERS: Readonly<Record<string,Encounter>> = {
@@ -162,6 +162,37 @@ export const VERIFIED_ENCOUNTERS: Readonly<Record<string,Encounter>> = {
   [w([57,95],[113,5]),g(66)],
  ],boss:g(68)},
 
+
+ '10-0':{segments:[
+  [w([41,25],[74,75]),g(41),g(74)],
+  [w([92,80],[66,20]),g(92),g(74)],
+  [g(19),g(74)],
+  [g(20)],
+ ],boss:g(20),noBoss:true},
+ '10-1':{segments:[
+  [w([27,46.67],[41,36.67],[19,16.66]),g(27),g(41)],
+  [w([75,70],[20,30]),g(41),g(28),g(41)],
+  [g(41),g(41)],
+  [g(41),g(41)],
+ ],boss:g(42),bossExtra:[g(41)]},
+ '10-2':{segments:[
+  [g(50),g(81)],
+  [g(75),w([50,50],[27,50]),g(81)],
+  [g(81),w([100,96.67],[135,3.33]),w([50,50],[27,50])],
+ ],boss:g(95)},
+ '10-3':{segments:[
+  [g(104),w([129,3.33],[54,30],[41,13.34],[104,53.33]),g(55)],
+  [w([28,50],[55,50]),g(104),g(54)],
+  [g(54),g(104)],
+  [g(54)],
+ ],boss:g(105),bossExtra:[g(105),g(105)]},
+ '10-4':{segments:[
+  [g(74),g(28),g(50)],
+  [g(75),g(105),g(50),g(75)],
+  [g(74),w([51,95],[113,5])],
+  [g(74)],
+ ],boss:g(76)},
+
 }
 function pick(group:Group,rng:Rng):number{
  let total=group.reduce((n,e)=>n+e.weight,0),r=rng()*total
@@ -177,6 +208,7 @@ export function verifiedWaves(area:number,index:number,level:number,rng:Rng):Wav
  const midpoint=route.segments.length<=2?1:2
  const early=route.segments.slice(0,midpoint).flatMap(s=>s.map(group=>({species:pick(group,rng),level})))
  const middle=route.segments.slice(midpoint).flatMap(s=>s.map(group=>({species:pick(group,rng),level})))
- const final=[{species:pick(route.boss,rng),level,boss:true}]
+ const final=route.noBoss
+    ? [] : [{species:pick(route.boss,rng),level,boss:true},...((route.bossExtra??[]).map((set,i)=>({species:pick(set,rng),level,elite:i<3})))]
  return [early,middle,final]
 }
