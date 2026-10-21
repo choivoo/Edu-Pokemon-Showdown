@@ -6,6 +6,10 @@
 - Field click/tap and minimap waypoint clicks continue to work. Touch-to-waypoint overrides an active joystick direction; using the pad overrides the former waypoint. The 2D landscape keeps camera following, depth sorting and hand-drawn isometric scenery; there is **no 3D engine**.
 - Six new automated tests for difficulty scaling, three-mon late game protection, movement normalization, invalid waypoints and direction/waypoint interactions. All original v2.5.0 data, gameplay features and saves are preserved.
 
+## New illustrated camp furnishing
+- All 18 purchasable PM Ticket decorations now render as original hand-drawn 2D furniture at individual stable positions on the campsite (chairs, flags, inflatable balloons, torches, fountain, surfboard, tents and more). Previously they were shown only as a row of labels; now their physical presence is visible while wild Pokémon wander naturally in front. A compact control still opens the shop and keeps all passive effects.
+- All 18 positions are inside the 960×540 scene and outside the main cooking-pot hit area; unknown duplicate decoration IDs do not create duplicate objects. Added regression tests.
+
 ## Preserved from v2.5.0
 - Source-backed original 54 stage encounter sets and weighted original boss lists, with the original postgame and original fan sequel retained.
 - Pokémon start with two trainable techniques and individual move stones; 151 species × 9 original Bingo candidates, 167 move definitions, original-based recipe rules and estimated per-species odds.
