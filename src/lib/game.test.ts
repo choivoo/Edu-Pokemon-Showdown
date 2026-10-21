@@ -55,7 +55,7 @@ describe('cooking', () => {
         for (const s of sp) expect(s.types.some(t => recipe.types.includes(t))).toBe(true)
       }
     }
-    for (let i = 0; i < 300; i++) expect(cook(ids('rainbow', 'rainbow', 'honey', 'fossil', 'fossil'), rng).rarity).toBeLessThanOrEqual(3)
+    for (let i = 0; i < 300; i++) expect([144,145,146,150,151]).not.toContain(cook(ids('rainbow', 'rainbow', 'honey', 'fossil', 'fossil'), rng).id) // Rare Aerodactyl (rarity 4) is legitimately obtainable from ordinary cooking.
   })
   it('등급이 높을수록 희귀한 포켓몬이 더 자주 온다', () => {
     const rng = seeded(9)

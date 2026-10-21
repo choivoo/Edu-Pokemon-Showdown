@@ -490,7 +490,7 @@ function separate(b: Battle) {
 }
 
 export const ALLY_REVIVE_SECONDS = 25
-export function step(b: Battle, dt: number): void {
+function stepFixed(b: Battle, dt: number): void {
   if (b.phase === 'won' || b.phase === 'lost') return
   b.t += dt
 
@@ -654,5 +654,20 @@ export function step(b: Battle, dt: number): void {
       for (const a of alive(b, 'ally')) { a.atkCd = 0.3 + b.rng() * 0.6; a.moving = false }
       b.phase = 'fight'
     }
+  }
+}
+
+/** Advance combat at 60 Hz for stable projectile collision, target movement and
+ * enemy AI regardless of browser refresh rate. This is our 2D simulation,
+ * NOT a claim to reconstruct the retail game's undisclosed animation frames. */
+export function step(b: Battle, dt: number): void {
+  if (!Number.isFinite(dt) || dt <= 0) return
+  // Retain large one-shot skips for tests and inactive simulations.
+  if (dt > .5) { stepFixed(b, dt); return }
+  const ticks = Math.max(1, Math.ceil(dt * 60))
+  const slice = dt / ticks
+  for (let i = 0; i < ticks; i++) {
+    if (b.phase === 'won' || b.phase === 'lost') break
+    stepFixed(b, slice)
   }
 }
