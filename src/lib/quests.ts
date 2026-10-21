@@ -1,4 +1,6 @@
 import type { SaveData } from './storage'
+import { stageCount } from './stages'
+import { ORIGINAL_AREAS, ORIGINAL_FIRST } from './originalCampaign'
 
 export type Counter = 'clears' | 'kills' | 'cooked' | 'trained' | 'recalled' | 'evolved' | 'bosses'
 
@@ -14,9 +16,10 @@ export interface Quest {
 }
 
 const counter = (c: Counter) => (s: SaveData) => s.counters?.[c] ?? 0
-const areaDone = (i: number) => (s: SaveData) => (s.cleared[`a${i}-s4`] ? 1 : 0)
+const areaDone = (i: number) => (s: SaveData) => (s.cleared[`a${i}-s${stageCount(i)-1}`] ? 1 : 0)
 
 export const QUESTS: Quest[] = [
+  ...ORIGINAL_AREAS.map((a, i): Quest => ({ id: `original-${i}`, kind: 'main', title: i === 10 ? '네모루루섬의 결말' : `${a.name}의 고대 석상`, desc: i === 10 ? '뮤츠와의 결전에서 승리한다' : `${a.name}의 마지막 탐험을 클리어한다`, goal: 1, progress: areaDone(ORIGINAL_FIRST + i), reward: { coins: 150 + i * 80, shell: i === 10 ? 2 : 0 } })),
   ...['푸른물결 해변', '속삭이는 숲', '달그림자 동굴', '번개 협곡', '불꽃 화산', '별빛 제단'].map((n, i): Quest => ({
     id: `main-${i}`, kind: 'main', title: `${n}의 수호자`, desc: `${n}의 보스를 쓰러뜨려 프리즘 조각을 되찾는다`, goal: 1,
     progress: areaDone(i), reward: { coins: 300 + i * 150, shell: i >= 3 ? 1 : 0, theme: i === 2 ? 'dusk' : i === 5 ? 'night' : undefined },
