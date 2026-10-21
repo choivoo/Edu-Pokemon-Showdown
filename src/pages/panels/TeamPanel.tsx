@@ -82,7 +82,7 @@ export default function TeamPanel() {
   return (
     <Panel title="팀 편성" onClose={() => openPanel(null)} w={920}>
       <div className="flex gap-4" style={{ height: 410 }}>
-        {/* 왼쪽: 포켓몬 정보 + 파워스톤 격자 */}
+        {/* 왼쪽: 포켓몬 정보 + P스톤 격자 */}
         <div className="flex w-[400px] flex-col gap-2">
           <div className="pq-inner flex items-center gap-3 p-2">
             <Portrait id={mon.species} size={72} />
@@ -129,7 +129,7 @@ export default function TeamPanel() {
                   <Btn color="blue" onClick={() => setHold({ ...hold, rot: hold.rot + 1 })} className="mt-1 flex w-full items-center justify-center gap-1 px-1 py-1 text-base"><Icon n="rotate" s={20} />회전</Btn>
                   <Btn color="gray" onClick={() => setHold(null)} className="mt-1 w-full px-1 py-1 text-base">내려놓기</Btn>
                 </div>
-              ) : <p className="pq-inner p-2 text-xs leading-snug">오른쪽 <b>파워스톤</b> 탭에서 스톤을 골라 격자에 놓으세요. 놓인 스톤을 누르면 다시 집어요. 레벨이 오르면 칸이 열려요.</p>}
+              ) : <p className="pq-inner p-2 text-xs leading-snug">오른쪽 <b>P스톤</b> 탭에서 스톤을 골라 격자에 놓으세요. 놓인 스톤을 누르면 다시 집어요. 레벨이 오르면 칸이 열려요.</p>}
               {msg && <p className="text-xs text-[#d23c36]">{msg}</p>}
             </div>
           </div>
@@ -149,7 +149,7 @@ export default function TeamPanel() {
           </div>
           <div className="flex gap-2">
             <Btn color={right === 'mons' ? 'yellow' : 'gray'} onClick={() => setRight('mons')} className="flex-1 whitespace-nowrap px-1 py-1 text-sm">포켓몬 {save.owned.length}</Btn>
-            <Btn color={right === 'stones' ? 'yellow' : 'gray'} onClick={() => setRight('stones')} className="flex-1 whitespace-nowrap px-1 py-1 text-sm">파워스톤 {freeStones.length}</Btn>
+            <Btn color={right === 'stones' ? 'yellow' : 'gray'} onClick={() => setRight('stones')} className="flex-1 whitespace-nowrap px-1 py-1 text-sm">P스톤 {freeStones.length}</Btn>
             <Btn color={right === 'moves' ? 'yellow' : 'gray'} onClick={() => setRight('moves')} className="flex-1 whitespace-nowrap px-1 py-1 text-sm">기술스톤 {freeMove.length}</Btn>
             <Btn color={right === 'bingo' ? 'yellow' : 'gray'} onClick={() => setRight('bingo')} className="flex flex-1 items-center justify-center gap-1 whitespace-nowrap px-1 py-1 text-sm"><Icon n="bingo" s={18} />빙고 {bingos}</Btn>
           </div>
@@ -187,7 +187,7 @@ export default function TeamPanel() {
               </div>
             ) : right === 'bingo' ? (
               <div className="space-y-2 text-sm">
-                <p className="leading-snug">파워스톤 격자의 <b>가로 또는 세로 한 줄을 스톤으로 모두 채우면</b> 빙고! 이 포켓몬만의 보너스 3개가 켜져요. 줄이 많을수록(최대 3줄) 효과가 커져요.</p>
+                <p className="leading-snug">P스톤 격자의 <b>가로 또는 세로 한 줄을 스톤으로 모두 채우면</b> 빙고! 이 포켓몬만의 보너스 3개가 켜져요. 줄이 많을수록(최대 3줄) 효과가 커져요.</p>
                 <p className="flex items-center gap-1 text-lg font-bold text-[#c06a00]"><Icon n="bingo" s={26} />완성한 빙고 {bingos}줄{bingos > 3 ? ' (3줄까지 인정)' : ''}</p>
                 {mon.bonus.map(b => (
                   <div key={b.kind} className="border-4 border-[#c98a00] bg-white/60 p-2">
