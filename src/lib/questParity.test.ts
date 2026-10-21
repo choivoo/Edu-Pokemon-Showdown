@@ -72,6 +72,18 @@ describe('Original evolution and Bingo rules', () => {
       }
     }
   })
+  it('new numerical ATK/HP stones add flat stats and survive encrypted save packing', () => {
+    const sp = getSpecies(25)
+    const base = computeStats(sp, 40)
+    const attack: Stone = { id: 'stone-power', kind: 'atk', star: 2, shape: 'dot', value: 120 }
+    const health: Stone = { id: 'stone-health', kind: 'hp', star: 2, shape: 'dot', value: 150 }
+    const withStones = computeStats(sp, 40, [attack, health])
+    expect(withStones.atk - base.atk).toBe(120)
+    expect(withStones.maxHp - base.maxHp).toBe(150)
+    const s = defaultSave()
+    s.stones = [attack, health]
+    expect(unpack(pack(s)).stones).toEqual(s.stones)
+  })
   it('stores original new economy, Everstone and two-move layout using PQF1-compatible format', () => {
     const save = defaultSave()
     save.pmTickets = 300
