@@ -9,9 +9,15 @@ const SCALES: Record<string, number[]> = {
   battle: [4, 6, 7, 9, 11, 0, 2, 3], // E 단조 + D# (딸림화음의 이끎음)
   boss: [2, 4, 5, 7, 9, 10, 0, 1], // D 단조 + C#
   story: [9, 11, 0, 2, 4, 5, 7, 8], // A 단조 + G#
+  tide: [2, 4, 6, 7, 9, 11, 1],
+  grove: [7, 9, 11, 0, 2, 4, 6],
+  echo: [9, 11, 0, 2, 4, 5, 8],
+  spark: [4, 6, 7, 9, 11, 0, 2, 3],
+  ember: [2, 4, 5, 7, 9, 10, 1],
+  astral: [0, 2, 4, 5, 7, 9, 11],
 }
 
-const melodicTracks = (s: Song) => s.tracks.filter(t => t.kind === 'note' && (t.inst === 'marimba' || t.inst === 'flute' || t.inst === 'lead') && t.vol >= 0.9)
+const melodicTracks = (s: Song) => s.tracks.filter(t => t.kind === 'note' && (t.inst === 'marimba' || t.inst === 'flute' || t.inst === 'lead' || t.inst === 'bell' || t.inst === 'brass') && t.vol >= 0.9)
 
 describe('음악', () => {
   it('음이름 해석', () => {
@@ -29,7 +35,7 @@ describe('음악', () => {
   })
 
   it('모든 곡이 정상적으로 불러와지고(마디 길이 검증 통과) 트랙이 있다', () => {
-    expect(ALL_TRACKS.length).toBe(10)
+    expect(ALL_TRACKS.length).toBe(16)
     for (const s of ALL_TRACKS) {
       expect(s.tracks.length).toBeGreaterThan(1)
       expect(s.bpm).toBeGreaterThan(60)
