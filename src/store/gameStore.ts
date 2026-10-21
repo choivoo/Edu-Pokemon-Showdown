@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { cook, cookingExpeditions, COOKING_TIERS, recipeFor, type CookingTier, type IngredientId, getIngredient, DISH_SIZE } from '../lib/cooking'
 import { getSpecies, getMove } from '../lib/roster'
 import { questLearnset } from '../data/questSpecies'
+import { rollQuestBingo } from '../lib/questBingo'
 import { acceptsSocket, socketLayout } from '../lib/pCharm'
 import { addExp, expToNext, MAX_LEVEL, type OwnedMon } from '../lib/stats'
 import { canPlace, mergeCost, occupancy, type Stone, type ShapeId, type StoneKind } from '../lib/stones'
@@ -123,7 +124,7 @@ export const useGame = create<GameState>((set, get) => {
     const bonuses = [0, 50, 100, 300] as const
     const maxIV = [10, 50, 100, 100] as const
     const mon: OwnedMon = { id: `m${save.uid}`, species: speciesId, level, exp: 0, stones: [],
-      bonus: rollBonuses(), mstones: [], potBonus: bonuses[tier], ivHp: Math.floor(Math.random() * (maxIV[tier] + 1)), ivAtk: Math.floor(Math.random() * (maxIV[tier] + 1)), sockets: socketLayout(speciesId, save.uid) }
+      bonus: rollBonuses(), bingoChoices: rollQuestBingo(speciesId), mstones: [], potBonus: bonuses[tier], ivHp: Math.floor(Math.random() * (maxIV[tier] + 1)), ivAtk: Math.floor(Math.random() * (maxIV[tier] + 1)), sockets: socketLayout(speciesId, save.uid) }
     const pool = questLearnset(speciesId)
     if (pool.length) {
       const first = pool[Math.floor(Math.random() * pool.length)]
