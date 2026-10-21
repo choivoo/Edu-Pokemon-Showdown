@@ -222,6 +222,8 @@ export interface WaveEnemy {
   late?: 'call' | 'new' | 'bossHp'
   /** 처음부터 사방에서 몰려온다 */
   surround?: boolean
+  /** Accessibility tuning for the introductory expeditions; other stages stay 1.0. */
+  difficulty?: number
 }
 
 const pick = <T,>(arr: T[], rng: Rng): T => arr[Math.floor(rng() * arr.length)]
@@ -229,7 +231,7 @@ const pick = <T,>(arr: T[], rng: Rng): T => arr[Math.floor(rng() * arr.length)]
 /** 스테이지의 웨이브 구성을 무작위로 뽑는다 */
 export function buildWaves(stage: Stage, rng: Rng = Math.random): WaveEnemy[][] {
   const verified = verifiedWaves(stage.area, stage.index, stage.level, rng)
-  if (verified) return verified
+  if (verified) return softenIntroWaves(stage, verified)
   const area = stage.area >= 0 ? AREAS[stage.area] : null
   const postgame = stage.area === HAPPENSTANCE_AREA
   const pool = stage.area === ORIGINAL_FIRST && stage.index < 3 ? [
@@ -238,7 +240,7 @@ export function buildWaves(stage: Stage, rng: Rng = Math.random): WaveEnemy[][] 
   // 첫 두 판은 이벤트 없이 익숙해지도록 한다
   const eventsOn = !((stage.area === 0 || stage.area === ORIGINAL_FIRST) && stage.index < 2)
   const mk = (level: number, extra: Partial<WaveEnemy> = {}): WaveEnemy => ({ species: pick(pool, rng), level, ...extra })
-  return stage.wavePlan.map((count, wi) => {
+  return softenIntroWaves(stage, stage.wavePlan.map((count, wi) => {
     // 12-BOSS: Legendary birds guard the last room before Mew/Mewtwo.
     if (postgame && stage.index === 8 && wi === 2) return [144, 145, 146].map(id => ({ species: id, level: stage.level - 2, elite: true }))
     const last = wi === stage.wavePlan.length - 1
@@ -258,7 +260,15 @@ export function buildWaves(stage: Stage, rng: Rng = Math.random): WaveEnemy[][] 
     if (roll < 0.40) return [...base, mk(lv, { late: 'new' }), mk(lv, { late: 'new' })]
     if (roll < 0.52) return base.map(e => ({ ...e, surround: true }))
     return base
-  })
+  }))
+}
+
+/** One starter should be able to clear First Steppe without high-tier stones. */
+export const introDifficulty = (area: number, index: number): number =>
+  area === ORIGINAL_FIRST ? ([0.44, 0.55, 0.67, 0.80][index] ?? 1) : area === ORIGINAL_FIRST + 1 ? 0.90 : 1
+export const softenIntroWaves = (stage: Stage, waves: WaveEnemy[][]): WaveEnemy[][] => {
+  const factor = introDifficulty(stage.area, stage.index)
+  return factor >= 1 ? waves : waves.map(w => w.map(e => ({ ...e, difficulty: factor })))
 }
 
 export interface Rewards {
