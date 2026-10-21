@@ -96,6 +96,10 @@ export const areaUnlocked = (save: SaveData, area: number): boolean => {
 export const allCleared = (save: SaveData) => areaCleared(save, ORIGINAL_BOSS_AREA)
 export const originalStatueCount = (save: SaveData) =>
   Array.from({ length: ORIGINAL_STATUE_COUNT }, (_, i) => ORIGINAL_FIRST + i).filter(i => areaCleared(save, i)).length
+const ORIGINAL_STATUE_LEVELS = [5, 10, 15, 20, 25, 30, 35, 40, 50, 60]
+/** Non-stacking 50% experience increase for Pokémon under the last unlocked statue's level. */
+export const originalStatueExpCap = (save: SaveData): number =>
+  ORIGINAL_STATUE_LEVELS[originalStatueCount(save) - 1] ?? 0
 /** Optional fan story has six prism shards after the retail-story ending. */
 export const shardCount = (save: SaveData) =>
   AREAS.slice(0, ORIGINAL_FIRST).filter((_, i) => areaCleared(save, i)).length
@@ -349,7 +353,7 @@ export const useGame = create<GameState>((set, get) => {
       let owned = s.owned.map(o => {
         if (!s.party.includes(o.id)) return o
         // 번영의 석상: 아직 레벨이 낮은 포켓몬은 경험치를 더 받는다
-        const mul = o.level < statueCap(s.statue) ? statueMul(s.statue) : 1
+        const mul = Math.max(o.level <= originalStatueExpCap(s) ? 1.5 : 1, o.level < statueCap(s.statue) ? statueMul(s.statue) : 1)
         const r = addExp(o, Math.round(rewards.exp * mul))
         if (r.gained > 0) levelUps.push({ name: getSpecies(o.species).name, from: o.level, to: r.mon.level })
         return r.mon
