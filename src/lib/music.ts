@@ -159,7 +159,7 @@ export const bgm = {
         const len=Number(res.headers.get('content-length')||'0')
         const type=res.headers.get('content-type')||''
         if(!res.ok || len<64_000 || (/text\/html/i.test(type)))return false
-        if(sourceKind==='local')return false
+        if(localAudio)return false
         const player=new Audio(url.toString())
         if(!attachPlayer(player))return false
         bundledAudio=player;sourceKind='bundled'
