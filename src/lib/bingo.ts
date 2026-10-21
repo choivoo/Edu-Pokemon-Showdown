@@ -58,6 +58,10 @@ export const BINGO_LINES: string[][] = [
 export function completeLines(occ: Map<string, number>): string[][] {
   return BINGO_LINES.filter(line => line.every(c => occ.has(c)))
 }
+/** Original unlock thresholds: 3/6/9 stones, with a completed row/column. */
+export function unlockedBingoCount(occ: Map<string, number>): number {
+  return Math.min(3, completeLines(occ).length, Math.floor(occ.size / 3))
+}
 
 export interface Mods { atkCd: number; spCd: number; critRate: number; critDmg: number; moveSpd: number; waveHeal: number; lifesteal: number; regen: number; atkUp: number; hpUp: number }
 export const NO_MODS: Mods = { atkCd: 0, spCd: 0, critRate: 0, critDmg: 0, moveSpd: 0, waveHeal: 0, lifesteal: 0, regen: 0, atkUp: 0, hpUp: 0 }
@@ -66,8 +70,11 @@ export const NO_MODS: Mods = { atkCd: 0, spCd: 0, critRate: 0, critDmg: 0, moveS
 export function modsFor(bonuses: Bonus[], bingos: number): Mods {
   const m = { ...NO_MODS }
   if (bingos <= 0) return m
-  const tier = Math.min(3, bingos) - 1
-  for (const b of bonuses) m[b.kind] += b.v[tier]
+  // Three different perks unlock independently, not all at the first line.
+  for (let i = 0; i < Math.min(3, bingos, bonuses.length); i++) {
+    const b = bonuses[i]
+    m[b.kind] += b.v[i]
+  }
   return m
 }
 
