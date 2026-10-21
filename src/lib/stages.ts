@@ -201,7 +201,7 @@ export const allStages = (): Stage[] => AREAS.flatMap((_, a) => Array.from({ len
 export function getEndlessStage(floor: number): Stage {
   const boss = floor % 5 === 0
   return {
-    id: `endless-${floor}`, area: -1, index: floor, name: `기이한 섬 ${floor}층`,
+    id: `endless-${floor}`, area: -1, index: floor, name: `끝없는 별길 ${floor}층`,
     level: 12 + floor * 2, wavePlan: boss ? [2, 3, 2] : [2, 3, 3], boss,
     coins: 50 + floor * 10, exp: Math.round(expToNext(12 + floor * 2) * (boss ? 2 : 1.1)), recruit: floor === 10 ? 150 : null, endlessFloor: floor,
   }
