@@ -55,7 +55,7 @@ export default function Battle() {
     })
     const waves = buildWaves(stage)
     preload([...allies.map(a => a.speciesId), ...waves.flat().map(w => w.species)])
-    const b = createBattle(allies, waves)
+    const b = createBattle(allies, waves, Math.random, stage)
     battle.current = b
     setHud(snapshot(b))
     const regionMusic = (['tide', 'grove', 'echo', 'spark', 'ember', 'astral'] as const)[stage.area] ?? 'battle'
@@ -75,6 +75,7 @@ export default function Battle() {
       special: () => sfx.special(),
       faint: () => sfx.faint(),
       wave: (boss: boolean) => (boss ? sfx.crit() : sfx.step()),
+      bossDefeated: () => { sfx.bossFinale() },
     }
     const loop = (nowMs: number) => {
       const real = Math.min(0.1, (nowMs - last) / 1000)
