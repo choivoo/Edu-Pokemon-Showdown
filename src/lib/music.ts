@@ -93,15 +93,35 @@ let duckGain: GainNode | null = null
  * The MP3 stays on the player's own device; it is NEVER uploaded to GitHub.
  * This does not claim public redistribution rights over official game tracks.
  */
-export const LOCAL_CUES: Record<SongName,{start:number;end:number}>={
- title:{start:0,end:158}, camp:{start:438,end:580}, map:{start:1047,end:1260},
- battle:{start:684,end:798}, boss:{start:798,end:914}, story:{start:914,end:943},
- tide:{start:1260,end:1483}, grove:{start:580,end:684}, echo:{start:3743,end:4059},
- spark:{start:1483,end:1674}, ember:{start:1674,end:1800}, astral:{start:3288,end:3494},
+export interface OstMarker {title:string;start:number;end:number}
+const toSeconds=(time:string)=>time.split(':').reduce((n,t)=>n*60+Number(t),0)
+const MARKERS:[string,string][]=[
+ ['0:00','Title'],['2:38','Intro'],['4:44','Tutorial'],['6:30','Expedition Results'],
+ ['7:18','Base Camp'],['9:40','Expeditions'],['11:24','First Steppe'],
+ ['13:18','Boss Battle 1'],['15:14','Story Talk'],['15:43','Boss Battle 2'],
+ ['17:27','Gloomy Grove'],['21:00','Backforth Brook'],['24:43','Parched Peak'],
+ ['27:54','Belly Button Cave'],['30:28','Pincushion Plain'],['33:42','Miasma Moor'],
+ ['36:39','Hushed Highlands'],['40:12','Nightlight Nook'],['44:16','Farside Fjord'],
+ ['48:18','Story Emergency'],['49:03','Mewtwo Battle'],['52:13','Staff Roll'],
+ ['54:48','Happenstance Island — Grassland'],['58:14','Happenstance Island — Waterside'],
+ ['1:02:23','Happenstance Island — Cave'],['1:07:39','Happenstance Island — Forest'],
+ ['1:10:47','Happenstance Island — Mountain']
+]
+export const OST_TRACKLIST: OstMarker[]=MARKERS.map(([start,title],i)=>({
+ title,start:toSeconds(start),end:i<MARKERS.length-1?toSeconds(MARKERS[i+1][0]):Number.POSITIVE_INFINITY
+}))
+const CUE_INDEX:Record<SongName,number>={
+ title:0,camp:4,map:5,battle:6,boss:7,story:8,
+ tide:11,grove:10,echo:13,spark:14,ember:12,astral:22,
 }
+export const LOCAL_CUES:Record<SongName,{start:number;end:number}>=Object.fromEntries(
+ (Object.entries(CUE_INDEX) as [SongName,number][]).map(([name,index])=>[name,OST_TRACKLIST[index]])
+) as Record<SongName,{start:number;end:number}>
+
 let localAudio:HTMLAudioElement|null=null
 let localBlobUrl:string|null=null
 let activeLocalCue:{start:number;end:number}|null=null
+let activeLocalIndex=-1
 
 
 function bgmBus(ctx: AudioContext): AudioNode | null {
@@ -128,6 +148,7 @@ export const bgm = {
     const node=ctx.createMediaElementSource(player)
     node.connect(bus)
     localAudio=player
+    activeLocalIndex=-1
     player.preload='auto'
     player.addEventListener('timeupdate',()=>{
       if(!activeLocalCue)return
@@ -143,14 +164,36 @@ export const bgm = {
     const previous=currentName || 'title'
     localAudio?.pause()
     if(localAudio){localAudio.removeAttribute('src');localAudio.load()}
-    localAudio=null;activeLocalCue=null
+    localAudio=null;activeLocalCue=null;activeLocalIndex=-1
     if(localBlobUrl)URL.revokeObjectURL(localBlobUrl)
     localBlobUrl=null;currentName=''
     this.play(previous)
   },
+  /** Play exactly the user's 27-section MP3 cue, with original synth as fallback.
+   * A soundtrack is never bundled into the public website.
+   */
+  playTrack(index:number,fallback:SongName='battle'){
+    const cue=OST_TRACKLIST[index]
+    if(!cue){this.play(fallback);return}
+    if(!localAudio){this.play(fallback);return}
+    if(activeLocalIndex===index && currentName===fallback && !localAudio.paused)return
+    activeLocalIndex=index
+    activeLocalCue=cue
+    current?.fadeOut(0.18);current=null
+    const player=localAudio
+    const seek=()=>{
+      if(localAudio===player && activeLocalCue===cue)
+        player.currentTime=Math.min(cue.start,Math.max(0,(player.duration||4524)-1))
+    }
+    if(player.readyState>=1)seek()
+    else player.addEventListener('loadedmetadata',seek,{once:true})
+    void player.play().catch(()=>{/* user may need to tap for mobile audio permission */})
+    currentName=fallback
+  },
   /** 배경음악을 바꾼다. 이미 같은 곡이면 그대로 둔다. */
   play(name: SongName) {
-    if (currentName === name && (current || localAudio))return
+    if (currentName === name && activeLocalIndex===-1 && (current || (localAudio && !localAudio.paused)))return
+    activeLocalIndex=-1
     if(localAudio){
       const cue=LOCAL_CUES[name]
       activeLocalCue=cue
