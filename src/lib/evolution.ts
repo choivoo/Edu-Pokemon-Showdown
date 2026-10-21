@@ -1,4 +1,5 @@
 import type { OwnedMon } from './stats'
+import type { Stone } from './stones'
 
 /** 진화 정보: 진화 전 → { 진화 후, 필요한 레벨 } (레벨은 그대로 이어진다) */
 export const EVOLUTIONS: Record<number, { to: number; level: number }> = {
@@ -8,7 +9,7 @@ export const EVOLUTIONS: Record<number, { to: number; level: number }> = {
   16: { to: 17, level: 18 }, 17: { to: 18, level: 36 },
   19: { to: 20, level: 20 },
   25: { to: 26, level: 25 },
-  133: { to: 135, level: 20 },
+  133: { to: 135, level: 36 },
   41: { to: 42, level: 22 },
   52: { to: 53, level: 28 },
   54: { to: 55, level: 33 },
@@ -69,11 +70,17 @@ const EVOLVED = new Set([...Object.values(EVOLUTIONS).map(e => e.to), 134, 136, 
 export const isEvolvedForm = (id: number) => EVOLVED.has(id)
 /** 이브이의 분기 진화 (돌 대신 고른 타입에 따라) */
 export const EEVEE_BRANCH: Record<string, number> = { water: 134, electric: 135, fire: 136 }
+/** HP > ATK stones: Vaporeon; ATK > HP: Flareon; ties: Jolteon. */
+export function eeveeTarget(placed: Stone[]): number {
+  const hp = placed.filter(s => s.kind === 'hp').length
+  const atk = placed.filter(s => s.kind === 'atk').length
+  return hp > atk ? 134 : atk > hp ? 136 : 135
+}
 export const targetOf = (species: number, choice?: string) => (species === 133 && choice && EEVEE_BRANCH[choice] ? EEVEE_BRANCH[choice] : EVOLUTIONS[species]?.to ?? null)
 
 export const evolutionOf = (id: number) => EVOLUTIONS[id] ?? null
 export const canEvolve = (m: Pick<OwnedMon, 'species' | 'level'>) => {
-  if (m.species === 133) return m.level >= 20
+  if (m.species === 133) return m.level >= 36
   const e = EVOLUTIONS[m.species]
   return !!e && m.level >= e.level
 }
