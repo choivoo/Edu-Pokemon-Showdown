@@ -1,6 +1,7 @@
 import { audio, masterOut } from './audio'
 import { DRUM_INSTS, NOTE_INSTS } from './instruments'
 import { JINGLES, SONGS, STEPS, type JingleName, type Song, type SongName } from './songs'
+import { localSoundtrackPlaying, playLocalSoundtrack, stopLocalSoundtrack } from './localSoundtrack'
 
 const indexCache = new WeakMap<Song, Array<Array<{ trackIdx: number; kind: 'note' | 'drum'; midi?: number; dur: number; vel: number }>>>()
 
@@ -101,16 +102,21 @@ export const bgm = {
   get playing(): SongName | '' { return currentName },
   /** 배경음악을 바꾼다. 이미 같은 곡이면 그대로 둔다. */
   play(name: SongName) {
-    if (currentName === name && current) return
+    if (currentName === name && (current || localSoundtrackPlaying(name))) return
     const ctx = audio()
     const bus = ctx && bgmBus(ctx)
     if (!ctx || !bus) return
     current?.fadeOut(0.35)
-    current = new Player(SONGS[name], ctx, bus, ctx.currentTime + 0.08)
+    current = null
+    if (!playLocalSoundtrack(name)) {
+      stopLocalSoundtrack()
+      current = new Player(SONGS[name], ctx, bus, ctx.currentTime + 0.08)
+    }
     currentName = name
   },
   stop() {
     current?.fadeOut(0.3)
+    stopLocalSoundtrack()
     current = null
     currentName = ''
   },
