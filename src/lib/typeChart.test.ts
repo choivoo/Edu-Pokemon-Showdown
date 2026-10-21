@@ -2,6 +2,11 @@ import { describe, expect, it } from 'vitest'
 import { TYPES, typeMultiplier, mainSeriesTypeMultiplier } from './typeChart'
 
 describe('typeMultiplier', () => {
+  it('Pokémon Quest attacks have no weaknesses or immunities', () => {
+    expect(typeMultiplier('water', ['fire'])).toBe(1)
+    expect(typeMultiplier('normal', ['ghost'])).toBe(1)
+    expect(typeMultiplier('electric', ['ground'])).toBe(1)
+  })
   it('18개 타입', () => expect(TYPES).toHaveLength(18))
   it('효과 굉장 (2배)', () => {
     expect(mainSeriesTypeMultiplier('water', ['fire'])).toBe(2)
