@@ -203,7 +203,10 @@ export const useGame = create<GameState>((set, get) => {
     collectCooked: () => {
       const s = get().save
       if (!s.pot || s.pot.remaining > 0) return null
-      const { mon, patch } = newMon(s, s.pot.species, Math.min(100, Math.max(newcomerLevel(s), COOKING_TIERS[s.pot.tier ?? 0]?.minLevel ?? 5)), s.pot.tier ?? 0)
+      const potTier = s.pot.tier ?? 0
+      const low = [1,16,31,71][potTier] ?? 1
+      const high = [15,30,70,100][potTier] ?? 15
+      const { mon, patch } = newMon(s, s.pot.species, Math.max(low, Math.min(high, newcomerLevel(s, low))), potTier)
       commit({ ...patch, pot: null, counters: bump(s.counters, 'cooked') })
       return mon
     },
