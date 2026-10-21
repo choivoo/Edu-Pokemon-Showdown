@@ -1,5 +1,6 @@
 // 직접 작곡한 곡들. 경쾌한 전자음 팝 느낌(마림바 + 신스 + 드럼)으로 만들었다. (원작 곡을 베끼지 않은 오리지널)
 import type { DrumInstName, NoteInstName } from './instruments'
+import { QUEST_RECOMPOSED_SONGS, QUEST_RECOMPOSED_JINGLES } from './questSoundtrack'
 
 export const STEPS = 16 // 한 마디 = 16분음표 16칸
 
@@ -374,8 +375,11 @@ const astral = regional('astral', 114,
 
 // 6개 지역 테마는 맵/스토리 음악과 별개로 탐험 전투 중에 재생된다.
 
-export const SONGS = { title, camp, map, battle, boss, story, tide, grove, echo, spark, ember, astral } as const
-export const JINGLES = { win, lose, levelup, cook: cookSong } as const
+export const LEGACY_SONGS = { title, camp, map, battle, boss, story, tide, grove, echo, spark, ember, astral } as const
+export const LEGACY_JINGLES = { win, lose, levelup, cook: cookSong } as const
+/** 2D edition soundtrack: 12 freshly recomposed cues + 4 original jingles. */
+export const SONGS = QUEST_RECOMPOSED_SONGS
+export const JINGLES = QUEST_RECOMPOSED_JINGLES
 export type SongName = keyof typeof SONGS
 export type JingleName = keyof typeof JINGLES
 export const ALL_TRACKS: Song[] = [...Object.values(SONGS), ...Object.values(JINGLES)]
