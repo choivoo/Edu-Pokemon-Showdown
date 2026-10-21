@@ -55,7 +55,12 @@ describe('cooking', () => {
         for (const s of sp) expect(s.types.some(t => recipe.types.includes(t))).toBe(true)
       }
     }
-    for (let i = 0; i < 300; i++) expect(cook(ids('rainbow', 'rainbow', 'honey', 'fossil', 'fossil'), rng).rarity).toBeLessThanOrEqual(3)
+    for (let i = 0; i < 300; i++) {
+      const pokemon = cook(ids('rainbow', 'rainbow', 'honey', 'fossil', 'fossil'), rng)
+      // The original recipe CAN attract starter Pokémon marked rarity 4 by the
+      // old fan ranking, but never actual legendary birds or Mew/Mewtwo.
+      expect([144,145,146,150,151]).not.toContain(pokemon.id)
+    }
   })
   it('등급이 높을수록 희귀한 포켓몬이 더 자주 온다', () => {
     const rng = seeded(9)
