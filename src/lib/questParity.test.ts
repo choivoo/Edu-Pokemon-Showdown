@@ -31,7 +31,7 @@ describe('Original free Poké Mart', () => {
   })
   it('decorations apply passive colour rewards, training and battery boost', () => {
     const decorations = ['flareonCushion', 'charizardTorch', 'fearowVane', 'dittoBalloon', 'meowthBalloon', 'mewtwoArch']
-    expect(DECORATIONS).toHaveLength(15)
+    expect(DECORATIONS).toHaveLength(18)
     expect(ingredientBonus('mushroomRed', 3, decorations)).toBe(6)
     expect(ingredientBonus('rockBlue', 3, decorations)).toBe(3)
     expect(ingredientBonus('shell', 2, decorations)).toBe(2)
