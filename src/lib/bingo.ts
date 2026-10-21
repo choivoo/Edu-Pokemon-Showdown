@@ -48,7 +48,7 @@ export function seededRng(seed: string): Rng {
   }
 }
 
-/** 가로 줄(4칸 x 3줄)과 세로 줄(3칸 x 4줄), 모두 7개 */
+/** 3x3 P애뮬릿의 3개 가로줄과 3개 세로줄: 총 6줄 */
 export const BINGO_LINES: string[][] = [
   ...Array.from({ length: GRID_H }, (_, y) => Array.from({ length: GRID_W }, (_, x) => `${x},${y}`)),
   ...Array.from({ length: GRID_W }, (_, x) => Array.from({ length: GRID_H }, (_, y) => `${x},${y}`)),
