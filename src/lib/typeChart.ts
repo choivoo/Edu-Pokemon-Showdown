@@ -42,7 +42,11 @@ const CHART: Record<PokemonType, Row> = {
   fairy: { s: ['fighting', 'dragon', 'dark'], r: ['fire', 'poison', 'steel'] },
 }
 
-export function typeMultiplier(attack: PokemonType, defender: PokemonType[]): number {
+/** In Pokémon Quest, there is no matchup weakness/resistance/immunity. */
+export function typeMultiplier(_attack: PokemonType, _defender: PokemonType[]): number { return 1 }
+
+/** Separate reference chart for conventional Pokémon, not used by Quest battles. */
+export function mainSeriesTypeMultiplier(attack: PokemonType, defender: PokemonType[]): number {
   const row = CHART[attack]
   let m = 1
   for (const d of defender) {
