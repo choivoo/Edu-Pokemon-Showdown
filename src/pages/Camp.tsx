@@ -56,6 +56,8 @@ export default function Camp() {
         </button>
       )}
 
+      <Btn color="blue" onClick={() => openPanel('story')} className="absolute bottom-[124px] left-4 z-10 flex items-center gap-2 px-4 py-1.5 text-base"><Icon n="book" s={22} />모험일지</Btn>
+
       {/* 하단 바: 메뉴 / 파티 / 탐험 */}
       <div className="absolute inset-x-0 bottom-0 flex h-[112px] items-center justify-between gap-3 px-4 pb-3 pt-4">
         <div className="flex gap-2">
