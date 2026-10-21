@@ -175,9 +175,12 @@ export function getStage(area: number, index: number): Stage {
   const postgame = area === HAPPENSTANCE_AREA
   const boss = postgame || index === stageCount(area) - 1
   const level = a.levelBase + index * (postgame ? 5 : 1) + (boss ? 1 : 0)
+  const firstSteppe = area === ORIGINAL_FIRST
+  const firstSteppeStrength = [200, 650, 750, 850] as const
+  const firstSteppeBoss = [52, 11, 17] as const
   return {
     id: stageId(area, index), area, index,
-    name: postgame ? (index === 8 ? '12-BOSS · 전설의 시련' : `12-${index + 1} · 기이한 섬`) : boss ? a.bossName : `${a.name} ${index + 1}`,
+    name: postgame ? (index === 8 ? '12-BOSS · 전설의 시련' : `12-${index + 1} · 기이한 섬`) : a.campaign === 'original' ? `${area - ORIGINAL_FIRST + 1}-${boss ? 'BOSS' : index + 1} · ${boss ? a.bossName : a.name}` : boss ? a.bossName : `${a.name} ${index + 1}`,
     level,
     wavePlan: postgame ? [2, 3, 3, index === 8 ? 1 : 2] : area === ORIGINAL_BOSS_AREA ? [1] : wavePlanFor(area, index, boss),
     boss,
@@ -185,6 +188,7 @@ export function getStage(area: number, index: number): Stage {
     exp: Math.round(expToNext(level) * (boss ? 2 : 1.1)),
     recruit: boss && a.campaign !== 'original' ? a.boss : null,
     ...(postgame ? { timeLimitSec: HAPPENSTANCE.timeLimit, recommended: HAPPENSTANCE.recommended[index] } : {}),
+    ...(firstSteppe ? { recommended: firstSteppeStrength[index], ...(!boss ? { finalEnemy: firstSteppeBoss[index] } : {}) } : {}),
   }
 }
 
@@ -225,7 +229,9 @@ const pick = <T,>(arr: T[], rng: Rng): T => arr[Math.floor(rng() * arr.length)]
 export function buildWaves(stage: Stage, rng: Rng = Math.random): WaveEnemy[][] {
   const area = stage.area >= 0 ? AREAS[stage.area] : null
   const postgame = stage.area === HAPPENSTANCE_AREA
-  const pool = area ? area.pool : SPECIES.filter(s => s.rarity <= 3).map(s => s.id)
+  const pool = stage.area === ORIGINAL_FIRST && stage.index < 3 ? [
+    [16, 19], [10, 13], [16, 21, 4, 37, 58],
+  ][stage.index] : area ? area.pool : SPECIES.filter(s => s.rarity <= 3).map(s => s.id)
   // 첫 두 판은 이벤트 없이 익숙해지도록 한다
   const eventsOn = !((stage.area === 0 || stage.area === ORIGINAL_FIRST) && stage.index < 2)
   const mk = (level: number, extra: Partial<WaveEnemy> = {}): WaveEnemy => ({ species: pick(pool, rng), level, ...extra })
@@ -242,7 +248,7 @@ export function buildWaves(stage: Stage, rng: Rng = Math.random): WaveEnemy[][] 
     }
     const lv = stage.level - (last ? 0 : 1)
     const base = Array.from({ length: count }, () => mk(lv))
-    if (last && !stage.boss && eventsOn) base[0] = { ...base[0], elite: true, level: lv + 1 }
+    if (last && !stage.boss) base[0] = { ...base[0], ...(stage.finalEnemy ? { species: stage.finalEnemy } : {}), elite: true, level: lv + 1 }
     if (!eventsOn || (last && !stage.boss)) return base
     const roll = rng()
     if (roll < 0.22) return [...base, mk(lv - 1, { late: 'call' }), mk(lv - 1, { late: 'call' }), mk(lv - 1, { late: 'call' })]
