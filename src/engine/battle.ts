@@ -6,6 +6,8 @@ import { computeStats, type Stats } from '../lib/stats'
 import type { WaveEnemy } from '../lib/stages'
 import { type MoveFx, NO_FX, SPIRIT_ATK, SPIRIT_SECONDS } from '../lib/moveStones'
 import { moveHits, moveProfile } from '../lib/moveProfiles'
+import { attackFrameDelay } from '../lib/questFrames'
+import { chooseTacticalAction } from '../lib/questTactics'
 import { encounterBalance, type EncounterBalance } from '../lib/battleBalance'
 import { WORLD_BOUNDS } from '../art/openField'
 import type { Stage } from '../lib/stages'
@@ -122,6 +124,8 @@ export interface Battle {
   nextUid: number
   rng: Rng
   balance: EncounterBalance
+  /** Stage area for progressive enemy AI tuning. */
+  area: number
 }
 
 export interface AllyInput { ownedId: string; speciesId: number; level: number; stats: Stats; fx?: MoveFx; fx2?: MoveFx; move?: string; move2?: string }
@@ -247,7 +251,7 @@ function joinLate(b: Battle, kind: 'call' | 'new' | 'bossHp') {
 export function createBattle(allies: AllyInput[], waves: WaveEnemy[][], rng: Rng = Math.random, stage?: Pick<Stage,'area'|'index'>): Battle {
   const b: Battle = {
     late: [], scatterCd: 0, surrounded: false, waveKills: 0, t: 0, units: [], waves, wave: 0, phase: 'fight', phaseT: 0, pending: [], queue: [], events: [],
-    auto: false, kills: 0, nextUid: 1, rng, balance: stage ? encounterBalance(stage) : { hp: 1, attack: 1, defense: 1, allyHeal: 0.1, bossHp: 1 },
+    auto: false, kills: 0, nextUid: 1, rng, area: stage?.area ?? 6, balance: stage ? encounterBalance(stage) : { hp: 1, attack: 1, defense: 1, allyHeal: 0.1, bossHp: 1 },
   }
   allies.forEach((a, i) => b.units.push(makeUnit(b, 'ally', a.speciesId, a.level, a.stats, i, false, { ownedId: a.ownedId, fx: a.fx, move: a.move, move2: a.move2, fx2: a.fx2 })))
   spawnWave(b)
@@ -362,7 +366,7 @@ function castSpecial(b: Battle, u: Unit, extraMul = 1, mv: Move = u.special, slo
   const aoe = u.boss || (isQuest ? ['burst','wave','cone'].includes(profile.shape) : AOE_TYPES.includes(mv.type))
   const { widen, multiply } = slot===1 ? u.fx2 : u.fx
   let targets: Unit[]
-  if (u.boss) targets = foes
+  if (u.boss) targets = foes.filter(f => moveHits({...profile,radius:profile.radius*1.5,range:profile.range*1.15},u,main,f,f.radius))
   else if (isQuest) targets = foes.filter(f => moveHits({...profile,radius:profile.radius+50*widen,range:profile.range+35*widen},u,main,f,f.radius))
   else if (aoe) targets = foes.filter(f => Math.hypot(f.x - main.x, f.y - main.y) <= AOE_RADIUS + 50 * widen)
   else {
@@ -371,14 +375,14 @@ function castSpecial(b: Battle, u: Unit, extraMul = 1, mv: Move = u.special, slo
     const others = foes.filter(f => f !== main).sort((x, y) => Math.hypot(x.x - u.x, x.y - u.y) - Math.hypot(y.x - u.x, y.y - u.y))
     targets.push(...others.slice(0, multiply))
   }
-  if(isQuest && targets.length===0) targets=[main]
+  if(targets.length===0) return false
   const base = u.boss ? 0.7 : aoe ? 0.65 : 1
   const mul = base * Math.pow(0.85, multiply) * extraMul
   u.lunge = 0.35
   u.face = main.x >= u.x ? 1 : -1
   b.events.push({ k: 'attack', from: u.uid, to: targets.map(t => t.uid), type: mv.type, special: true, ranged: true })
   for (const t of targets) for(let hit=0;hit<(isQuest?profile.hits:1);hit++)
-    strike(b,u,t,mv,true,mul/(isQuest?Math.sqrt(profile.hits):1), Math.max(profile.windup,travel(u,t))+hit*.12)
+    strike(b,u,t,mv,true,mul/(isQuest?Math.sqrt(profile.hits):1), Math.max(attackFrameDelay(mv,hit),travel(u,t)))
   // 넓히기: 한 명만 맞히던 필살기도 주변까지 번진다
   if (!aoe && !u.boss && widen > 0) {
     const radius = 20 + 50 * widen
@@ -545,11 +549,11 @@ export function step(b: Battle, dt: number): void {
       u.atkCd -= u.status?.kind === 'paralyze' ? dt * 0.5 : dt
       u.spCd = Math.max(0, u.spCd - dt)
       u.spCd2 = Math.max(0, u.spCd2 - dt)
-      const automated = u.boss || (u.side === 'ally' && b.auto) || u.side === 'enemy' && u.special.role
+      const automated = u.boss || (u.side === 'ally' && b.auto) || u.side === 'enemy' && (u.special.role || b.area >= 8)
       if (automated && u.scatterT <= 0) {
-        const primary = u.spCd <= 0
-        const secondary = !!u.secondary && u.spCd2 <= 0 && u.side === 'ally'
-        if (primary || secondary) doSpecial(b, u, primary && secondary ? (b.rng() < 0.5 ? 0 : 1) : secondary && !primary ? 1 : 0)
+        const target=nearest(b,u)
+        const action=chooseTacticalAction(u,target,alive(b,u.side),b.area,b.auto,b.rng())
+        if(action.slot!==null)doSpecial(b,u,action.slot)
       }
       // 흩어지기: 가장 가까운 적에게서 멀어지는 쪽으로 달아난다
       if (u.scatterT > 0) {
@@ -572,6 +576,14 @@ export function step(b: Battle, dt: number): void {
       if (!t) { u.moving = false; continue }
       const d = dist(u, t)
       u.face = t.x >= u.x ? 1 : -1
+      const posture = chooseTacticalAction(u,t,alive(b,u.side),b.area,b.auto,1)
+      if(posture.retreat && d < 95 && u.side==='enemy'){
+        const k=Math.min(speedOf(b,u)*dt*.7,95-d)
+        u.x-=(t.x-u.x)/Math.max(1,d)*k
+        u.y-=(t.y-u.y)/Math.max(1,d)*k
+        u.moving=true
+        continue
+      }
       if (d > u.range + t.radius * 0.4) {
         if (u.status?.kind === 'chain') { u.moving = false; continue }
         u.moving = true
