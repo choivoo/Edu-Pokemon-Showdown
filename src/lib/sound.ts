@@ -101,6 +101,19 @@ export const sfx = {
   superHit: () => { noise(0, 0.095, 0.085); beep(420, 0, 0.20, 'sawtooth', 0.055, 85); beep(620, 0.012, 0.12, 'sine', 0.04, 200) },
   crit: () => { sparkle([784, 988]); beep(250, 0.06, 0.14, 'triangle', 0.060, 150) },
   faint: () => { beep(460, 0, 0.42, 'triangle', 0.07, 104); beep(590, 0.04, 0.27, 'sine', 0.032, 120) },
+  /** Fully original punch-punch-crash island-adventure boss explosion cue. No ripped Pokémon audio. */
+  finisher: () => {
+    bgm.duck(2.1)
+    const beats=[0,0.14,0.30,0.41,0.52,0.65,0.79]
+    beats.forEach((t,i)=>{
+      noise(t,0.11,0.082+(i%3)*.01)
+      beep(110+i*29,t,.16,'sawtooth',.043,53+i*11)
+      beep(440+i*61,t+.03,.11,'triangle',.037,220+i*19)
+    })
+    noise(.92,.42,.14)
+    beep(165,.91,.62,'sawtooth',.1,43)
+    ;[523,659,784,1047].forEach((n,i)=>beep(n,.99+i*.084,.32,'sine',.05,n*1.017))
+  },
   tick: () => beep(1100, 0, 0.018, 'sine', 0.023),
   coin: () => sparkle([988, 1319]),
   special: () => { beep(350, 0, 0.18, 'sine', 0.07, 660); beep(700, 0.075, 0.25, 'triangle', 0.065, 1200); sparkle([880, 1175]) },
