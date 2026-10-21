@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useGame } from '../store/gameStore'
-import { AREAS, getEndlessStage, getStage, STAGES_PER_AREA } from '../lib/stages'
+import { AREAS, getEndlessStage, getStage, stageCount } from '../lib/stages'
 import { INGREDIENTS } from '../lib/cooking'
 import { getSpecies } from '../lib/roster'
 import { stoneName, SHAPES, STONE_INFO } from '../lib/stones'
@@ -33,7 +33,7 @@ export default function Result() {
   if (r.win) {
     if (stage.area >= 0) {
       const ni = stage.index + 1
-      if (ni < STAGES_PER_AREA) next = () => startStage(getStage(stage.area, ni))
+      if (ni < stageCount(stage.area)) next = () => startStage(getStage(stage.area, ni))
       else { next = () => go('island'); nextStarts = false }
     } else next = () => startStage(getEndlessStage(stage.endlessFloor! + 1))
   }
