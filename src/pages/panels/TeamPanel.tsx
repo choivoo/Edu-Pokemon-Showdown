@@ -44,6 +44,7 @@ export default function TeamPanel() {
   const usedMove = usedMoveStoneIds(save)
   const freeMove = save.moveStones.filter(m => !usedMove.has(m.id))
   const equipped = equippedMoveStones(save, mon)
+  const moveSlots = mon.move2 ? 2 : MOVE_SLOTS
   const bingos = bingoOf(save, mon)
   const bingoCells = new Set(completeLines(occ).flat())
   const holdStone = hold ? save.stones.find(s => s.id === hold.id) : undefined
@@ -97,7 +98,7 @@ export default function TeamPanel() {
               <span key={k as string} className="rounded-lg px-1 py-0.5 text-white" style={{ background: c as string }}>{k}<br /><b className="text-base">{v}</b></span>
             ))}
           </div>
-          <p className="flex items-center gap-1 text-sm"><Icon n="sword" s={18} />{powerRating(stats)} · {getMove(sp.basic).name}(자동) · <Icon n="star" s={16} />{getMove(mon.move ?? sp.special).name}</p>
+          <p className="flex items-center gap-1 text-sm"><Icon n="sword" s={18} />{powerRating(stats)} · {getMove(sp.basic).name}(자동) · <Icon n="star" s={16} />{getMove(mon.move ?? sp.special).name}{mon.move2 ? ' / ' + getMove(mon.move2).name : ''}</p>
 
           <div className="flex gap-3">
             <div className="pq-dark relative p-2" style={{ width: GRID_W * CELL + 16 }} onMouseLeave={() => setHover(null)}>
@@ -165,9 +166,9 @@ export default function TeamPanel() {
               </div>
             ) : right === 'moves' ? (
               <div className="space-y-1.5">
-                <p className="text-sm font-bold">장착 중 ({equipped.length}/{MOVE_SLOTS}) · 필살기에 적용돼요</p>
+                <p className="text-sm font-bold">장착 중 ({equipped.length}/{moveSlots}) · 필살기에 적용돼요</p>
                 <div className="grid grid-cols-3 gap-2">
-                  {Array.from({ length: MOVE_SLOTS }, (_, i) => {
+                  {Array.from({ length: moveSlots }, (_, i) => {
                     const m = equipped[i]
                     return (
                       <button key={i} disabled={!m} onClick={() => m && unequipMoveStone(mon.id, m.id)} className="flex h-[78px] flex-col items-center justify-center gap-0.5 border-4 border-dashed border-[#c98a00] bg-white/60 text-xs">
@@ -179,7 +180,7 @@ export default function TeamPanel() {
                 <p className="pt-1 text-sm font-bold">보유한 기술스톤</p>
                 {freeMove.length === 0 && <p className="p-3 text-center text-sm">남은 기술스톤이 없어요. 탐험에서 가끔 얻을 수 있어요!</p>}
                 {freeMove.map(m => (
-                  <button key={m.id} disabled={equipped.length >= MOVE_SLOTS} onClick={() => { if (equipMoveStone(mon.id, m.id)) sfx.select() }} className="flex w-full items-center gap-2 border-4 border-[#c98a00] bg-white/60 px-2 py-1 text-left disabled:opacity-50">
+                  <button key={m.id} disabled={equipped.length >= moveSlots} onClick={() => { if (equipMoveStone(mon.id, m.id)) sfx.select() }} className="flex w-full items-center gap-2 border-4 border-[#c98a00] bg-white/60 px-2 py-1 text-left disabled:opacity-50">
                     <Icon n={MOVE_STONE_INFO[m.kind].icon} s={32} />
                     <span className="flex-1"><b className="text-base">{MOVE_STONE_INFO[m.kind].name}</b><br /><span className="text-xs text-[#8a5a10]">{MOVE_STONE_INFO[m.kind].detail}</span></span>
                   </button>
