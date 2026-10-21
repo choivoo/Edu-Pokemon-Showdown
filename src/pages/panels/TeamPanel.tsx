@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useGame } from '../../store/gameStore'
 import { expToNext, MAX_LEVEL } from '../../lib/stats'
-import { canPlace, cellsOf, GRID_H, GRID_W, occupancy, SHAPES, type Stone, STONE_INFO, stoneName, unlockedSet } from '../../lib/stones'
+import { canPlace, cellsOf, GRID_H, GRID_W, occupancy, SHAPES, type Stone, STONE_INFO, STONE_PERK_LABEL, stoneName, unlockedSet } from '../../lib/stones'
 import { getMove, getSpecies } from '../../lib/roster'
 import { bingoOf, equippedMoveStones, powerOf, statsOf, usedMoveStoneIds, usedStoneIds } from '../../lib/party'
 import { BONUS_INFO, completeLines } from '../../lib/bingo'
@@ -208,7 +208,7 @@ export default function TeamPanel() {
                   <button key={s.id} onClick={() => { sfx.select(); setHold({ id: s.id, rot: 0 }); setMsg('') }} className={`flex w-full items-center gap-3 rounded-lg border-4 px-2 py-1 text-left ${hold?.id === s.id ? 'border-[#e8524a] bg-white' : 'border-[#e5a500]'}`}>
                     <span className="flex w-16 justify-center"><ShapePreview stone={s} /></span>
                     <span className="flex flex-1 items-center gap-1 text-lg"><Icon n={STONE_INFO[s.kind].icon} s={26} />{STONE_INFO[s.kind].name} <Stars n={s.star} s={14} /></span>
-                    <span className="text-sm">{STONE_INFO[s.kind].desc} +{s.value !== undefined ? s.value : Math.round(STONE_INFO[s.kind].per * s.star * SHAPES[s.shape].length * 100) + '%'}</span>
+                    <span className="text-sm">{STONE_INFO[s.kind].desc} +{s.value !== undefined ? s.value : Math.round(STONE_INFO[s.kind].per * s.star * SHAPES[s.shape].length * 100) + '%'} {Object.entries(s.perks ?? {}).map(([k,v]) => STONE_PERK_LABEL[k as keyof typeof STONE_PERK_LABEL] + ' +' + v + '%').join(' · ')}</span>
                   </button>
                 ))}
               </div>
