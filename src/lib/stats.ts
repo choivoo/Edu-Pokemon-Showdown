@@ -31,6 +31,8 @@ export interface OwnedMon {
   potBonus?: number
   ivHp?: number
   ivAtk?: number
+  /** Per-mon nine-slot P Charm layout, omitted on legacy saves. */
+  sockets?: Array<'hp' | 'atk' | 'any'>
 }
 
 export interface Stats {
