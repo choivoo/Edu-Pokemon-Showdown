@@ -18,13 +18,13 @@ function seeded(seed: number) {
 
 describe('cooking', () => {
   const ids = (...a: IngredientId[]) => a
-  it('재료 성질을 센다 (무지개는 모든 색·식감·종류에 +1)', () => {
+  it('재료 성질을 센다 (무지개는 원작처럼 레시피의 색·질감·재료 개수에는 영향을 주지 않는다)', () => {
     const t = tally(ids('mushroomRed', 'rainbow'))
-    expect(t.color.red).toBe(2)
-    expect(t.color.blue).toBe(1)
-    expect(t.texture.soft).toBe(2)
-    expect(t.kind.mushroom).toBe(2)
-    expect(t.kind.mystic).toBe(1)
+    expect(t.color.red).toBe(1)
+    expect(t.color.blue).toBe(0)
+    expect(t.texture.soft).toBe(1)
+    expect(t.kind.mushroom).toBe(1)
+    expect(t.kind.mystic).toBe(0)
   })
   it('레시피 판정: 한 색을 듬뿍 넣으면 그 색 요리', () => {
     expect(recipeFor(ids('mushroomRed', 'mushroomRed', 'rootRed', 'rootRed', 'rootRed')).no).toBe(2)
@@ -75,8 +75,10 @@ describe('cooking', () => {
   it('신비의 조개껍질을 사용해야 전설의 수프가 만들어지고 전설 5종을 모집할 수 있다', () => {
     const normal = ids('rainbow', 'rainbow', 'rainbow', 'rainbow', 'honey')
     expect(recipeFor(normal).no).not.toBe(18)
-    const legend = ids('shell', 'fossil', 'fossil', 'fossil', 'fossil')
+    const legend = ids('shell', 'mushroomRed', 'berryBlue', 'nutYellow', 'fossil')
     expect(recipeFor(legend).no).toBe(18)
+    // A complete colour recipe overrides the Mystical Shell, so it cannot always force Ambrosia.
+    expect(recipeFor(ids('shell','fossil','fossil','fossil','fossil')).no).toBe(5)
     const legendaryIds = new Set([144, 145, 146, 150, 151])
     for (const mon of attractPool(recipeFor(legend))) expect(legendaryIds.has(mon.id)).toBe(true)
     for (let seed = 1; seed <= 50; seed++) expect(legendaryIds.has(cook(legend, seeded(seed)).id)).toBe(true)
