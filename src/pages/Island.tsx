@@ -120,7 +120,7 @@ function StagePanel({ area, onClose, onGo }: { area: number; onClose: () => void
           <p>추천 전투력 <b className={mine >= rec ? 'text-[#2e8f4a]' : 'text-[#d23c36]'}>{rec}</b> <span className="text-base">(내 파티 {mine})</span></p>
           <p className="flex flex-wrap items-center gap-1">재료 {a.drops.map(d => <Icon key={d} n={getIngredient(d).icon} s={24} />)} <Coins n={st.coins} s={20} className="ml-2" /> <span className="ml-2">EXP {st.exp}</span></p>
           <p className="flex flex-wrap items-center gap-1 text-base">지역 보너스 타입 {AREA_BONUS[area].map(t => <TypeBadge key={t} type={t} />)} <span>체력·공격 ×{AREA_BONUS_MUL}</span></p>
-          <p className="text-base">파워스톤 {st.boss ? '확정' : '가끔'} 드롭{st.recruit ? ` · 첫 클리어 시 ${getSpecies(st.recruit).name} 합류!` : ''}</p>
+          <p className="text-base">P스톤 {st.boss ? '확정' : '가끔'} 드롭{st.recruit ? ` · 첫 클리어 시 ${getSpecies(st.recruit).name} 합류!` : ''}</p>
           <p className="flex items-center gap-1 text-base"><Icon n="battery" s={20} />탐험하면 배터리 1개를 써요 (남은 {bat.n}개)</p>
           <Btn color="red" disabled={!party || bat.n <= 0} onClick={() => onGo(st)} className="mt-auto py-3 text-2xl">{bat.n <= 0 ? '배터리가 없어요' : '출발!'}</Btn>
         </div>
