@@ -5,7 +5,7 @@ import { computeStats, expToNext, powerRating } from './stats'
 import { SHAPE_WEIGHTS, type Stone, STONE_KINDS, type StoneKind } from './stones'
 import { MOVE_STONE_KINDS, type MoveStoneKind } from './moveStones'
 import type { Species } from '../types'
-import { FAN_AREA_COUNT, ORIGINAL_AREAS, ORIGINAL_BOSS_AREA } from './originalCampaign'
+import { FAN_AREA_COUNT, ORIGINAL_AREAS, ORIGINAL_BOSS_AREA, ORIGINAL_FIRST } from './originalCampaign'
 
 export type Theme = 'beach' | 'forest' | 'cave' | 'gorge' | 'volcano' | 'altar'
 export interface DialogLine { speaker: string | null; text: string }
@@ -176,8 +176,8 @@ export function getStage(area: number, index: number): Stage {
 /** 첫 지역 초반은 적 수를 줄여 부담 없이 시작 */
 function wavePlanFor(area: number, index: number, boss: boolean): number[] {
   if (boss) return [2, 3, 2]
-  if (area === 0 && index === 0) return [1, 2, 2]
-  if (area === 0 && index === 1) return [2, 2, 2]
+  if ((area === 0 || area === ORIGINAL_FIRST) && index === 0) return [1, 2, 2]
+  if ((area === 0 || area === ORIGINAL_FIRST) && index === 1) return [2, 2, 2]
   return index === 3 ? [2, 3, 3, 3] : [2, 2, 3]
 }
 
@@ -211,7 +211,7 @@ export function buildWaves(stage: Stage, rng: Rng = Math.random): WaveEnemy[][] 
   const area = stage.area >= 0 ? AREAS[stage.area] : null
   const pool = area ? area.pool : SPECIES.filter(s => s.rarity <= 3).map(s => s.id)
   // 첫 두 판은 이벤트 없이 익숙해지도록 한다
-  const eventsOn = !(stage.area === 0 && stage.index < 2)
+  const eventsOn = !((stage.area === 0 || stage.area === ORIGINAL_FIRST) && stage.index < 2)
   const mk = (level: number, extra: Partial<WaveEnemy> = {}): WaveEnemy => ({ species: pick(pool, rng), level, ...extra })
   return stage.wavePlan.map((count, wi) => {
     const last = wi === stage.wavePlan.length - 1
