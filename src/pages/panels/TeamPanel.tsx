@@ -5,6 +5,7 @@ import { canPlace, cellsOf, GRID_H, GRID_W, occupancy, SHAPES, type Stone, STONE
 import { getMove, getSpecies } from '../../lib/roster'
 import { bingoOf, equippedMoveStones, powerOf, statsOf, usedMoveStoneIds, usedStoneIds } from '../../lib/party'
 import { BONUS_INFO, completeLines } from '../../lib/bingo'
+import { questBingoOptions } from '../../lib/questBingo'
 import { MOVE_SLOTS, MOVE_STONE_INFO } from '../../lib/moveStones'
 import { Bar, Btn, PARTY_COLORS, Panel, Portrait } from '../../ui/kit'
 import TypeBadge from '../../components/TypeBadge'
@@ -32,6 +33,7 @@ export default function TeamPanel() {
   const [hold, setHold] = useState<{ id: string; rot: number } | null>(null)
   const [hover, setHover] = useState<[number, number] | null>(null)
   const [msg, setMsg] = useState('')
+  const [activeMoveSlot, setActiveMoveSlot] = useState<0|1>(0)
 
   const mon = save.owned.find(o => o.id === selId) ?? save.owned[0]
   if (!mon) return null
@@ -167,13 +169,14 @@ export default function TeamPanel() {
               </div>
             ) : right === 'moves' ? (
               <div className="space-y-1.5">
-                <p className="text-sm font-bold">장착 중 ({equipped.length}/{moveSlots}) · 필살기에 적용돼요</p>
+                <p className="text-sm font-bold">장착 중 ({equipped.length}/{moveSlots}) · 각 기술에 개별 적용</p>
+                {mon.move2 && <div className="flex gap-1 pb-1"><Btn color={activeMoveSlot===0?'yellow':'gray'} onClick={()=>setActiveMoveSlot(0)} className="flex-1 text-sm">기술 1: {getMove(mon.move??sp.special).name}</Btn><Btn color={activeMoveSlot===1?'yellow':'gray'} onClick={()=>setActiveMoveSlot(1)} className="flex-1 text-sm">기술 2: {getMove(mon.move2).name}</Btn></div>}
                 <div className="grid grid-cols-3 gap-2">
                   {Array.from({ length: moveSlots }, (_, i) => {
                     const m = equipped[i]
                     return (
                       <button key={i} disabled={!m} onClick={() => m && unequipMoveStone(mon.id, m.id)} className="flex h-[78px] flex-col items-center justify-center gap-0.5 border-4 border-dashed border-[#c98a00] bg-white/60 text-xs">
-                        {m ? (<><Icon n={MOVE_STONE_INFO[m.kind].icon} s={36} /><span>{MOVE_STONE_INFO[m.kind].name}</span></>) : <span className="text-[#a06a10]">빈 칸</span>}
+                        {m ? (<><Icon n={MOVE_STONE_INFO[m.kind].icon} s={36} /><span>{MOVE_STONE_INFO[m.kind].name}</span><span>기술 {(mon.moveStoneSlots?.[i]??0)+1}</span></>) : <span className="text-[#a06a10]">빈 칸</span>}
                       </button>
                     )
                   })}
@@ -181,7 +184,7 @@ export default function TeamPanel() {
                 <p className="pt-1 text-sm font-bold">보유한 기술스톤</p>
                 {freeMove.length === 0 && <p className="p-3 text-center text-sm">남은 기술스톤이 없어요. 탐험에서 가끔 얻을 수 있어요!</p>}
                 {freeMove.map(m => (
-                  <button key={m.id} disabled={equipped.length >= moveSlots} onClick={() => { if (equipMoveStone(mon.id, m.id)) sfx.select() }} className="flex w-full items-center gap-2 border-4 border-[#c98a00] bg-white/60 px-2 py-1 text-left disabled:opacity-50">
+                  <button key={m.id} disabled={equipped.length >= moveSlots} onClick={() => { if (equipMoveStone(mon.id, m.id, mon.move2 ? activeMoveSlot : 0)) sfx.select() }} className="flex w-full items-center gap-2 border-4 border-[#c98a00] bg-white/60 px-2 py-1 text-left disabled:opacity-50">
                     <Icon n={MOVE_STONE_INFO[m.kind].icon} s={32} />
                     <span className="flex-1"><b className="text-base">{MOVE_STONE_INFO[m.kind].name}</b><br /><span className="text-xs text-[#8a5a10]">{MOVE_STONE_INFO[m.kind].detail}</span></span>
                   </button>
@@ -191,13 +194,19 @@ export default function TeamPanel() {
               <div className="space-y-2 text-sm">
                 <p className="leading-snug">P스톤 격자의 <b>가로 또는 세로 한 줄을 스톤으로 모두 채우면</b> 빙고! 가로·세로 빙고 줄을 1·2·3개 완성할 때마다 각각의 보너스가 켜져요.</p>
                 <p className="flex items-center gap-1 text-lg font-bold text-[#c06a00]"><Icon n="bingo" s={26} />완성한 빙고 {bingos}줄{bingos > 3 ? ' (3줄까지 인정)' : ''}</p>
-                {mon.bonus.map((b, bi) => (
-                  <div key={b.kind} className="border-4 border-[#c98a00] bg-white/60 p-2">
-                    <p className="text-base font-bold">{bi + 1}번째 빙고 {bingos > bi ? '활성' : '잠김'} · {BONUS_INFO[b.kind].label}</p>
+                {mon.bingoChoices ? ([0,1,2] as const).map(bi=><div key={bi} className="border-4 border-[#c98a00] bg-white/60 p-2">
+                  <p className="text-base font-bold">{bi+1}번째 빙고 {bingos>bi?'● 활성':'○ 잠김'} · {getSpecies(mon.species).name}</p>
+                  <div className="mt-1 grid grid-cols-3 gap-1 text-center text-xs">
+                    {questBingoOptions(mon.species,bi).map((option,i)=><span key={i}
+                      className={`border-2 p-1 leading-snug ${mon.bingoChoices?.[bi]===i?(bingos>bi?'border-[#e8524a] bg-[#ffe9a0]':'border-[#bd9b52] bg-[#fff6d4]'):'border-[#e5c36a] opacity-60'}`}>
+                      {option}
+                    </span>)}
+                  </div>
+                </div>) : mon.bonus.map((b,bi)=>(
+                  <div key={bi} className="border-4 border-[#c98a00] bg-white/60 p-2">
+                    <p className="text-base font-bold">{bi+1}번째 빙고 {bingos>bi?'활성':'잠김'} · {BONUS_INFO[b.kind].label}</p>
                     <div className="mt-1 grid grid-cols-3 gap-1 text-center text-xs">
-                      {b.v.map((v, i) => (
-                        <span key={i} className={`border-2 py-0.5 ${bingos > bi && bi === i ? 'border-[#e8524a] bg-[#ffe9a0] font-bold' : 'border-[#e5c36a]'}`}>{i + 1}빙고 +{v}{BONUS_INFO[b.kind].unit}</span>
-                      ))}
+                    {b.v.map((v,i)=><span key={i} className="border-2 border-[#e5c36a]">{i+1}빙고 +{v}{BONUS_INFO[b.kind].unit}</span>)}
                     </div>
                   </div>
                 ))}

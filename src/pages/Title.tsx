@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useGame } from '../store/gameStore'
-import { frontSprite } from '../data/sprites'
+import { frontSprite, fallbackSpriteOnError } from '../data/sprites'
 import { bgm, sfx } from '../lib/sound'
 import { enterLandscapeFullscreen } from '../lib/fullscreen'
 import { Btn } from '../ui/kit'
@@ -9,43 +9,61 @@ import { useCanvas } from '../components/useCanvas'
 import { H, W } from '../engine/draw'
 import { drawTitleWorld } from '../art/scenes'
 import { preload, sprite } from '../engine/render'
-
-const HEROES = [25, 6, 131, 94, 133, 1, 7, 4]
-
-export default function Title() {
-  const { save, go, openPanel, toggleMute } = useGame()
-  const canvas = useRef<HTMLCanvasElement>(null)
-  preload(HEROES)
-  useEffect(() => { bgm.play('title') }, [])
-
-  useCanvas(canvas, (ctx, t) => {
-    drawTitleWorld(ctx, t)
-    // 지나가는 동료들
-    HEROES.forEach((id, i) => {
-      const x = ((t * 55 + i * 160) % (W + 160)) - 80
-      const y = 400 + (i % 3) * 40
-      const img = sprite(frontSprite(id))
-      ctx.fillStyle = 'rgba(0,0,0,0.22)'; ctx.fillRect(Math.floor(x - 30), Math.floor(y - 4), 60, 8)
-      if (img.complete && img.naturalWidth) { ctx.save(); ctx.translate(Math.floor(x), Math.floor(y - Math.abs(Math.sin(t * 6 + i)) * 8)); ctx.scale(-1, 1); ctx.drawImage(img, -48, -86, 96, 96); ctx.restore() }
-    })
-  })
-
-  const start = () => { sfx.select(); bgm.play(save.started ? 'camp' : 'story'); go(save.started ? 'camp' : 'intro') }
-
-  return (
-    <div className="absolute inset-0">
-      <canvas ref={canvas} width={W} height={H} className="absolute inset-0 h-full w-full" />
-      <div className="absolute inset-x-0 bottom-20 flex flex-col items-center gap-3">
-        <Btn onClick={start} className="flex w-[340px] items-center justify-center gap-3 py-3 text-2xl" quiet><Icon n="play" s={28} />{save.started ? `이어하기 (${save.name})` : '새 모험 시작'}</Btn>
-        <div className="flex gap-3">
-          <Btn color="blue" onClick={() => openPanel('save')} className="flex items-center gap-2 text-base"><Icon n="key" s={22} />데이터 이전</Btn>
-          <Btn color="gray" onClick={() => void enterLandscapeFullscreen()} className="flex items-center gap-2 text-base"><Icon n="expand" s={22} />전체화면</Btn>
-          <Btn color="gray" onClick={toggleMute} className="flex items-center gap-2 text-base"><Icon n={save.muted ? 'mute' : 'sound'} s={22} />{save.muted ? '소리 꺼짐' : '소리 켜짐'}</Btn>
-        </div>
-      </div>
-      <p className="absolute inset-x-0 bottom-2 text-center text-[11px] leading-snug text-white/90" style={{ textShadow: '0 1px 2px #000' }}>
-        비공식 팬게임 · 포켓몬은 Nintendo/Game Freak/The Pokémon Company의 상표입니다. 비상업 개인 프로젝트이며 스프라이트는 PokeAPI에서 불러옵니다.
-      </p>
-    </div>
-  )
+const HEROES=[25,6,131,94,133,1,7,4]
+const POSTER=[{id:1,x:'-3deg'},{id:25,x:'2deg'},{id:4,x:'-1deg'},{id:7,x:'4deg'}]
+export default function Title(){
+ const {save,go,openPanel,toggleMute}=useGame()
+ const canvas=useRef<HTMLCanvasElement>(null)
+ useEffect(()=>{preload(HEROES);bgm.play('title')},[])
+ useCanvas(canvas,(ctx,t)=>{
+   drawTitleWorld(ctx,t)
+   HEROES.forEach((id,i)=>{
+     const x=((t*39+i*160)%(W+160))-80,y=412+(i%3)*35
+     const img=sprite(frontSprite(id))
+     ctx.fillStyle='rgba(0,0,0,0.17)';ctx.fillRect(Math.floor(x-26),y+4,52,7)
+     if(img.complete&&img.naturalWidth){
+       ctx.save();ctx.translate(Math.floor(x),y-Math.abs(Math.sin(t*3.5+i))*7)
+       ctx.scale(-1,1);ctx.drawImage(img,-35,-69,70,70);ctx.restore()
+     }
+   })
+ })
+ const start=()=>{sfx.select();bgm.play(save.started?'camp':'story');go(save.started?'camp':'intro')}
+ return <div className="quest-title-root">
+   <canvas ref={canvas} width={W} height={H} className="absolute inset-0 h-full w-full opacity-80" />
+   <div className="quest-title-wash" />
+   <div className="quest-title-spark quest-title-spark-one">✦</div>
+   <div className="quest-title-spark quest-title-spark-two">◆</div>
+   <div className="quest-title-spark quest-title-spark-three">✧</div>
+   <header className="quest-title-head">
+     <p className="quest-title-overline">AN ORIGINAL 2D PIXEL ADVENTURE <span>◈</span> VOL. 03</p>
+     <div className="quest-title-logo">
+       <span className="quest-title-emblem">Q</span>
+       <div>
+         <div className="quest-title-kicker">NE모네모 ISLAND</div>
+         <h1>포켓몬 퀘스트 <span>FAN EDITION</span></h1>
+         <p>작은 친구들과 떠나는 커다란 모험!</p>
+       </div>
+     </div>
+     <div className="quest-title-tag"><span>2D</span><span>151 KANTO</span><span>93 EXPEDITIONS</span><span>16 NEW TRACKS</span></div>
+   </header>
+   <section className="quest-title-cast" aria-label="모험을 함께할 포켓몬">
+     {POSTER.map(({id,x},i)=><div key={id} className="quest-title-cast-item" style={{transform:`rotate(${x})`,animationDelay:`${i*.18}s`}}>
+       <div className="quest-title-cast-bg"/>
+       <img src={frontSprite(id)} alt="" onError={e=>fallbackSpriteOnError(e.currentTarget,id)} />
+       <small>#{String(id).padStart(3,'0')}</small>
+     </div>)}
+   </section>
+   <div className="quest-title-menu">
+     <p className="quest-title-menu-label">✦  SELECT YOUR ADVENTURE  ✦</p>
+     <button onClick={start} className="quest-title-primary">
+       <Icon n="play" s={28}/><span>{save.started?`이어하기 · ${save.name}`:'새로운 모험 시작'}</span><span className="quest-title-arrow">➜</span>
+     </button>
+     <div className="quest-title-actions">
+       <Btn color="blue" onClick={()=>openPanel('save')} className="flex items-center gap-2 text-sm"><Icon n="key" s={19}/>데이터 이전</Btn>
+       <Btn color="gray" onClick={()=>void enterLandscapeFullscreen()} className="flex items-center gap-2 text-sm"><Icon n="expand" s={19}/>전체화면</Btn>
+       <Btn color="gray" onClick={toggleMute} className="flex items-center gap-2 text-sm"><Icon n={save.muted?'mute':'sound'} s={19}/>{save.muted?'소리 켜기':'소리 끄기'}</Btn>
+     </div>
+   </div>
+   <footer className="quest-title-footer">비공식 · 비상업 2D 팬게임  |  Pokémon 관련 권리는 원권리자 소유  |  PokéAPI 도트 사용</footer>
+ </div>
 }

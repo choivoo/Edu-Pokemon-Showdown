@@ -1,0 +1,47 @@
+name: 2D Pixel Quest 2.3.0 Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    if: github.repository == 'choivoo/Pokemon-Quest-fan.Edition'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Validate 2D Gameplay Parity Edition
+        run: |
+          npm ci
+          npm run typecheck
+          npm test
+          npm run build
+          test -s dist/index.html
+      - name: Package 2D web distribution
+        run: |
+          zip -qr pokemon-quest-fan-edition-v2.3.0-pixel-quest-2d-web.zip dist
+          unzip -t pokemon-quest-fan-edition-v2.3.0-pixel-quest-2d-web.zip
+      - name: Publish unofficial, noncommercial release if absent
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view v2.3.0 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Preserving existing v2.3.0 release"
+            exit 0
+          fi
+          gh release create v2.3.0 pokemon-quest-fan-edition-v2.3.0-pixel-quest-2d-web.zip \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "Pokémon Quest Fan Edition v2.3.0 — Pixel Quest (Unofficial)" \
+            --notes-file PIXEL_QUEST_2_3_RELEASE_NOTES.md

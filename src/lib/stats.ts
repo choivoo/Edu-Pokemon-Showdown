@@ -18,6 +18,8 @@ export interface OwnedMon {
   bonus: Bonus[]
   /** 장착한 기술스톤 id (최대 3) */
   mstones: string[]
+  /** Optional per-stone move slot assignment (0=main,1=secondary). */
+  moveStoneSlots?: Array<0 | 1>
   /** 특훈으로 떠올린 필살기 (없으면 기본 필살기) */
   move?: string
   /** Original Quest Pokémon can learn a second optional special move. */
@@ -33,6 +35,8 @@ export interface OwnedMon {
   ivAtk?: number
   /** Per-mon nine-slot P Charm layout, omitted on legacy saves. */
   sockets?: Array<'hp' | 'atk' | 'any'>
+  /** Chosen 0/1/2 option for each species-specific Bingo row. */
+  bingoChoices?: [number,number,number]
 }
 
 export interface Stats {
@@ -54,6 +58,12 @@ export interface Stats {
   reviveHp?: number
   effectResist?: number
   statusResist?: number
+  typeMoveAtk?: Record<string,number>
+  typeMoveWait?: Record<string,number>
+  typeDamageResist?: Record<string,number>
+  statusTypeResist?: Record<string,number>
+  critTakenResist?: number
+  bodySize?: number
 }
 
 export const BASE_CRIT = 0.06

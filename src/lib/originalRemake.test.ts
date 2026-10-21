@@ -77,10 +77,17 @@ describe('2D 원작 진행 / 팬 후속편', () => {
     useGame.getState().finishBattle(false, getStage(ORIGINAL_FIRST, 0))
     expect(useGame.getState().save.pot?.remaining).toBe(0)
 
+    const additionalVisitors = useGame.getState().save.pot?.visitors?.length ?? 0
     const newcomer = useGame.getState().collectCooked()
     expect(newcomer).toBeTruthy()
     expect(useGame.getState().save.owned).toHaveLength(2)
+    // The original game can bring two or three Pokémon from one dish;
+    // this test must not fail randomly when a rare extra visitor appears.
+    for (let i = 0; i < additionalVisitors; i++) {
+      expect(useGame.getState().collectCooked()).toBeTruthy()
+    }
     expect(useGame.getState().collectCooked()).toBeNull()
-    expect(useGame.getState().save.counters.cooked).toBe(1)
+    expect(useGame.getState().save.owned).toHaveLength(2 + additionalVisitors)
+    expect(useGame.getState().save.counters.cooked).toBe(1 + additionalVisitors)
   })
 })

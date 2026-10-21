@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useGame } from './store/gameStore'
 import Title from './pages/Title'
+import LoadingScreen from './pages/LoadingScreen'
 import Intro from './pages/Intro'
 import Camp from './pages/Camp'
 import Island from './pages/Island'
@@ -35,6 +36,8 @@ function useViewport() {
 
 export default function App() {
   const { screen, panel } = useGame()
+  const [bootReady, setBootReady] = useState(false)
+  const loadingFinished = useCallback(() => setBootReady(true), [])
   // 브라우저는 첫 터치 이후에만 소리를 허용한다
   useEffect(() => {
     const unlock = () => { audio() }
@@ -55,6 +58,7 @@ export default function App() {
         style={{ width: VW, height: VH, left: '50%', top: '50%', transform: `translate(-50%, -50%) scale(${scale})`, transformOrigin: 'center center' }}
       >
         {screen === 'title' && <Title />}
+        {!bootReady && <LoadingScreen onReady={loadingFinished} />}
         {screen === 'intro' && <Intro />}
         {screen === 'camp' && <Camp />}
         {screen === 'island' && <Island />}

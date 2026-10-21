@@ -42,24 +42,24 @@ export function recallChance(target: OwnedMon, foods: OwnedMon[], now: number): 
 }
 
 /** 이 포켓몬이 떠올릴 수 있는 필살기 후보 (자기 타입의 공격기 + 어울리는 보조기) */
-export function recallPool(m: OwnedMon): Move[] {
+export function recallPool(m: OwnedMon, slot: 0|1 = 0): Move[] {
   const sp = getSpecies(m.species)
-  const cur = m.move ?? sp.special
+  const cur = (slot===1 ? m.move2 : m.move) ?? sp.special
   const questMoves = questLearnset(sp.id)
-  if (questMoves.length) return questMoves.filter(mv => mv.id !== cur && mv.id !== m.move2)
+  if (questMoves.length) return questMoves.filter(mv => mv.id !== cur && mv.id !== (slot===1 ? m.move : m.move2))
   return MOVES.filter(mv => mv.id !== cur && mv.id !== sp.basic && (mv.role ? mv.learn?.some(t => sp.types.includes(t)) : sp.types.includes(mv.type) && mv.power >= 70))
 }
 
 export interface RecallResult { ok: boolean; mon: OwnedMon; move: Move | null }
 
-export function recall(target: OwnedMon, foods: OwnedMon[], now: number, rng: Rng, multiplier = 1): RecallResult {
+export function recall(target: OwnedMon, foods: OwnedMon[], now: number, rng: Rng, multiplier = 1, slot: 0|1 = 0): RecallResult {
   const chance = Math.min(0.95, recallChance(target, foods, now) * multiplier)
   const fatigue = recallFatigue(target, now)
   const next: OwnedMon = { ...target, recalls: fatigue + 1, recallT: now }
-  const pool = recallPool(target)
+  const pool = recallPool(target, slot)
   if (!pool.length || rng() >= chance) return { ok: false, mon: next, move: null }
   const move = pool[Math.floor(rng() * pool.length)]
-  return { ok: true, mon: { ...next, move: move.id }, move }
+  return { ok: true, mon: slot===1 ? { ...next, move2: move.id } : { ...next, move: move.id }, move }
 }
 
 export const expNeededLabel = (m: OwnedMon) => expToNext(m.level)

@@ -5,6 +5,7 @@ import { getMove, getSpecies } from '../lib/roster'
 import { computeStats, type Stats } from '../lib/stats'
 import type { WaveEnemy } from '../lib/stages'
 import { type MoveFx, NO_FX, SPIRIT_ATK, SPIRIT_SECONDS } from '../lib/moveStones'
+import { moveHits, moveProfile } from '../lib/moveProfiles'
 
 export type Side = 'ally' | 'enemy'
 
@@ -45,6 +46,7 @@ export interface Unit {
   spMax: number
   /** 기술스톤 효과 */
   fx: MoveFx
+  fx2: MoveFx
   /** 빙고 보너스 효과 */
   critDmg: number
   atkCdCut: number
@@ -56,6 +58,11 @@ export interface Unit {
   reviveHp: number
   effectResist: number
   statusResist: number
+  typeMoveAtk: Record<string,number>
+  typeMoveWait: Record<string,number>
+  typeDamageResist: Record<string,number>
+  statusTypeResist: Record<string,number>
+  critTakenResist: number
   /** 필살기로 얻은 공격력 기합 (until 까지 mul 배) */
   spirit: { mul: number; until: number }
   /** 보조기로 받은 증감 (until 까지) */
@@ -84,7 +91,7 @@ export type FxEvent =
   | { k: 'buff'; uid: number; good: boolean }
   | { k: 'flee'; uid: number }
 
-interface Pending { at: number; from: number; to: number; amount: number; eff: number; crit: boolean; type: PokemonType; special: boolean }
+interface Pending { at: number; from: number; to: number; amount: number; eff: number; crit: boolean; type: PokemonType; special: boolean; status?: StatusKind; sourceQuest?: boolean }
 
 export type Phase = 'fight' | 'advance' | 'won' | 'lost'
 
@@ -112,7 +119,7 @@ export interface Battle {
   rng: Rng
 }
 
-export interface AllyInput { ownedId: string; speciesId: number; level: number; stats: Stats; fx?: MoveFx; move?: string; move2?: string }
+export interface AllyInput { ownedId: string; speciesId: number; level: number; stats: Stats; fx?: MoveFx; fx2?: MoveFx; move?: string; move2?: string }
 
 export const ADVANCE_TIME = 1.7
 export const AOE_TYPES: PokemonType[] = ['electric', 'ground', 'ice', 'psychic', 'ghost']
@@ -133,10 +140,10 @@ export const FORMATION = [{ x: 280, y: 320 }, { x: 205, y: 395 }, { x: 205, y: 2
 const attackInterval = (spe: number) => 2.3 / (1 + spe / 130)
 const dist = (a: Unit, b: Unit) => Math.hypot(a.x - b.x, a.y - b.y)
 
-interface MakeOpts { ownedId?: string; fx?: MoveFx; move?: string; move2?: string; elite?: boolean; pos?: { x: number; y: number } }
+interface MakeOpts { ownedId?: string; fx?: MoveFx; fx2?: MoveFx; move?: string; move2?: string; elite?: boolean; pos?: { x: number; y: number } }
 
 function makeUnit(b: Battle, side: Side, speciesId: number, level: number, stats: Stats, slot: number, boss: boolean, o: MakeOpts = {}): Unit {
-  const { ownedId, fx = NO_FX, elite = false } = o
+  const { ownedId, fx = NO_FX, fx2 = NO_FX, elite = false } = o
   const sp = getSpecies(speciesId)
   const m = boss ? BOSS : elite ? ELITE : { hp: 1, atk: 1, def: 1 }
   const atkMul = side === 'enemy' ? m.atk * ENEMY_ATK : m.atk
@@ -152,17 +159,20 @@ function makeUnit(b: Battle, side: Side, speciesId: number, level: number, stats
     uid: b.nextUid++, side, speciesId, name: sp.name, types: sp.types, level, maxHp, hp: maxHp,
     atk: Math.floor(stats.atk * atkMul), def: Math.floor(stats.def * m.def), spe: stats.spe, crit: stats.crit,
     basic, special, secondary, spCd2: secondary ? 4 : 0,
-    spMax2: secondary ? Math.max(1, (secondary.wait ?? (secondary.power >= 100 ? 10 : 8)) * (1 - stats.spCd)) : 0,
+    spMax2: secondary ? Math.max(1, (secondary.wait ?? (secondary.power >= 100 ? 10 : 8)) * (1 - 0.05 * fx2.quick) * (1 + 0.5 * fx2.repeat) * (1 - stats.spCd) * (1 - (stats.typeMoveWait?.[secondary.type] ?? 0))) : 0,
     boss, ownedId, slot, x, y, face: side === 'ally' ? 1 : -1, moving: false,
     range: boss ? 96 : ranged ? RANGED_RANGE : MELEE_RANGE,
     speed: Math.min(190, Math.min(150, 62 + stats.spe * 0.55) * (1 + stats.moveSpd)),
-    radius: boss ? 62 : elite ? 36 : 28,
+    radius: (boss ? 62 : elite ? 36 : 28) * (1 + (stats.bodySize ?? 0)),
     atkCd: 0.4 + b.rng() * 0.9,
-    fx,
-    spMax: Math.max(1, (special.wait ?? (special.power >= 100 ? 10 : 8)) * (1 - 0.05 * fx.quick) * (1 + 0.5 * fx.repeat) * (1 - stats.spCd)),
+    fx, fx2,
+    spMax: Math.max(1, (special.wait ?? (special.power >= 100 ? 10 : 8)) * (1 - 0.05 * fx.quick) * (1 + 0.5 * fx.repeat) * (1 - stats.spCd) * (1 - (stats.typeMoveWait?.[special.type] ?? 0))),
     critDmg: stats.critDmg, atkCdCut: stats.atkCd, lifesteal: stats.lifesteal, regen: stats.regen, waveHeal: stats.waveHeal,
     koHeal: stats.koHeal ?? 0, reviveSpeed: stats.reviveSpeed ?? 0, reviveHp: stats.reviveHp ?? 0,
     effectResist: stats.effectResist ?? 0, statusResist: stats.statusResist ?? 0,
+    typeMoveAtk: stats.typeMoveAtk ?? {}, typeMoveWait: stats.typeMoveWait ?? {},
+    typeDamageResist: stats.typeDamageResist ?? {}, statusTypeResist: stats.statusTypeResist ?? {},
+    critTakenResist: stats.critTakenResist ?? 0,
     spirit: { mul: 0, until: 0 },
     buff: { atk: 0, def: 0, speed: 0, until: 0 }, debuff: { atk: 0, def: 0, speed: 0, until: 0 }, status: null, scatterT: 0, elite,
     spCd: side === 'ally' ? 3.5 : 6 + b.rng() * 3,
@@ -212,7 +222,7 @@ export function createBattle(allies: AllyInput[], waves: WaveEnemy[][], rng: Rng
     late: [], scatterCd: 0, surrounded: false, waveKills: 0, t: 0, units: [], waves, wave: 0, phase: 'fight', phaseT: 0, pending: [], queue: [], events: [],
     auto: false, kills: 0, nextUid: 1, rng,
   }
-  allies.forEach((a, i) => b.units.push(makeUnit(b, 'ally', a.speciesId, a.level, a.stats, i, false, { ownedId: a.ownedId, fx: a.fx, move: a.move, move2: a.move2 })))
+  allies.forEach((a, i) => b.units.push(makeUnit(b, 'ally', a.speciesId, a.level, a.stats, i, false, { ownedId: a.ownedId, fx: a.fx, move: a.move, move2: a.move2, fx2: a.fx2 })))
   spawnWave(b)
   return b
 }
@@ -228,6 +238,14 @@ function nearest(b: Battle, u: Unit): Unit | undefined {
     const d = dist(u, f)
     if (d < bd) { bd = d; best = f }
   }
+  if (best && u.side==='enemy' && !u.boss) {
+    // Enemy pack coordination: focus a wounded nearby partner only when
+    // the diversion is close enough to avoid endless cross-field chasing.
+    const candidates=b.units.filter(x=>x.side==='ally'&&x.alive&&dist(u,x)<=bd*1.45)
+    const wounded=candidates.filter(x=>x.hp/x.maxHp<.4)
+      .sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp)
+    if(wounded.length) return wounded[0]
+  }
   return best
 }
 
@@ -242,7 +260,7 @@ const stunned = (u: Unit) => u.status?.kind === 'sleep' || u.status?.kind === 'f
 export const isBuffed = (b: Battle, u: Unit) => b.t < u.spirit.until
 
 function strike(b: Battle, from: Unit, to: Unit, move: Move, special: boolean, powerMul = 1, delay = 0.12) {
-  const power = move.power * powerMul * (from.types.includes(move.type) ? STAB : 1)
+  const power = move.power * powerMul * (from.types.includes(move.type) ? STAB : 1) * (1 + (from.typeMoveAtk[move.type] ?? 0))
   const crit = b.rng() < from.crit
   const atk = atkOf(b, from)
   let r = calcDamage({ level: from.level, power, atk, def: defOf(b, to), moveType: move.type, defenderTypes: to.types, rng: b.rng, crit })
@@ -252,7 +270,7 @@ function strike(b: Battle, from: Unit, to: Unit, move: Move, special: boolean, p
     r = { damage: Math.max(1, Math.floor(neutral.damage * 0.25)), effectiveness: 0.25, crit }
   }
   const amount = r.crit && from.critDmg > 0 ? Math.floor(r.damage * (1 + from.critDmg)) : r.damage
-  b.pending.push({ at: b.t + delay, from: from.uid, to: to.uid, amount, eff: r.effectiveness, crit: r.crit, type: move.type, special })
+  b.pending.push({ at: b.t + delay, from: from.uid, to: to.uid, amount, eff: r.effectiveness, crit: r.crit, type: move.type, special, status: move.id.startsWith('quest-') ? moveProfile(move).status : undefined, sourceQuest: move.id.startsWith('quest-') })
 }
 
 const travel = (a: Unit, c: Unit) => Math.max(0.12, dist(a, c) / 560)
@@ -261,7 +279,7 @@ const STATUS_SECS: Record<StatusKind, number> = { poison: 7, paralyze: 5, burn: 
 
 /** 상태이상은 한 번에 하나만 걸린다. 보스는 절반만 걸린다. */
 function applyStatus(b: Battle, to: Unit, kind: StatusKind, secs = STATUS_SECS[kind]) {
-  if (!to.alive || to.status || b.rng() < to.statusResist) return
+  if (!to.alive || to.status || b.rng() < Math.min(1,to.statusResist + (to.statusTypeResist[kind] ?? 0))) return
   to.status = { kind, until: b.t + secs * (to.boss ? 0.5 : 1), tick: 0 }
   b.events.push({ k: 'status', uid: to.uid, kind })
 }
@@ -307,15 +325,18 @@ function castSupport(b: Battle, u: Unit, mv: Move = u.special): boolean {
 }
 
 /** 필살기 한 번(대상 고르기 + 피해 예약). 리피트/늘리기 스톤으로 이어지는 발사에도 쓴다. */
-function castSpecial(b: Battle, u: Unit, extraMul = 1, mv: Move = u.special) {
+function castSpecial(b: Battle, u: Unit, extraMul = 1, mv: Move = u.special, slot: 0|1 = 0) {
   if (mv.role) return castSupport(b, u, mv)
   const main = nearest(b, u)
   if (!main) return false
   const foes = alive(b, u.side === 'ally' ? 'enemy' : 'ally')
-  const aoe = u.boss || AOE_TYPES.includes(mv.type)
-  const { widen, multiply } = u.fx
+  const profile=moveProfile(mv)
+  const isQuest=mv.id.startsWith('quest-')
+  const aoe = u.boss || (isQuest ? ['burst','wave','cone'].includes(profile.shape) : AOE_TYPES.includes(mv.type))
+  const { widen, multiply } = slot===1 ? u.fx2 : u.fx
   let targets: Unit[]
   if (u.boss) targets = foes
+  else if (isQuest) targets = foes.filter(f => moveHits({...profile,radius:profile.radius+50*widen,range:profile.range+35*widen},u,main,f,f.radius))
   else if (aoe) targets = foes.filter(f => Math.hypot(f.x - main.x, f.y - main.y) <= AOE_RADIUS + 50 * widen)
   else {
     targets = [main]
@@ -323,12 +344,14 @@ function castSpecial(b: Battle, u: Unit, extraMul = 1, mv: Move = u.special) {
     const others = foes.filter(f => f !== main).sort((x, y) => Math.hypot(x.x - u.x, x.y - u.y) - Math.hypot(y.x - u.x, y.y - u.y))
     targets.push(...others.slice(0, multiply))
   }
+  if(isQuest && targets.length===0) targets=[main]
   const base = u.boss ? 0.7 : aoe ? 0.65 : 1
   const mul = base * Math.pow(0.85, multiply) * extraMul
   u.lunge = 0.35
   u.face = main.x >= u.x ? 1 : -1
   b.events.push({ k: 'attack', from: u.uid, to: targets.map(t => t.uid), type: mv.type, special: true, ranged: true })
-  for (const t of targets) strike(b, u, t, mv, true, mul, travel(u, t))
+  for (const t of targets) for(let hit=0;hit<(isQuest?profile.hits:1);hit++)
+    strike(b,u,t,mv,true,mul/(isQuest?Math.sqrt(profile.hits):1), Math.max(profile.windup,travel(u,t))+hit*.12)
   // 넓히기: 한 명만 맞히던 필살기도 주변까지 번진다
   if (!aoe && !u.boss && widen > 0) {
     const radius = 20 + 50 * widen
@@ -339,22 +362,23 @@ function castSpecial(b: Battle, u: Unit, extraMul = 1, mv: Move = u.special) {
 
 function doSpecial(b: Battle, u: Unit, slot: 0 | 1 = 0): boolean {
   const mv = slot === 1 ? u.secondary : u.special
-  if (!mv || !castSpecial(b, u, 1, mv)) return false
+  if (!mv || !castSpecial(b, u, 1, mv, slot)) return false
+  const fx=slot===1 ? u.fx2 : u.fx
   if (slot === 1) u.spCd2 = u.spMax2
   else u.spCd = u.spMax
   // 필살기를 쓰면 공격력 기합이 붙는다. 결속스톤이 있으면 동료도 나눠 받고, 오래가기스톤이 있으면 더 오래 간다.
-  const secs = SPIRIT_SECONDS * (1 + 0.25 * u.fx.lasting)
+  const secs = SPIRIT_SECONDS * (1 + 0.25 * fx.lasting)
   u.spirit = { mul: SPIRIT_ATK, until: b.t + secs }
-  if (u.fx.bond > 0) {
+  if (fx.bond > 0) {
     for (const a of alive(b, u.side)) {
       if (a === u) continue
-      const mul = SPIRIT_ATK * 0.25 * u.fx.bond
+      const mul = SPIRIT_ATK * 0.25 * fx.bond
       if (b.t >= a.spirit.until || mul > a.spirit.mul) a.spirit = { mul, until: Math.max(b.t + secs, a.spirit.until) }
     }
   }
   // 리피트: 연달아 한 번 더 / 늘리기: 범위기는 한 번 더 때린다
-  const repeats = u.fx.repeat + (AOE_TYPES.includes(mv.type) || u.boss ? u.fx.multiply : 0)
-  for (let i = 1; i <= repeats; i++) b.queue.push({ at: b.t + 0.45 * i, uid: u.uid, mul: i <= u.fx.repeat ? 1 : 0.85, slot })
+  const repeats = fx.repeat + (AOE_TYPES.includes(mv.type) || u.boss ? fx.multiply : 0)
+  for (let i = 1; i <= repeats; i++) b.queue.push({ at: b.t + 0.45 * i, uid: u.uid, mul: i <= fx.repeat ? 1 : 0.85, slot })
   return true
 }
 
@@ -381,18 +405,22 @@ function applyHit(b: Battle, p: Pending) {
   const to = unitById(b, p.to)
   if (!to || !to.alive) return
   if (to.scatterT > 0 && b.rng() < (p.special ? 0.55 : 0.3)) return
-  to.hp = Math.max(0, to.hp - p.amount)
+  const resisted = Math.round(p.amount * Math.max(0.05, 1 - (to.typeDamageResist[p.type] ?? 0)) * (p.crit ? Math.max(0,1-to.critTakenResist) : 1))
+  to.hp = Math.max(0, to.hp - resisted)
   to.hurt = 0.3
   // 잠듦은 맞으면 깬다
   if (to.status?.kind === 'sleep') to.status = null
-  b.events.push({ k: 'hit', from: p.from, to: p.to, amount: p.amount, eff: p.eff, crit: p.crit, type: p.type, special: p.special })
+  b.events.push({ k: 'hit', from: p.from, to: p.to, amount: resisted, eff: p.eff, crit: p.crit, type: p.type, special: p.special })
   const from = unitById(b, p.from)
   if (from && from.alive && from.lifesteal > 0 && !p.special && p.amount > 0) {
     const heal = Math.max(1, Math.floor(from.maxHp * from.lifesteal))
     from.hp = Math.min(from.maxHp, from.hp + heal)
     b.events.push({ k: 'heal', uid: from.uid, amount: heal })
   }
-  if (from && from.alive && p.special && from.side !== to.side && to.hp > 0 && b.rng() < STATUS_CHANCE) applyStatus(b, to, TYPE_STATUS[p.type])
+  if (from && from.alive && p.special && from.side !== to.side && to.hp > 0) {
+    if(p.status) {if(b.rng()<STATUS_CHANCE)applyStatus(b,to,p.status)}
+    else if(!p.sourceQuest && b.rng()<STATUS_CHANCE) applyStatus(b, to, TYPE_STATUS[p.type])
+  }
   if (to.hp <= 0) {
     to.alive = false
     to.deadT = 0
@@ -540,7 +568,7 @@ export function step(b: Battle, dt: number): void {
     const dueQ = b.queue.filter(q => q.at <= b.t)
     if (dueQ.length) {
       b.queue = b.queue.filter(q => q.at > b.t)
-      for (const q of dueQ) { const u = unitById(b, q.uid); if (u && u.alive && b.phase === 'fight') castSpecial(b, u, q.mul, q.slot === 1 ? u.secondary ?? u.special : u.special) }
+      for (const q of dueQ) { const u = unitById(b, q.uid); if (u && u.alive && b.phase === 'fight') castSpecial(b, u, q.mul, q.slot === 1 ? u.secondary ?? u.special : u.special, q.slot) }
     }
   }
 
