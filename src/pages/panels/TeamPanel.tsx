@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useGame } from '../../store/gameStore'
 import { expToNext, MAX_LEVEL } from '../../lib/stats'
-import { canPlace, cellsOf, GRID_H, GRID_W, occupancy, SHAPES, type Stone, STONE_INFO, stoneName, unlockedSet } from '../../lib/stones'
+import { canPlace, cellsOf, GRID_H, GRID_W, occupancy, SHAPES, type Stone, STONE_INFO, STONE_EFFECTS, stoneName, unlockedSet, socketAccepts, socketKind } from '../../lib/stones'
 import { getMove, getSpecies } from '../../lib/roster'
 import { bingoOf, equippedMoveStones, powerOf, statsOf, usedMoveStoneIds, usedStoneIds } from '../../lib/party'
 import { BONUS_INFO, completeLines } from '../../lib/bingo'
@@ -52,7 +52,7 @@ export default function TeamPanel() {
 
   const ghost = new Map<string, boolean>()
   if (holdStone && hover && hold) {
-    const ok = canPlace(mon.level, occ, holdStone.shape, hold.rot, hover[0], hover[1])
+    const ok = canPlace(mon.level, occ, holdStone.shape, hold.rot, hover[0], hover[1]) && socketAccepts(mon.id, mon.species, holdStone.kind, holdStone.shape, hover[0], hover[1], hold.rot)
     for (const [cx, cy] of cellsOf(holdStone.shape, hold.rot)) ghost.set(`${hover[0] + cx},${hover[1] + cy}`, ok)
   }
 
@@ -109,13 +109,14 @@ export default function TeamPanel() {
                   const oi = occ.get(k)
                   const st = oi !== undefined ? save.stones.find(s => s.id === mon.stones[oi].stone) : undefined
                   const g = ghost.get(k)
+                  const slot = socketKind(mon.id, mon.species, x, y)
                   return (
                     <button
                       key={k} onClick={() => clickCell(x, y)} onMouseEnter={() => setHover([x, y])} onTouchStart={() => setHover([x, y])}
                       className="flex items-center justify-center border-2 border-black/40 text-lg font-bold text-white"
                       style={{ width: CELL, height: CELL, background: st ? STONE_INFO[st.kind].color : g !== undefined ? (g ? '#58cf7c' : '#e0505a') : isOpen ? '#566' : '#2a2d38', opacity: isOpen ? 1 : 0.7, boxShadow: bingoCells.has(k) ? 'inset 0 0 0 4px #ffe14d' : undefined }}
                     >
-                      {st ? <Stars n={st.star} s={14} /> : isOpen ? null : <Icon n="lock" s={26} />}
+                      {st ? <span className="flex flex-col items-center text-xs"><Stars n={st.star} s={12}/>{st.value ? <b>{st.value}</b> : null}</span> : isOpen ? <span className="text-xs opacity-80">{slot === 'both' ? '겸용' : slot === 'atk' ? '공격' : '체력'}</span> : <Icon n="lock" s={26} />}
                     </button>
                   )
                 })}
@@ -187,7 +188,7 @@ export default function TeamPanel() {
               </div>
             ) : right === 'bingo' ? (
               <div className="space-y-2 text-sm">
-                <p className="leading-snug">P스톤 격자의 <b>가로 또는 세로 한 줄을 스톤으로 모두 채우면</b> 빙고! 이 포켓몬만의 보너스 3개가 켜져요. 줄이 많을수록(최대 3줄) 효과가 커져요.</p>
+                <p className="leading-snug">P애뮬릿의 가로 또는 세로 줄을 채우면 <b>빙고!</b> 줄을 하나씩 완성할 때마다 순서대로 고유 보너스가 하나씩 해금돼요. 각 칸의 공격/체력 종류를 확인하세요.</p>
                 <p className="flex items-center gap-1 text-lg font-bold text-[#c06a00]"><Icon n="bingo" s={26} />완성한 빙고 {bingos}줄{bingos > 3 ? ' (3줄까지 인정)' : ''}</p>
                 {mon.bonus.map(b => (
                   <div key={b.kind} className="border-4 border-[#c98a00] bg-white/60 p-2">
@@ -207,7 +208,7 @@ export default function TeamPanel() {
                   <button key={s.id} onClick={() => { sfx.select(); setHold({ id: s.id, rot: 0 }); setMsg('') }} className={`flex w-full items-center gap-3 rounded-lg border-4 px-2 py-1 text-left ${hold?.id === s.id ? 'border-[#e8524a] bg-white' : 'border-[#e5a500]'}`}>
                     <span className="flex w-16 justify-center"><ShapePreview stone={s} /></span>
                     <span className="flex flex-1 items-center gap-1 text-lg"><Icon n={STONE_INFO[s.kind].icon} s={26} />{STONE_INFO[s.kind].name} <Stars n={s.star} s={14} /></span>
-                    <span className="text-sm">{STONE_INFO[s.kind].desc} +{Math.round(STONE_INFO[s.kind].per * s.star * SHAPES[s.shape].length * 100)}%</span>
+                    <span className="text-sm">{s.value !== undefined ? '+' + s.value : STONE_INFO[s.kind].desc + ' +' + Math.round(STONE_INFO[s.kind].per * s.star * SHAPES[s.shape].length * 100) + '%'} {Object.entries(s.effects ?? {}).map(([k,v]) => `${STONE_EFFECTS[k as keyof typeof STONE_EFFECTS]} +${v}%`).join(' · ')}</span>
                   </button>
                 ))}
               </div>
