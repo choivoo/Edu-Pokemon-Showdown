@@ -29,10 +29,10 @@ function blocks(text,area,expected){
  return marks.slice(0,expected).map((m,i)=>({index:Number(m[1])-1,raw:text.slice(m.index,i+1<marks.length?marks[i+1].index:undefined),label:area+'-'+m[1]}))
 }
 function parse(block) {
- const [head,boss='']=block.raw.split('Boss/Strong Pokémon')
+ const [head,boss='']=block.raw.split(/Boss\s*\/\s*Strong\b/i)
  const segments=head.split(/\bSegment\s+\d+\b/g).slice(1).map(groups).filter(g=>g.length)
  const bossSets=groups(boss)
- if(!bossSets.length)throw Error('Missing boss for '+block.label)
+ if(!bossSets.length)throw Error('Missing boss for '+block.label+'; sample='+block.raw.slice(-350))
  if(!segments.length&&block.label!=='11-1')throw Error('Missing segments for '+block.label)
  const recommended=Number(head.match(/Recommended Team Strength:\s*([\d,]+)/)?.[1]?.replace(/,/g,'')??0)
  return {segments,bossSets,...(recommended?{recommended}:{}),source:'serebii-location-numerical'}
