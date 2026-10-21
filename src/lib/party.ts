@@ -1,6 +1,6 @@
 import type { SaveData } from './storage'
 import { computeStats, type OwnedMon, powerRating, type Stats } from './stats'
-import { completeLines, type Mods, modsFor } from './bingo'
+import { unlockedBingoCount, type Mods, modsFor } from './bingo'
 import { type MoveFx, moveFx, type MoveStone } from './moveStones'
 import { occupancy } from './stones'
 import type { Stone } from './stones'
@@ -11,7 +11,7 @@ export const placedStones = (save: SaveData, mon: OwnedMon): Stone[] =>
   mon.stones.map(p => save.stones.find(s => s.id === p.stone)).filter((s): s is Stone => !!s)
 
 /** 격자에서 완성된 빙고 줄 수 */
-export const bingoOf = (save: SaveData, mon: OwnedMon) => completeLines(occupancy(mon.stones, save.stones)).length
+export const bingoOf = (save: SaveData, mon: OwnedMon) => unlockedBingoCount(occupancy(mon.stones, save.stones))
 export const modsOf = (save: SaveData, mon: OwnedMon): Mods => modsFor(mon.bonus, bingoOf(save, mon))
 export const equippedMoveStones = (save: SaveData, mon: OwnedMon): MoveStone[] => mon.mstones.map(id => save.moveStones.find(s => s.id === id)).filter((s): s is MoveStone => !!s)
 export const moveFxOf = (save: SaveData, mon: OwnedMon): MoveFx => moveFx(equippedMoveStones(save, mon))
