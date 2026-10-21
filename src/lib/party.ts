@@ -15,7 +15,11 @@ export const placedStones = (save: SaveData, mon: OwnedMon): Stone[] =>
 export const bingoOf = (save: SaveData, mon: OwnedMon) => unlockedBingoCount(occupancy(mon.stones, save.stones))
 export const modsOf = (save: SaveData, mon: OwnedMon): Mods => modsFor(mon.bingoChoices ? [] : mon.bonus, bingoOf(save, mon))
 export const equippedMoveStones = (save: SaveData, mon: OwnedMon): MoveStone[] => mon.mstones.map(id => save.moveStones.find(s => s.id === id)).filter((s): s is MoveStone => !!s)
-export const moveFxOf = (save: SaveData, mon: OwnedMon): MoveFx => moveFx(equippedMoveStones(save, mon))
+export const moveFxOf = (save: SaveData, mon: OwnedMon, slot: 0|1 = 0): MoveFx => {
+  const all=equippedMoveStones(save,mon)
+  if (!mon.moveStoneSlots) return slot===0 ? moveFx(all) : moveFx([])
+  return moveFx(all.filter((_,i)=>(mon.moveStoneSlots?.[i]??0)===slot))
+}
 
 export const statsOf = (save: SaveData, mon: OwnedMon): Stats => {
   const stats=computeStats(getSpecies(mon.species), mon.level, placedStones(save, mon), modsOf(save, mon), mon)
