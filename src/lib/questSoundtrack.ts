@@ -28,13 +28,13 @@ const rng=(seed:number)=>()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;retu
 type Config = {bpm:number;root:number;scale:readonly number[];chords:readonly string[];lead:string;energy:number}
 function create(name:string,c:Config, index:number):Song {
   const rand=rng(6613+index*7137)
-  const bars=c.chords.length,events:NoteEv[]=[],bass:NoteEv[]=[],bell:NoteEv[]=[],pad:NoteEv[]=[],drums:DrumEv[]=[]
+  const bars=c.chords.length,events:NoteEv[]=[],bass:NoteEv[]=[],bell:NoteEv[]=[],pad:NoteEv[]=[]
   const motifs=[[0,2,4,1,3,2,1,0],[0,4,3,2,1,2,0,5],[0,1,3,4,2,3,5,0],[0,2,1,4,3,5,2,0]]
   const melodyPositions=c.energy>=4?[0,2,4,6,8,10,12,14]:c.energy<=1?[0,4,6,10,12,14]:[0,2,5,8,10,13]
   for(let bar=0;bar<bars;bar++){
     const chord=chordTones(c.chords[bar],60)
     const low=chordTones(c.chords[bar],36)[0]
-    const tonic=chord[0],isBuild=bar>=bars-4
+    const isBuild=bar>=bars-4
     const motif=motifs[(index+Math.floor(bar/4))%motifs.length]
     for(let k=0;k<melodyPositions.length;k++){
       const step=melodyPositions[k], degree=motif[(k+bar%4)%motif.length]
@@ -61,7 +61,7 @@ function create(name:string,c:Config, index:number):Song {
   }
   const t=(inst:NoteInstName,vol:number,e:NoteEv[]):Track=>({kind:'note',inst,vol,events:e})
   const d=(inst:DrumInstName,vol:number,pattern:string):Track=>({kind:'drum',inst,vol,events:Array.from({length:bars*16},(_,step)=>({step,vel:pattern[step%16]==='x'?1:pattern[step%16]==='o'?.48:0})).filter(e=>e.vel>0)})
-  const tracks:Track[]=[t(c.lead as NoteInstName,0.83,events),t('pluck',0.56,bass),t('pad',0.34,pad),t('bell',0.3,bell)]
+  const tracks:Track[]=[t(c.lead as NoteInstName,0.96,events),t('pluck',0.56,bass),t('pad',0.34,pad),t('bell',0.3,bell)]
   if(c.energy>=3){tracks.push(d('kick',0.72,'x...x...x...x...'),d('snare',0.58,'....x.......x...'),d('hat',0.3,'xoxoxoxoxoxoxoxo'))}
   else {tracks.push(d('kick',0.4,'x.......x.......'),d('rim',0.28,'....o.......o...'),d('shaker',0.2,'x...o...x...o...'))}
   return {name,bpm:c.bpm,bars,swing:c.energy<=2?0.11:0,loop:true,tracks}
