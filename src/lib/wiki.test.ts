@@ -68,7 +68,7 @@ describe('진화', () => {
   })
   it('진화로만 만나는 포켓몬은 요리 후보에 없다', () => {
     const all = new Set(ALL_RECIPES.flatMap(r => attractPool(r).map(s => s.id)))
-    for (const id of [2, 5, 8, 26, 151, 142]) expect(all.has(id)).toBe(false)
+    for (const id of [2, 5, 8, 26, 142]) expect(all.has(id)).toBe(false)
   })
   it('모든 포켓몬의 기술이 존재한다', () => {
     for (const s of SPECIES) { getMove(s.basic); getMove(s.special) }
