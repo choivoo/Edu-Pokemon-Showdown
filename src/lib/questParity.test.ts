@@ -62,7 +62,7 @@ describe('Original evolution and Bingo rules', () => {
     expect(autoEvolve({ ...mon, stones: [] }, [hp, atk]).species).toBe(135)
     expect(autoEvolve({ ...mon, everstone: true }, [hp, atk]).species).toBe(133)
   })
-  it('unlocks three distinct Bingo bonuses only at 3, 6 and 9 stones', () => {
+  it('unlocks bonuses on one, two and three complete Bingo lines', () => {
     const occ = new Map<string, number>()
     for (let y = 0; y < 3; y++) {
       for (let x = 0; x < 3; x++) {
