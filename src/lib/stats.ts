@@ -45,32 +45,46 @@ export const BASE_CRIT = 0.06
 /** 레벨과 배치한 파워스톤을 반영한 전투 스탯 (칸 수 × 별 개수만큼 효과가 커진다) */
 export function computeStats(sp: Species, level: number, stones: Stone[] = [], mods: Mods = NO_MODS): Stats {
   let hp = 1, atk = 1, def = 1, spd = 1, crit = BASE_CRIT
+  let flatHp = 0, flatAtk = 0
+  let critDmg = mods.critDmg, moveSpd = mods.moveSpd, waveHeal = mods.waveHeal
+  let lifesteal = mods.lifesteal, regen = mods.regen
   for (const s of stones) {
-    const v = STONE_INFO[s.kind].per * s.star * SHAPES[s.shape].length
-    if (s.kind === 'hp') hp += v
-    else if (s.kind === 'atk') atk += v
-    else if (s.kind === 'def') def += v
-    else if (s.kind === 'spd') spd += v
-    else crit += v
+    if (s.value !== undefined && (s.kind === 'hp' || s.kind === 'atk')) {
+      if (s.kind === 'hp') flatHp += s.value
+      else flatAtk += s.value
+    } else {
+      // Old multi-cell fan stones retain their historical percentage boosts.
+      const v = STONE_INFO[s.kind].per * s.star * SHAPES[s.shape].length
+      if (s.kind === 'hp') hp += v
+      else if (s.kind === 'atk') atk += v
+      else if (s.kind === 'def') def += v
+      else if (s.kind === 'spd') spd += v
+      else crit += v
+    }
+    crit += (s.effects?.critRate ?? 0) / 100
+    critDmg += s.effects?.critDmg ?? 0
+    lifesteal += s.effects?.hitHealing ?? 0
+    regen += s.effects?.naturalHealing ?? 0
+    waveHeal += s.effects?.waveHealing ?? 0
+    moveSpd += s.effects?.moveSpeed ?? 0
   }
   hp += mods.hpUp / 100
   atk += mods.atkUp / 100
   return {
-    maxHp: Math.floor(calcMaxHp(sp.stats.hp, level) * HP_SCALE * hp),
-    atk: Math.floor(calcStat(sp.stats.atk, level) * atk),
+    maxHp: Math.floor((calcMaxHp(sp.stats.hp, level) + flatHp) * HP_SCALE * hp),
+    atk: Math.floor((calcStat(sp.stats.atk, level) + flatAtk) * atk),
     def: Math.floor(calcStat(sp.stats.def, level) * def),
     spe: Math.floor(calcStat(sp.stats.spe, level) * spd),
-    crit: crit + mods.critRate / 100,
-    critDmg: mods.critDmg / 100,
+    crit: Math.min(0.99, crit + mods.critRate / 100),
+    critDmg: Math.min(3, critDmg / 100),
     atkCd: Math.min(0.5, mods.atkCd / 100),
     spCd: Math.min(0.5, mods.spCd / 100),
-    moveSpd: mods.moveSpd / 100,
-    waveHeal: mods.waveHeal / 100,
-    lifesteal: mods.lifesteal / 100,
-    regen: mods.regen / 100,
+    moveSpd: moveSpd / 100,
+    waveHeal: waveHeal / 100,
+    lifesteal: lifesteal / 100,
+    regen: regen / 100,
   }
 }
-
 /** 표시용 전투력 */
 export const powerRating = (s: Stats) => Math.round(s.maxHp / 3 + s.atk * 2 + s.def + s.spe)
 
