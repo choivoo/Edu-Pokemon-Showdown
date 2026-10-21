@@ -3,7 +3,7 @@
  * Format is each segment's weighted species groups, not one global area pool.
  * Only accurately sourced routes are listed; others continue using procedural
  * waves and are NOT claimed to be exact original wave tables.
- * Source: serebii.net/quest/location/{firststeppe,gloomygrove,backforthbrook,parchedpeak,bellybuttoncave,pincushionplain,miasmamoor,hushedhighlands}.shtml
+ * Source: serebii.net/quest/location/{firststeppe,gloomygrove,backforthbrook,parchedpeak,bellybuttoncave,pincushionplain,miasmamoor,hushedhighlands,nightlightnook}.shtml
  */
 import type { Rng } from '../types'
 import type { WaveEnemy } from '../lib/stages'
@@ -292,6 +292,43 @@ export const VERIFIED_ENCOUNTERS: Readonly<Record<string,Encounter>> = {
   [g(33),g(33)],
   [g(30),g(30)],
  ],boss:g(34),bossExtra:[g(31)]},
+
+
+ '14-0':{segments:[
+  [w([92,70],[41,20],[104,10]),g(111),g(95)],
+  [w([42,50],[105,50]),g(92)],
+  [g(92)],
+  [g(92)],
+ ],boss:g(93)},
+ '14-1':{segments:[
+  [w([81,60],[111,40]),w([100,90],[81,10])],
+  [w([93,66.67],[42,33.33]),g(100),g(111)],
+  [w([101,90],[113,10]),g(111)],
+ ],boss:g(112)},
+ '14-2':{segments:[
+  [w([41,33.33],[79,33.33],[90,33.34]),g(86)],
+  [w([42,45],[80,45],[91,10]),g(86)],
+  [g(86)],
+  [g(86)],
+ ],boss:w([87,96.67],[131,3.33])},
+ '14-3':{segments:[
+  [w([81,83.33],[104,16.67]),g(66)],
+  [w([105,50],[93,50]),w([105,43.33],[93,43.33],[101,13.34]),g(81),g(66)],
+  [w([106,5],[107,5],[67,90]),g(81)],
+  [g(81)],
+ ],boss:g(82)},
+ '14-4':{segments:[
+  [w([105,33.33],[111,33.33],[93,33.34]),g(111)],
+  [w([112,80],[141,10],[139,10]),w([87,60],[91,40]),g(87)],
+  [g(91)],
+  [w([91,50],[87,50])],
+ ],boss:g(124)},
+ '14-5':{segments:[
+  [g(92),g(93),g(82)],
+  [w([42,30],[80,30],[91,30],[113,10]),g(82),g(93),g(93)],
+  [g(92),w([125,23.33],[26,3.33],[101,73.34]),g(93)],
+  [g(93),g(92)],
+ ],boss:g(94)},
 
 }
 function pick(group:Group,rng:Rng):number{
