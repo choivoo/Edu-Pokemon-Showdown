@@ -1,4 +1,5 @@
 import type { SaveData } from './storage'
+import { stageId } from './stages'
 
 export type Counter = 'clears' | 'kills' | 'cooked' | 'trained' | 'recalled' | 'evolved' | 'bosses'
 
@@ -14,7 +15,7 @@ export interface Quest {
 }
 
 const counter = (c: Counter) => (s: SaveData) => s.counters?.[c] ?? 0
-const areaDone = (i: number) => (s: SaveData) => (s.cleared[`a${i}-s4`] ? 1 : 0)
+const areaDone = (i: number) => (s: SaveData) => (s.cleared[stageId(i, 4)] ? 1 : 0)
 
 export const QUESTS: Quest[] = [
   ...['푸른물결 해변', '속삭이는 숲', '달그림자 동굴', '번개 협곡', '불꽃 화산', '별빛 제단'].map((n, i): Quest => ({

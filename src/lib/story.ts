@@ -83,7 +83,7 @@ export const STAGE_EPISODES: StoryEpisode[] = BEATS.flatMap((beats, area) =>
     unlocked: (save: SaveData) => !!save.cleared[stageId(area, step)],
   }))
 )
-const EXTRA_DATA: Array<[string, string, string, (s: SaveData) => boolean]> = [
+const EXTRA_DATA: Array<[string, string, (s: SaveData) => boolean]> = [
   ['캠프의 첫 저녁', '모험의 첫 저녁. 냄비에서 나는 향기에 포켓몬들이 천천히 모여들었다.', s => !!s.started],
   ['작은 요리사의 비밀', '똑같은 재료라도 순서를 바꾸면 새로운 향기가 나. 특별한 친구가 찾아올지도 몰라.', s => (s.counters.cooked ?? 0) >= 2],
   ['포켓몬의 발자국', '우리가 남긴 길 위로 이제는 여러 포켓몬이 함께 걷고 있어. 모두 서로 다른 걸음걸이를 가졌지.', s => s.dex.length >= 8],

@@ -176,7 +176,7 @@ export function getEndlessStage(floor: number): Stage {
   return {
     id: `endless-${floor}`, area: -1, index: floor, name: `끝없는 별길 ${floor}층`,
     level: 12 + floor * 2, wavePlan: boss ? [2, 3, 2] : [2, 3, 3], boss,
-    coins: 50 + floor * 10, exp: Math.round(expToNext(12 + floor * 2) * (boss ? 2 : 1.1)), recruit: floor === 10 ? 150 : null, endlessFloor: floor,
+    coins: 50 + floor * 10, exp: Math.round(expToNext(12 + floor * 2) * (boss ? 2 : 1.1)), recruit: ({ 10: 150, 15: 144, 20: 145, 25: 146, 30: 151, 35: 142 } as Record<number, number>)[floor] ?? null, endlessFloor: floor,
   }
 }
 
