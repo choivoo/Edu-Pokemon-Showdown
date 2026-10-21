@@ -34,13 +34,13 @@ export default function Intro() {
               className="w-full border-4 border-[#c98a00] bg-white px-4 py-3 text-center text-2xl text-[#5a3a00]" />
             <div className="flex justify-center gap-4">
               <Btn color="gray" onClick={() => go('title')}>뒤로</Btn>
-              <Btn color="green" disabled={!name.trim()} onClick={() => { bgm.play('story'); setStep('story') }}>다음</Btn>
+              <Btn color="green" disabled={!name.trim()} onClick={() => { bgm.play('story','intro'); setStep('story') }}>다음</Btn>
             </div>
           </div>
         </Panel>
       )}
 
-      {step === 'story' && <Dialog lines={PROLOGUE} name={name.trim()} onDone={() => setStep('pick')} />}
+      {step === 'story' && <Dialog lines={PROLOGUE} name={name.trim()} onDone={() => {bgm.play('story','tutorial');setStep('pick')}} />}
 
       {step === 'pick' && (
         <Panel title="첫 번째 동료를 골라 주세요" w={780}>
