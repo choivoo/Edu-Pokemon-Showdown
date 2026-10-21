@@ -66,8 +66,8 @@ export function computeStats(sp: Species, level: number, stones: Stone[] = [], m
   hp += mods.hpUp / 100
   atk += mods.atkUp / 100
   return {
-    maxHp: Math.floor(calcMaxHp(sp.stats.hp, level) * HP_SCALE * hp),
-    atk: Math.floor(calcStat(sp.stats.atk, level) * atk),
+    maxHp: Math.floor((calcMaxHp(sp.stats.hp, level) * HP_SCALE + flatHp) * hp),
+    atk: Math.floor((calcStat(sp.stats.atk, level) + flatAtk) * atk),
     def: Math.floor(calcStat(sp.stats.def, level) * def),
     spe: Math.floor(calcStat(sp.stats.spe, level) * spd),
     crit: crit + mods.critRate / 100,
