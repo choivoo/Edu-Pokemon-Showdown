@@ -3,7 +3,7 @@
  * Format is each segment's weighted species groups, not one global area pool.
  * Only accurately sourced routes are listed; others continue using procedural
  * waves and are NOT claimed to be exact original wave tables.
- * Source: serebii.net/quest/location/{firststeppe,gloomygrove,backforthbrook,parchedpeak,bellybuttoncave,pincushionplain,miasmamoor,hushedhighlands,nightlightnook}.shtml
+ * Source: serebii.net/quest/location/{firststeppe,gloomygrove,backforthbrook,parchedpeak,bellybuttoncave,pincushionplain,miasmamoor,hushedhighlands,nightlightnook,farsidefjord}.shtml
  */
 import type { Rng } from '../types'
 import type { WaveEnemy } from '../lib/stages'
@@ -329,6 +329,42 @@ export const VERIFIED_ENCOUNTERS: Readonly<Record<string,Encounter>> = {
   [g(92),w([125,23.33],[26,3.33],[101,73.34]),g(93)],
   [g(93),g(92)],
  ],boss:g(94)},
+
+
+ '15-0':{segments:[
+  [g(120),w([60,90],[7,10]),g(54)],
+  [g(120),w([61,47.5],[8,5],[55,47.5]),g(120),g(55)],
+  [w([61,67.5],[8,20],[9,2.5],[113,10]),g(120),g(55)],
+  [g(120),g(55)],
+ ],boss:g(121)},
+ '15-1':{segments:[
+  [w([116,75],[72,10],[79,15]),g(79),w([116,30],[90,70])],
+  [w([80,50],[73,50]),g(116),g(90),g(91)],
+  [g(90),g(116)],
+  [g(90),g(116)],
+ ],boss:g(117)},
+ '15-2':{segments:[
+  [g(118),w([120,25],[118,50],[116,25]),g(118),g(118)],
+  [w([117,50],[55,50]),g(118),w([121,37.5],[147,25],[117,37.5]),g(118)],
+  [g(121),g(118),g(118)],
+  [g(118)],
+ ],boss:w([119,96.67],[148,3.33])},
+ '15-3':{segments:[
+  [w([98,85],[60,15]),g(72),g(98)],
+  [g(98),g(61),w([72,50],[147,50])],
+  [g(98),g(73)],
+  [g(98)],
+ ],boss:w([99,96.67],[148,3.33])},
+ '15-4':{segments:[
+  [w([84,75],[16,12.5],[21,12.5]),w([121,50],[117,50]),w([16,50],[21,50])],
+  [w([17,90],[113,10]),w([22,50],[18,50])],
+ ],boss:g(85),bossExtra:[g(85),g(85)]},
+ '15-5':{segments:[
+  [w([117,49.5],[61,49.5],[129,1]),w([129,90],[147,10]),g(121)],
+  [g(119),g(129),g(99)],
+  [g(129)],
+  [g(129)],
+ ],boss:w([130,97.5],[149,2.5]),bossExtra:[w([130,97.5],[149,2.5])]},
 
 }
 function pick(group:Group,rng:Rng):number{
