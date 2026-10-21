@@ -50,7 +50,7 @@ async function pipe(bytes: Uint8Array, stream: CompressionStream | Decompression
 
 // ---------- 저장 데이터 압축 표현 (배열 기반으로 크기를 줄임) ----------
 type PackedMon = [string, number, number, number, Array<[string, number, number, number]>, Array<[string, number, number, number]>?, string[]?, string?, number?, number?]
-type Packed = [number, number, string, number, [string, number][], Array<[string, string, number, string, number?, Record<string, number>?]>, PackedMon[], string[], string[], number[], number, number, number, number, number, number?, number?, Array<[string, string]>?, Record<string, number>?, string[]?, number?, string[]?, string?, [number, number, number, number, number?]?, Record<string, number>?]
+type Packed = [number, number, string, number, [string, number][], Array<[string, string, number, string, number?, Record<string, number>?, string[]?, string[]?]>, PackedMon[], string[], string[], number[], number, number, number, number, number, number?, number?, Array<[string, string]>?, Record<string, number>?, string[]?, number?, string[]?, string?, [number, number, number, number, number?]?, Record<string, number>?]
 
 export function pack(s: SaveData): Packed {
   return [
@@ -63,6 +63,8 @@ export function pack(s: SaveData): Packed {
     s.counters, s.claimed, s.statue, s.themes, s.theme,
     s.pot ? [s.pot.species, s.pot.remaining, s.pot.total, s.pot.recipe, ...(s.pot.tier ? [s.pot.tier] : [])] : undefined,
     Object.keys(s.clearTimes ?? {}).length ? s.clearTimes : undefined,
+    s.decorations?.length ? s.decorations : undefined,
+    s.placedDecorations?.length ? s.placedDecorations : undefined,
   ] as unknown as Packed
 }
 
@@ -89,6 +91,8 @@ export function unpack(p: Packed): SaveData {
     party: p[7],
     cleared: Object.fromEntries(p[8].map(k => [k, true as const])),
     clearTimes: p[24] ?? {},
+    decorations: p[25] ?? [],
+    placedDecorations: p[26] ?? [],
     seenStory: ['intro-0'],
     dex: p[9],
     endlessBest: Number(p[10]) || 0,
