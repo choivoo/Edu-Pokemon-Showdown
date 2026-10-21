@@ -3,7 +3,7 @@ import { calcMaxHp, calcStat } from './damage'
 import { type Placement, SHAPES, type Stone, STONE_INFO } from './stones'
 import { type Bonus, type Mods, NO_MODS } from './bingo'
 
-export const MAX_LEVEL = 50
+export const MAX_LEVEL = 100
 /** 실시간 전투 호흡에 맞춘 체력 보정 */
 export const HP_SCALE = 2.2
 
