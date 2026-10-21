@@ -22,6 +22,8 @@ export interface OwnedMon {
   /** 기술 떠올리기 피로도와 마지막 시도 시각 */
   recalls?: number
   recallT?: number
+  /** Prevent automatic evolution; old saves can omit this property. */
+  everstone?: boolean
 }
 
 export interface Stats {
