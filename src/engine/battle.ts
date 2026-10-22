@@ -250,8 +250,16 @@ function joinLate(b: Battle, kind: 'call' | 'new' | 'bossHp') {
 }
 
 export function createBattle(allies: AllyInput[], waves: WaveEnemy[][], rng: Rng = Math.random, stage?: Pick<Stage,'area'|'index'>): Battle {
+  // Retail encounter data has sequential small segments. Our 2D 3-wave
+  // representation otherwise spawns four foes simultaneously against one
+  // tutorial starter, unfairly stacking special attacks. Keep all source
+  // encounters for full parties; cap only non-final 1-1 solo groups at two.
+  const soloIntro = stage?.area === 6 && stage.index === 0 && allies.length === 1
+  const adjustedWaves = soloIntro
+    ? waves.map((group, index) => index === waves.length - 1 ? group : group.slice(0, 2))
+    : waves
   const b: Battle = {
-    late: [], scatterCd: 0, surrounded: false, waveKills: 0, t: 0, units: [], waves, wave: 0, phase: 'fight', phaseT: 0, pending: [], queue: [], events: [],
+    late: [], scatterCd: 0, surrounded: false, waveKills: 0, t: 0, units: [], waves: adjustedWaves, wave: 0, phase: 'fight', phaseT: 0, pending: [], queue: [], events: [],
     auto: false, kills: 0, nextUid: 1, rng, manualPoint: null, manualDirection: null, balance: stage ? encounterBalance(stage, allies.length) : { hp: 1, attack: 1, defense: 1, allyHeal: 0.1, bossHp: 1 },
   }
   allies.forEach((a, i) => b.units.push(makeUnit(b, 'ally', a.speciesId, a.level, a.stats, i, false, { ownedId: a.ownedId, fx: a.fx, move: a.move, move2: a.move2, fx2: a.fx2 })))
