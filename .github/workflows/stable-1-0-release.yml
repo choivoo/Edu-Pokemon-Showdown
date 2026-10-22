@@ -1,0 +1,53 @@
+name: Stable Fan Edition 1.0.0 Release
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  stable:
+    if: github.repository == 'choivoo/Pokemon-Quest-fan.Edition'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Quality gate
+        run: |
+          npm ci
+          npm run typecheck
+          npm test
+          npm run build
+          test -s dist/index.html
+      - name: Check licensed music publishing status
+        run: |
+          ok=1
+          for p in 1 2 3 4; do
+            if [ ! -s "public/audio/quest-part-${p}.mp3" ]; then
+              echo "::warning::Licensed soundtrack part ${p} is not hosted yet; fallback soundtrack remains enabled."
+              ok=0
+            fi
+          done
+          echo "Shared audio assets present: ${ok}"
+      - name: Package standalone web release
+        run: |
+          zip -qr pokemon-quest-fan-edition-v1.0.0-2d-web.zip dist
+          unzip -t pokemon-quest-fan-edition-v1.0.0-2d-web.zip
+      - name: Release once
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view v1.0.0 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Existing 1.0.0 release remains unchanged."
+            exit 0
+          fi
+          gh release create v1.0.0 pokemon-quest-fan-edition-v1.0.0-2d-web.zip \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "Pokémon Quest Fan Edition 1.0.0 — Stable 2D (Unofficial)" \
+            --notes-file STABLE_1_0_RELEASE.md
