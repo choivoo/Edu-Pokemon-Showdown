@@ -34,7 +34,7 @@ export function encounterBalance(stage: Pick<Stage,'area'|'index'>, partySize = 
     // Former 0.31 × 0.65 health made the first enemies die to a single
     // unupgraded basic move. The new band is deliberately near neutral HP.
     const hp=[1.07,1.11,1.13,1.21,1.27][i]
-    const attack=[0.60,0.66,0.59,0.75,0.84][i]
+    const attack=[0.58,0.62,0.66,0.75,0.84][i]
     const defense=[1.02,1.05,1.04,1.10,1.13][i]
     return {
       // 1-1 to 1-4: regular foes withstand at least two ordinary hits;
