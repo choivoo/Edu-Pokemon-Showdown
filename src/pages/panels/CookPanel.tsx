@@ -12,7 +12,6 @@ import TypeBadge from '../../components/TypeBadge'
 import { sfx } from '../../lib/sound'
 import type { OwnedMon } from '../../lib/stats'
 import { tutorialPhase, TUTORIAL_STEW_INGREDIENTS } from '../../lib/tutorial'
-import { tutorialPhase } from '../../lib/tutorial'
 
 export default function CookPanel() {
   const { save, startCooking, collectCooked, openPanel } = useGame()
@@ -32,13 +31,11 @@ export default function CookPanel() {
   const recipe = sel.length ? (tutorial==='cooking' ? ALL_RECIPES[0] : recipeFor(sel)) : null
   const grade = sel.length ? gradeOf(sel) : null
   const owned = INGREDIENTS.filter(i => save.ingredients[i.id] >= pot.perSlot || used(i.id) > 0)
-  const tutorial = tutorialPhase(save)
-  const tutorialIngredients: IngredientId[] = ['mushroomRed','berryBlue','nutYellow','fossil','rootRed']
   const predictedOdds = sel.length === DISH_SIZE ? attractionOdds(sel).sort((a,b)=>b.probability-a.probability).slice(0,4) : []
   const sourceVerified = sel.length === DISH_SIZE && !!recipe && !!grade && !!verifiedRecipeOdds(recipe.no,grade)
 
   const autoFill = () => {
-    if(tutorial==='cooking' && tutorialIngredients.every(id => save.ingredients[id]>=pot.perSlot)) {setSel([...tutorialIngredients]);return}
+    if(tutorial==='cooking' && TUTORIAL_STEW_INGREDIENTS.every(id => save.ingredients[id]>=pot.perSlot)) {setSel([...TUTORIAL_STEW_INGREDIENTS]);return}
     const best = INGREDIENTS.filter(i => i.rarity === 0).map(i => ({ id: i.id, n: save.ingredients[i.id] })).sort((a, b) => b.n - a.n)[0]
     setSel(Array(Math.min(DISH_SIZE, Math.floor(best.n / pot.perSlot))).fill(best.id))
   }
