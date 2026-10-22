@@ -30,7 +30,7 @@ describe('gentle beginner difficulty without flatlining later progression', () =
       const b=createBattle([pikachu],buildWaves(stage,rng),rng,stage)
       let steps=0
       while(b.phase!=='won'&&b.phase!=='lost'&&steps++<5000)step(b,.1)
-      if(b.phase!=='won')console.log('PIKACHU-DIAG',JSON.stringify({seed,phase:b.phase,t:b.t,wave:b.wave,balance:b.balance,units:b.units.map(u=>({name:u.name,hp:Math.round(u.hp),maxHp:u.maxHp,side:u.side,alive:u.alive,spCd:u.spCd}))}))
+      if(b.phase!=='won')console.log('PIKACHU-DIAG',JSON.stringify({seed,phase:b.phase,t:b.t,wave:b.wave,balance:b.balance,units:b.units.map(u=>({name:u.name,hp:Math.round(u.hp),maxHp:u.maxHp,side:u.side,alive:u.alive,spCd:u.spCd,attack:u.atk,def:u.def,special:u.special.name})),events:{all:b.events.length,attacks:b.events.filter(e=>e.k==='attack'&&e.from===b.units[0].uid).length,hits:b.events.filter(e=>e.k==='hit'&&e.from===b.units[0].uid).length,damage:b.events.filter(e=>e.k==='hit'&&e.from===b.units[0].uid).map(e=>e.k==='hit'?e.amount:0).slice(-20)}}}))
       expect(b.phase).toBe('won')
     }
   })
