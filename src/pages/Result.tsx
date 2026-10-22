@@ -9,12 +9,14 @@ import { bgm, sfx } from '../lib/sound'
 import { useBattery } from '../ui/BatteryMeter'
 import { MOVE_STONE_INFO } from '../lib/moveStones'
 import { fieldScene } from '../lib/storyCampaign'
+import { ORIGINAL_FIRST } from '../lib/originalCampaign'
+import { TUTORIAL_ACTIVE, TUTORIAL_FINISHED, ONBOARDING_LINES } from '../lib/tutorial'
 import { Btn, Panel, Portrait } from '../ui/kit'
 import Icon, { Coins } from '../ui/Icon'
 
 export default function Result() {
   const { result: r, save, go, startStage, markStory } = useGame()
-  const [storyMode, setStoryMode] = useState<'field' | 'outro' | null>(() => r?.win && r.firstClear && r.stage.area >= 0 ? 'field' : r?.outroArea != null ? 'outro' : null)
+  const [storyMode, setStoryMode] = useState<'tutorial'|'field'|'outro'|null>(() => r?.win && r.firstClear && r.stage.area===ORIGINAL_FIRST && r.stage.index<=1 && save.seenStory.includes(TUTORIAL_ACTIVE) && !save.seenStory.includes(TUTORIAL_FINISHED) ? 'tutorial' : r?.win && r.firstClear && r.stage.area >= 0 ? 'field' : r?.outroArea != null ? 'outro' : null)
   const bat = useBattery()
 
   useEffect(() => {
@@ -28,11 +30,12 @@ export default function Result() {
   if (!r) return null
   const { stage } = r
   const field = stage.area >= 0 ? fieldScene(stage.area, stage.index) : undefined
+  const guidedResult = save.seenStory.includes(TUTORIAL_ACTIVE) && !save.seenStory.includes(TUTORIAL_FINISHED) && stage.area===ORIGINAL_FIRST && stage.index<=1
   const camp = () => go('camp')
 
   let next: (() => void) | null = null
   let nextStarts = true
-  if (r.win) {
+  if (r.win && !guidedResult) {
     if (stage.area >= 0) {
       const ni = stage.index + 1
       if (ni < stageCount(stage.area)) next = () => startStage(getStage(stage.area, ni))
@@ -69,10 +72,11 @@ export default function Result() {
         <div className="mt-4 flex justify-end gap-3">
           <Btn color="gray" onClick={camp}>캠프로</Btn>
           {bat.n <= 0 && <span className="mr-auto flex items-center gap-1 self-center text-base text-[#d23c36]"><Icon n="batteryEmpty" s={22} />배터리가 없어요. 충전되길 기다리거나 상점에서 충전하세요.</span>}
-          <Btn color="blue" disabled={bat.n <= 0} onClick={() => startStage(stage)}>{r.win ? '다시' : '재도전'}</Btn>
+          {(!guidedResult || !r.win) && <Btn color="blue" disabled={bat.n <= 0} onClick={() => startStage(stage)}>{r.win ? '다시' : '재도전'}</Btn>}
           {next && <Btn color="green" onClick={next} disabled={nextStarts && bat.n <= 0} className="flex items-center gap-2">다음<Icon n="next" s={22} /></Btn>}
         </div>
       </Panel>
+      {storyMode === 'tutorial' && <Dialog key={'tutorial-finish-'+stage.index} lines={[...(stage.index===0?ONBOARDING_LINES.firstClear:ONBOARDING_LINES.secondClear)]} name={save.name} onDone={()=>{markStory('tutorial:expedition-'+stage.index+'-dialog');setStoryMode(null)}} />}
       {storyMode === 'field' && field && <Dialog key={field.id} lines={field.lines} name={save.name} onDone={() => { markStory(field.id); setStoryMode(r.outroArea != null ? 'outro' : null) }} />}
       {storyMode === 'outro' && r.outroArea != null && <Dialog key={'outro-' + r.outroArea} lines={AREAS[r.outroArea].outro} name={save.name} onDone={() => { markStory('outro-' + r.outroArea); setStoryMode(null) }} />}
     </div>

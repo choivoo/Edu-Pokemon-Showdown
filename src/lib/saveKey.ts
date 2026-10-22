@@ -50,7 +50,7 @@ async function pipe(bytes: Uint8Array, stream: CompressionStream | Decompression
 
 // ---------- 저장 데이터 압축 표현 (배열 기반으로 크기를 줄임) ----------
 type PackedMon = [string, number, number, number, Array<[string, number, number, number]>, Array<[string, number, number, number]>?, string[]?, string?, number?, number?, number?, string?, number?, number?, number?, string[]?, number[]?, number[]?]
-type Packed = [number, number, string, number, [string, number][], Array<[string, string, number, string, number?, Record<string,number>?]>, PackedMon[], string[], string[], number[], number, number, number, number, number, number?, number?, Array<[string, string]>?, Record<string, number>?, string[]?, number?, string[]?, string?, [number, number, number, number, number?, number[]?]?, number?, number?, string[]?]
+type Packed = [number, number, string, number, [string, number][], Array<[string, string, number, string, number?, Record<string,number>?]>, PackedMon[], string[], string[], number[], number, number, number, number, number, number?, number?, Array<[string, string]>?, Record<string, number>?, string[]?, number?, string[]?, string?, [number, number, number, number, number?, number[]?]?, number?, number?, string[]?, string[]?]
 
 export function pack(s: SaveData): Packed {
   return [
@@ -62,7 +62,7 @@ export function pack(s: SaveData): Packed {
     s.battery.n, s.battery.at, s.moveStones.map(m => [m.id, m.kind]),
     s.counters, s.claimed, s.statue, s.themes, s.theme,
     s.pot ? [s.pot.species, s.pot.remaining, s.pot.total, s.pot.recipe, s.pot.tier ?? 0, s.pot.visitors ?? []] : undefined,
-    s.pmTickets, s.ticketClaimedAt, s.decorations,
+    s.pmTickets, s.ticketClaimedAt, s.decorations, s.seenStory,
   ] as unknown as Packed
 }
 
@@ -88,7 +88,7 @@ export function unpack(p: Packed): SaveData {
     })),
     party: p[7],
     cleared: Object.fromEntries(p[8].map(k => [k, true as const])),
-    seenStory: ['intro-0'],
+    seenStory: Array.isArray(p[27]) ? p[27] : ['intro-0'],
     dex: p[9],
     endlessBest: Number(p[10]) || 0,
     uid: Number(p[11]) || 1,

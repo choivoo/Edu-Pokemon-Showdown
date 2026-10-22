@@ -11,6 +11,7 @@ import Icon, { RarityMark } from '../../ui/Icon'
 import TypeBadge from '../../components/TypeBadge'
 import { sfx } from '../../lib/sound'
 import type { OwnedMon } from '../../lib/stats'
+import { tutorialPhase } from '../../lib/tutorial'
 
 export default function CookPanel() {
   const { save, startCooking, collectCooked, openPanel } = useGame()
@@ -29,10 +30,13 @@ export default function CookPanel() {
   const recipe = sel.length ? recipeFor(sel) : null
   const grade = sel.length ? gradeOf(sel) : null
   const owned = INGREDIENTS.filter(i => save.ingredients[i.id] >= pot.perSlot || used(i.id) > 0)
+  const tutorial = tutorialPhase(save)
+  const tutorialIngredients: IngredientId[] = ['mushroomRed','berryBlue','nutYellow','fossil','rootRed']
   const predictedOdds = sel.length === DISH_SIZE ? attractionOdds(sel).sort((a,b)=>b.probability-a.probability).slice(0,4) : []
   const sourceVerified = sel.length === DISH_SIZE && !!recipe && !!grade && !!verifiedRecipeOdds(recipe.no,grade)
 
   const autoFill = () => {
+    if(tutorial==='cooking' && tutorialIngredients.every(id => save.ingredients[id]>=pot.perSlot)) {setSel([...tutorialIngredients]);return}
     const best = INGREDIENTS.filter(i => i.rarity === 0).map(i => ({ id: i.id, n: save.ingredients[i.id] })).sort((a, b) => b.n - a.n)[0]
     setSel(Array(Math.min(DISH_SIZE, Math.floor(best.n / pot.perSlot))).fill(best.id))
   }
@@ -53,6 +57,10 @@ export default function CookPanel() {
 
   return (
     <Panel title="요리 냄비" onClose={() => openPanel(null)} w={900}>
+      {(tutorial==='cooking'||tutorial==='friends') && <div className="mb-2 flex items-center justify-between gap-2 rounded border-4 border-[#c98a00] bg-[#fff0b4] px-3 py-1 text-sm font-bold text-[#96601b]">
+        <span>모비: {tutorial==='cooking'?'재료 5개를 넣어 요리하세요! 첫 요리에서는 구구와 꼬렛이 모두 찾아옵니다.':'요리가 완성됐어요! 냄비를 열어 구구와 꼬렛을 맞이하세요.'}</span>
+        {tutorial==='cooking' && <Btn color="yellow" onClick={()=>setSel([...tutorialIngredients])} className="shrink-0 px-2 text-xs">튜토리얼 재료 넣기</Btn>}
+      </div>}
       <div className="mb-2 flex gap-1.5">
         {COOKING_TIERS.map((p, index) => {
           const unlocked = p.unlockArea < 0 || areaCleared(save, p.unlockArea)
@@ -135,7 +143,7 @@ export default function CookPanel() {
           <p className="text-3xl font-bold text-[#b77512]">냄비에서 맛있는 요리가 끓고 있어요!</p>
           <p className="text-xl">{COOKING_TIERS[save.pot.tier ?? 0].name} · {ALL_RECIPES.find(r => r.no === save.pot!.recipe)?.name ?? '네모루루수프'}</p>
           <div className="w-[420px] max-w-full border-4 border-[#9b7832] bg-[#e7d0a3] p-2">
-            <div className="h-7 bg-[#e8b34d]" style={{ width: (100 * (save.pot.total - save.pot.remaining) / save.pot.total) + '%' }} />
+            <div className="h-7 bg-[#e8b34d]" style={{ width: (100 * (save.pot.total - save.pot.remaining) / Math.max(1,save.pot.total)) + '%' }} />
           </div>
           {save.pot.remaining > 0 ? (
             <>
@@ -165,7 +173,7 @@ function Reveal({ mon, isNew, onClose }: { mon: OwnedMon; isNew: boolean; onClos
         <img src={frontSprite(sp.id)} alt="" onError={e => fallbackSpriteOnError(e.currentTarget, sp.id)} className="sprite idle h-44 w-44 object-contain" />
         <p className="flex items-center gap-2 text-3xl">{sp.name} <RarityMark rarity={sp.rarity} s={20} /></p>
         <div className="flex gap-2">{sp.types.map(t => <TypeBadge key={t} type={t} />)}</div>
-        <p className="text-base">Lv{mon.level}로 합류! 팀 편성에서 파티에 넣어 보세요.</p>
+        <p className="text-base">Lv{mon.level}로 합류! {([16,19] as number[]).includes(mon.species)?'모비가 새 친구를 파티에 넣어 줬어요.':'팀 편성에서 파티에 넣어 보세요.'}</p>
         <Btn color="green" onClick={onClose} className="mt-1 w-full text-xl">확인</Btn>
       </div>
     </div>

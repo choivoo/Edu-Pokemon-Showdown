@@ -5,6 +5,7 @@ import { consumeEvents, drawBattle, H, newVisual, preload, SLOT_COLORS, W } from
 import { AREAS, AREA_BONUS_MUL, buildWaves, hasAreaBonus, type Theme } from '../lib/stages'
 import { HAPPENSTANCE_AREA } from '../lib/originalCampaign'
 import { cueForBattle } from '../lib/officialCues'
+import { tutorialWaves } from '../lib/tutorial'
 import { getSpecies } from '../lib/roster'
 import { moveFxOf, partyMons, statsOf } from '../lib/party'
 import { bgm, sfx } from '../lib/sound'
@@ -107,7 +108,7 @@ export default function Battle() {
       if (hasAreaBonus(stage.area, getSpecies(o.species).types)) stats = { ...stats, maxHp: Math.round(stats.maxHp * AREA_BONUS_MUL), atk: Math.round(stats.atk * AREA_BONUS_MUL) }
       return { ownedId: o.id, speciesId: o.species, level: o.level, stats, fx: moveFxOf(save, o, 0), fx2: moveFxOf(save,o,1), move: o.move, move2: o.move2 }
     })
-    const waves = buildWaves(stage)
+    const waves = tutorialWaves(save, stage) ?? buildWaves(stage)
     preload([...allies.map(a => a.speciesId), ...waves.flat().map(w => w.species)])
     const b = createBattle(allies, waves, Math.random, stage)
     battle.current = b

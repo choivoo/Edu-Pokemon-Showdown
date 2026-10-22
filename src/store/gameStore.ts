@@ -19,6 +19,8 @@ import { recall, recallPool, trainExp, TRAIN_MAX, type RecallResult } from '../l
 import { autoEvolve, canEvolve, targetOf } from '../lib/evolution'
 import { MEMBER_REWARD_TICKETS, memberRewardReady, buyableDecoration, ingredientBonus, maxBatteryBonus, moveSuccessBonus, recycledIngredientBonus, trainingExpBonus, multipleCookingBonus } from '../lib/decorations'
 import { QUESTS, isClaimed, isDone, STATUE_MAX, statueCap, statueCost, statueMul } from '../lib/quests'
+import { TUTORIAL_ACTIVE, TUTORIAL_FINISHED, tutorialPhase, canTutorialExplore } from '../lib/tutorial'
+import { getStage } from '../lib/stages'
 
 export const BATTERY_ONE_COST = 150
 export const BATTERY_FULL_COST = 600
@@ -170,9 +172,12 @@ export const useGame = create<GameState>((set, get) => {
       // Original first expedition starts with ONE chosen partner.
       // Other companions arrive through base-camp cooking.
       const first = newMon(base, starter, 5)
-      const save: SaveData = { ...base, ...first.patch, name, started: true, party: [first.mon.id], muted: get().save.muted }
+      const nextBattery = consume(base.battery, Date.now(), BATTERY_MAX) ?? base.battery
+      const save: SaveData = { ...base, ...first.patch, name, started: true,
+        party: [first.mon.id], battery: nextBattery, seenStory: [TUTORIAL_ACTIVE],
+        muted: get().save.muted }
       writeSave(save)
-      set({ save, panel: null, screen: 'camp' })
+      set({ save, panel: null, stage: getStage(ORIGINAL_FIRST,0), result: null, screen: 'battle' })
     },
     hardReset: () => {
       resetSave()
@@ -199,14 +204,17 @@ export const useGame = create<GameState>((set, get) => {
         if ((s.ingredients[id] ?? 0) < n) return false
       const ingredients = { ...s.ingredients }
       for (const [id, n] of Object.entries(need) as [IngredientId, number][]) ingredients[id] -= n
-      const visitor = cook(sel)
+      const tutorialCook = tutorialPhase(s)==='cooking'
+      const visitor = tutorialCook ? getSpecies(16) : cook(sel)
       // Original cooking: 4.3% chance to attract two Pokémon, 0.5% for three.
       const roll = Math.random()
       const boost = multipleCookingBonus(s.decorations)
-      const extras = roll < 0.005 * boost ? [cook(sel).id, cook(sel).id] : roll < 0.048 * boost ? [cook(sel).id] : []
-      const total = cookingExpeditions(sel, tier)
+      const extras = tutorialCook ? [19] : roll < 0.005 * boost ? [cook(sel).id, cook(sel).id] : roll < 0.048 * boost ? [cook(sel).id] : []
+      // The one-time onboarding pot is immediately ready, so new players never
+      // get trapped waiting for two more expeditions before receiving a party.
+      const total = tutorialCook ? 1 : cookingExpeditions(sel, tier)
       const recipe = recipeFor(sel).no
-      commit({ ingredients, pot: { species: visitor.id, visitors: extras, remaining: total, total, recipe, ...(tier ? { tier } : {}) } })
+      commit({ ingredients, pot: { species: visitor.id, visitors: extras, remaining: tutorialCook ? 0 : total, total, recipe, ...(tier ? { tier } : {}) } })
       return true
     },
 
@@ -219,7 +227,14 @@ export const useGame = create<GameState>((set, get) => {
       const { mon, patch } = newMon(s, s.pot.species, Math.max(low, Math.min(high, newcomerLevel(s, low))), potTier)
       const waiting = s.pot.visitors ?? []
       const pot = waiting.length ? { ...s.pot, species: waiting[0], visitors: waiting.slice(1), remaining: 0 } : null
-      commit({ ...patch, pot, counters: bump(s.counters, 'cooked') })
+      const tutorialGuests = s.seenStory.includes(TUTORIAL_ACTIVE) && !s.seenStory.includes(TUTORIAL_FINISHED)
+      const guestParty = tutorialGuests && s.party.length < 3 ? [...s.party, mon.id] : s.party
+      const ready = tutorialGuests && !pot &&
+        [...s.owned, mon].some(o=>o.species===16) &&
+        [...s.owned, mon].some(o=>o.species===19)
+      commit({ ...patch, pot, party: guestParty,
+        seenStory: ready ? [...s.seenStory, TUTORIAL_FINISHED] : s.seenStory,
+        counters: bump(s.counters, 'cooked') })
       return mon
     },
 
@@ -299,6 +314,7 @@ export const useGame = create<GameState>((set, get) => {
     startStage: stage => {
       const s = get().save
       if (stage.area >= 0 && (!areaUnlocked(s, stage.area) || (stage.area !== HAPPENSTANCE_AREA && stage.index > 0 && !isCleared(s, stage.area, stage.index - 1)))) return false
+      if (!canTutorialExplore(s, stage)) return false
       const next = consume(s.battery, Date.now(), BATTERY_MAX + maxBatteryBonus(s.decorations))
       if (!next) return false
       commit({ battery: next })
@@ -435,6 +451,13 @@ export const useGame = create<GameState>((set, get) => {
       const clearsSoFar = s.counters.clears ?? 0
       const expeditionBonus = clearsSoFar > 0 && clearsSoFar % 10 === 0
       const rewards = rollRewards(stage, Math.random, expeditionBonus)
+      if (tutorialPhase(s)==='first-expedition' && stage.area===ORIGINAL_FIRST && stage.index===0) {
+        // Guaranteed central-slot-compatible one-cell stone after 1-1.
+        const firstMon = s.owned.find(o=>s.party.includes(o.id))
+        const socket = firstMon?.sockets?.[4] ?? 'any'
+        rewards.stone = {kind: socket==='hp' ? 'hp' : 'atk', shape:'dot',star:1,value:100,perks:{}}
+        rewards.ingredients = { mushroomRed:3, berryBlue:3, nutYellow:3, fossil:3, rootRed:3 }
+      }
       const firstClear = stage.area >= 0 ? !s.cleared[stage.id] : stage.endlessFloor! > s.endlessBest
       // 파티 전원에게 경험치
       const levelUps: BattleResult['levelUps'] = []
