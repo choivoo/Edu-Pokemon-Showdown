@@ -11,6 +11,7 @@ import Icon, { RarityMark } from '../../ui/Icon'
 import TypeBadge from '../../components/TypeBadge'
 import { sfx } from '../../lib/sound'
 import type { OwnedMon } from '../../lib/stats'
+import { tutorialPhase, TUTORIAL_STEW_INGREDIENTS } from '../../lib/tutorial'
 import { tutorialPhase } from '../../lib/tutorial'
 
 export default function CookPanel() {
@@ -18,6 +19,7 @@ export default function CookPanel() {
   const [sel, setSel] = useState<IngredientId[]>([])
   const [tier, setTier] = useState<CookingTier>(0)
   const pot = COOKING_TIERS[tier]
+  const tutorial = tutorialPhase(save)
   const [got, setGot] = useState<{ mon: OwnedMon; isNew: boolean } | null>(null)
   const [book, setBook] = useState(false)
 
@@ -27,7 +29,7 @@ export default function CookPanel() {
     sfx.select()
     setSel([...sel, id])
   }
-  const recipe = sel.length ? recipeFor(sel) : null
+  const recipe = sel.length ? (tutorial==='cooking' ? ALL_RECIPES[0] : recipeFor(sel)) : null
   const grade = sel.length ? gradeOf(sel) : null
   const owned = INGREDIENTS.filter(i => save.ingredients[i.id] >= pot.perSlot || used(i.id) > 0)
   const tutorial = tutorialPhase(save)
@@ -61,6 +63,22 @@ export default function CookPanel() {
         <span>모비: {tutorial==='cooking'?'재료 5개를 넣어 요리하세요! 첫 요리에서는 구구와 꼬렛이 모두 찾아옵니다.':'요리가 완성됐어요! 냄비를 열어 구구와 꼬렛을 맞이하세요.'}</span>
         {tutorial==='cooking' && <Btn color="yellow" onClick={()=>setSel([...tutorialIngredients])} className="shrink-0 px-2 text-xs">튜토리얼 재료 넣기</Btn>}
       </div>}
+      {tutorial==='cooking' && (
+        <div className="mb-2 flex items-center justify-between gap-3 border-4 border-[#d8a642] bg-[#fff0b9] px-3 py-2 text-[#6a4825] shadow-[3px_4px_0_#8d6a3b]">
+          <div className="min-w-0">
+            <b className="text-base">모비 · 첫 요리 수업 (1/3)</b>
+            <p className="text-xs">재료 5개를 넣고 「요리!」를 누르면 네모루루수프가 완성돼요. 이번엔 구구와 꼬렛이 찾아옵니다!</p>
+          </div>
+          <Btn color="green" disabled={!!save.pot} onClick={()=>{
+            if (TUTORIAL_STEW_INGREDIENTS.every(id=>save.ingredients[id]>=1)) setSel([...TUTORIAL_STEW_INGREDIENTS])
+          }} className="shrink-0 text-sm">모비 추천 재료 담기</Btn>
+        </div>
+      )}
+      {tutorial==='friends' && (
+        <div className="mb-2 border-4 border-[#ddaa40] bg-[#fff2c4] p-2 text-center text-sm font-bold text-[#775326]">
+          모비 · 새 친구를 맞이해요 (2/3) · 구구를 먼저, 꼬렛을 다음으로 받아 주세요!
+        </div>
+      )}
       <div className="mb-2 flex gap-1.5">
         {COOKING_TIERS.map((p, index) => {
           const unlocked = p.unlockArea < 0 || areaCleared(save, p.unlockArea)
