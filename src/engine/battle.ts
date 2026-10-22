@@ -271,6 +271,9 @@ export function createBattle(allies: AllyInput[], waves: WaveEnemy[][], rng: Rng
     const starter = b.units.find(u => u.side === 'ally')!
     starter.maxHp = Math.ceil(starter.maxHp * 1.8)
     starter.hp = starter.maxHp
+    // Mobee's first-expedition safety support is restricted to 1-1 solo.
+    // It offsets multiple ranged enemies during auto-combat, not enemy HP.
+    starter.regen = Math.max(starter.regen, 0.025)
   }
   spawnWave(b)
   return b
