@@ -137,8 +137,8 @@ export const RANGED_TYPES: PokemonType[] = ['fire', 'water', 'electric', 'psychi
 export const STAB = 1.3
 export const AOE_RADIUS = 150
 
-const BOSS = { hp: 3, atk: 1.12, def: 1.05 }
-const ELITE = { hp: 1.7, atk: 1.1, def: 1.05 }
+const BOSS = { hp: 3.15, atk: 1.05, def: 1.20 }
+const ELITE = { hp: 1.95, atk: 1.08, def: 1.14 }
 /** 아군은 스톤으로 강해지므로 일반 적의 공격은 살짝 낮춘다 */
 const ENEMY_ATK = 0.96
 
@@ -200,7 +200,7 @@ function makeUnit(b: Battle, side: Side, speciesId: number, level: number, stats
     critTakenResist: stats.critTakenResist ?? 0,
     spirit: { mul: 0, until: 0 },
     buff: { atk: 0, def: 0, speed: 0, until: 0 }, debuff: { atk: 0, def: 0, speed: 0, until: 0 }, status: null, scatterT: 0, elite,
-    spCd: side === 'ally' ? 1.2 : 6 + b.rng() * 3,
+    spCd: side === 'ally' ? 1.2 : boss ? 2.8 + b.rng() * 1.0 : 3.2 + b.rng() * 1.8,
     alive: true, deadT: 0, revives: 0, lunge: 0, hurt: 0,
   }
 }
@@ -575,7 +575,8 @@ export function step(b: Battle, dt: number): void {
       u.atkCd -= u.status?.kind === 'paralyze' ? dt * 0.5 : dt
       u.spCd = Math.max(0, u.spCd - dt)
       u.spCd2 = Math.max(0, u.spCd2 - dt)
-      const automated = u.boss || (u.side === 'ally' && b.auto) || u.side === 'enemy' && u.special.role
+      // Every hostile Pokémon may use its offensive move, not just bosses or support users.
+      const automated = u.side === 'enemy' || (u.side === 'ally' && b.auto)
       if (automated && u.scatterT <= 0) {
         const primary = u.spCd <= 0
         const secondary = !!u.secondary && u.spCd2 <= 0 && u.side === 'ally'
