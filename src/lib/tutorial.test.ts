@@ -3,7 +3,7 @@ import { useGame } from '../store/gameStore'
 import { defaultSave } from './storage'
 import { getStage } from './stages'
 import { ORIGINAL_FIRST } from './originalCampaign'
-import { canTutorialExplore, isTutorialStage, tutorialPhase, tutorialWaves, TUTORIAL_ACTIVE, TUTORIAL_FINISHED, TUTORIAL_ACKNOWLEDGED } from './tutorial'
+import { canTutorialExplore, isTutorialStage, tutorialPhase, tutorialWaves, TUTORIAL_ACTIVE, TUTORIAL_FINISHED, TUTORIAL_ACKNOWLEDGED, TUTORIAL_BATTLE_HINTS, TUTORIAL_SEQUENCE, TUTORIAL_STEW_INGREDIENTS, ONBOARDING_LINES, tutorialHint } from './tutorial'
 import { pack, unpack } from './saveKey'
 afterEach(()=>useGame.getState().hardReset())
 
@@ -90,5 +90,53 @@ describe('Official Quest introductory tutorial — original sequence',()=>{
     legacy.pop()
     expect(unpack(legacy).seenStory).toEqual(['intro-0'])
     expect(tutorialPhase(unpack(legacy))).toBeNull()
+  })
+})
+
+describe('Expanded MoBee prologue and user journey regressions',()=>{
+  it('keeps exactly the documented original sequence, from ship/MoBee to second expedition and cooked guests',()=>{
+    expect(TUTORIAL_SEQUENCE).toHaveLength(7)
+    expect(TUTORIAL_SEQUENCE[0]).toContain('배')
+    expect(TUTORIAL_SEQUENCE[2]).toContain('1-1')
+    expect(TUTORIAL_SEQUENCE[3]).toContain('P스톤')
+    expect(TUTORIAL_SEQUENCE[4]).toContain('1-2')
+    expect(TUTORIAL_SEQUENCE[5]).toContain('요리')
+    expect(TUTORIAL_SEQUENCE[6]).toContain('구구')
+    expect(ONBOARDING_LINES.arrival.length).toBeGreaterThanOrEqual(4)
+    expect(ONBOARDING_LINES.reboot.length).toBeGreaterThanOrEqual(2)
+    expect(ONBOARDING_LINES.starters.length).toBeGreaterThanOrEqual(2)
+    expect(ONBOARDING_LINES.finished.length).toBeGreaterThanOrEqual(2)
+  })
+  it('offers three battle lessons: 2D free move, twin move buttons and scatter',()=>{
+    expect(TUTORIAL_BATTLE_HINTS).toHaveLength(3)
+    expect(TUTORIAL_BATTLE_HINTS[0].description).toMatch(/WASD/)
+    expect(TUTORIAL_BATTLE_HINTS[1].description).toMatch(/두|기술/)
+    expect(TUTORIAL_BATTLE_HINTS[2].description).toContain('흩어지기')
+  })
+  it('starter carries two moves and the first expedition can be safely retried',()=>{
+    useGame.getState().newGame('첫 시작',4)
+    expect(useGame.getState().save.owned[0].move).toBeTruthy()
+    expect(useGame.getState().save.owned[0].move2).toBeTruthy()
+    useGame.getState().finishBattle(false,first())
+    expect(tutorialPhase(useGame.getState().save)).toBe('first-expedition')
+    expect(useGame.getState().startStage(first())).toBe(true)
+  })
+  it('the recommended five starter ingredients are already affordable and cook a guaranteed scripted stew',()=>{
+    const game=useGame.getState()
+    game.newGame('요리 수업',1)
+    game.finishBattle(true,first())
+    let s=useGame.getState().save
+    expect(useGame.getState().autoPlaceStone(s.party[0],s.stones[0].id)).toBe(true)
+    expect(useGame.getState().startStage(second())).toBe(true)
+    useGame.getState().finishBattle(true,second())
+    s=useGame.getState().save
+    expect(tutorialHint(tutorialPhase(s))).toContain('냄비')
+    expect(TUTORIAL_STEW_INGREDIENTS).toHaveLength(5)
+    for(const ingredient of TUTORIAL_STEW_INGREDIENTS)expect(s.ingredients[ingredient]).toBeGreaterThanOrEqual(1)
+    expect(useGame.getState().startCooking([...TUTORIAL_STEW_INGREDIENTS])).toBe(true)
+    expect(useGame.getState().save.pot).toMatchObject({recipe:1,species:16,visitors:[19],remaining:0})
+    expect(useGame.getState().collectCooked()?.species).toBe(16)
+    expect(useGame.getState().collectCooked()?.species).toBe(19)
+    expect(tutorialHint(tutorialPhase(useGame.getState().save))).toContain('세 동료')
   })
 })
