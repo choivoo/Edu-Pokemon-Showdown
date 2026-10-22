@@ -1,6 +1,7 @@
 import { audio, masterOut } from './audio'
 import { DRUM_INSTS, NOTE_INSTS } from './instruments'
 import { JINGLES, SONGS, STEPS, type JingleName, type Song, type SongName } from './songs'
+import { cuePath, DEFAULT_SCENE_CUE, type OfficialCue } from './officialCues'
 
 const indexCache = new WeakMap<Song, Array<Array<{ trackIdx: number; kind: 'note' | 'drum'; midi?: number; dur: number; vel: number }>>>()
 
@@ -102,6 +103,18 @@ export const LOCAL_CUES: Record<SongName,{start:number;end:number}>={
 let localAudio:HTMLAudioElement|null=null
 let localBlobUrl:string|null=null
 let activeLocalCue:{start:number;end:number}|null=null
+let publicAudio: HTMLAudioElement | null=null
+let publicCue: OfficialCue | null=null
+let currentCue: OfficialCue | null=null
+const missingPublicCues=new Set<OfficialCue>()
+const tearDownPublic=()=>{
+  if(!publicAudio)return
+  publicAudio.pause()
+  publicAudio.removeAttribute('src')
+  publicAudio.load()
+  publicAudio=null
+  publicCue=null
+}
 
 
 function bgmBus(ctx: AudioContext): AudioNode | null {
@@ -114,12 +127,17 @@ function bgmBus(ctx: AudioContext): AudioNode | null {
 export const bgm = {
   get playing(): SongName | '' { return currentName },
   get localMusicActive():boolean {return !!localAudio},
+  get publicMusicActive():boolean {return !!publicAudio},
+  get sceneCue():OfficialCue|null {return currentCue},
+  unlock(){audio();if(publicAudio?.paused)void publicAudio.play().catch(()=>{});if(localAudio?.paused)void localAudio.play().catch(()=>{})},
+  playScene(cue:OfficialCue, fallback:SongName='camp'){this.play(fallback,cue)},
   /** Playback is a device-local opt-in; no user MP3 is included in the public app. */
   useLocalFile(file:File):boolean {
     if(!file || !(file.type.startsWith('audio/') || /\\.(mp3|m4a|ogg|wav)$/i.test(file.name)))return false
     const ctx=audio(),bus=ctx&&bgmBus(ctx)
     if(!ctx||!bus)return false
     const selected=currentName || 'title'
+    tearDownPublic()
     localAudio?.pause()
     if(localAudio){localAudio.removeAttribute('src');localAudio.load()}
     if(localBlobUrl)URL.revokeObjectURL(localBlobUrl)
@@ -149,8 +167,33 @@ export const bgm = {
     this.play(previous)
   },
   /** 배경음악을 바꾼다. 이미 같은 곡이면 그대로 둔다. */
-  play(name: SongName) {
-    if (currentName === name && (current || localAudio))return
+  play(name: SongName, explicitCue?: OfficialCue) {
+    const cue=explicitCue??DEFAULT_SCENE_CUE[name]
+    if(currentName===name && currentCue===cue && (current||localAudio||publicAudio))return
+    currentCue=cue
+    if(!localAudio && !missingPublicCues.has(cue)){
+      if(publicAudio && publicCue===cue) {currentName=name;return}
+      const ctx=audio(),bus=ctx&&bgmBus(ctx)
+      if(ctx&&bus){
+        tearDownPublic()
+        const player=new Audio(cuePath(cue))
+        player.preload='auto';player.loop=true
+        ctx.createMediaElementSource(player).connect(bus)
+        player.addEventListener('error',()=>{
+          if(publicAudio!==player)return
+          missingPublicCues.add(cue)
+          tearDownPublic()
+          currentName=''
+          this.play(name, cue)
+        },{once:true})
+        publicAudio=player;publicCue=cue
+        current?.fadeOut(.22);current=null
+        currentName=name
+        void player.play().catch(()=>{})
+        return
+      }
+    }
+    tearDownPublic()
     if(localAudio){
       const cue=LOCAL_CUES[name]
       activeLocalCue=cue
@@ -174,6 +217,7 @@ export const bgm = {
     currentName = name
   },
   stop() {
+    tearDownPublic()
     localAudio?.pause()
     current?.fadeOut(0.3)
     current = null
