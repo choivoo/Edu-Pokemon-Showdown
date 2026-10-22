@@ -157,7 +157,6 @@ function typeMark(ctx:CanvasRenderingContext2D,x:number,y:number,size:number,typ
 }
 
 function typeOrbits(ctx:CanvasRenderingContext2D,v:SkillVfx,cx:number,cy:number,age:number,strength:number) {
-  const color=TYPE_COLOR[v.type]
   const count = Math.min(12, 6+Math.floor(v.scale*3))
   for(let i=0;i<count;i++){
     const angle=(i/count)*TAU+(i%2?-1:1)*age*2.5
