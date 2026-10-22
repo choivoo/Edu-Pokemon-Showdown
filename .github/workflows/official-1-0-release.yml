@@ -39,7 +39,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           if gh release view v1.0.0-official --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            echo "Preserving existing 1.0.0-official release"
+            echo "Refreshing existing 1.0 Official web ZIP; preserving independently uploaded audio asset"
+            gh release upload v1.0.0-official pokemon-quest-fan-edition-1.0-official-web.zip --clobber --repo "$GITHUB_REPOSITORY"
+            if gh release view v1.0.0-official --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' | grep -qx 'quest-licensed-soundtrack.mp3'; then
+              echo "Licensed soundtrack asset ready for automatic 27-cue playback"
+            else
+              echo "::warning::Licensed soundtrack MP3 is not yet attached. The website uses its original synth fallback."
+            fi
             exit 0
           fi
           gh release create v1.0.0-official pokemon-quest-fan-edition-1.0-official-web.zip \
