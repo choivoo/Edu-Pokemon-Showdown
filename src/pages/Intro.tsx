@@ -40,7 +40,7 @@ export default function Intro() {
         </Panel>
       )}
 
-      {step === 'story' && <Dialog lines={PROLOGUE} name={name.trim()} onDone={() => setStep('pick')} />}
+      {step === 'story' && <Dialog lines={PROLOGUE} name={name.trim()} onDone={() => { bgm.playScene('tutorial','story');setStep('pick') }} />}
 
       {step === 'pick' && (
         <Panel title="첫 번째 동료를 골라 주세요" w={780}>
