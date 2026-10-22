@@ -5,7 +5,7 @@ import { consumeEvents, drawBattle, H, newVisual, preload, SLOT_COLORS, W } from
 import { AREAS, AREA_BONUS_MUL, buildWaves, hasAreaBonus, type Theme } from '../lib/stages'
 import { HAPPENSTANCE_AREA } from '../lib/originalCampaign'
 import { cueForBattle } from '../lib/officialCues'
-import { tutorialWaves } from '../lib/tutorial'
+import { tutorialWaves, isTutorialStage, TUTORIAL_BATTLE_HINTS } from '../lib/tutorial'
 import { getSpecies } from '../lib/roster'
 import { moveFxOf, partyMons, statsOf } from '../lib/party'
 import { bgm, sfx } from '../lib/sound'
@@ -54,12 +54,17 @@ export default function Battle() {
   const [uiPaused, setUiPaused] = useState(false)
   const [auto, setAuto] = useState(false)
   const [quit, setQuit] = useState(false)
+  const onboardingBattle = !!stage && isTutorialStage(save,stage) && stage.index===0
+  const secondLesson = !!stage && isTutorialStage(save,stage) && stage.index===1
+  const [lessonStep,setLessonStep] = useState(0)
+  const guideLocked = useRef(false)
   // Keyboard direction is held, not a fixed 165px jump per key repeat.
   // Track independent keys so WASD diagonals work at the same running speed.
   const held = useRef(new Set<string>())
   const setDirection = (x:number,y:number) => {
     if (!battle.current || (paused.current && (x!==0 || y!==0))) return
     steerParty(battle.current,x,y)
+    if(x!==0||y!==0)setLessonStep(v=>v===1?2:v)
   }
   useEffect(() => {
     const directions:Record<string,[number,number]>={
@@ -73,6 +78,7 @@ export default function Battle() {
         if(vector){dx+=vector[0];dy+=vector[1]}
       }
       steerParty(battle.current!,dx,dy)
+      if(dx||dy)setLessonStep(v=>v===1?2:v)
     }
     const keydown=(e:KeyboardEvent)=>{
       if(e.target instanceof HTMLInputElement||e.target instanceof HTMLTextAreaElement)return
@@ -108,6 +114,7 @@ export default function Battle() {
       if (hasAreaBonus(stage.area, getSpecies(o.species).types)) stats = { ...stats, maxHp: Math.round(stats.maxHp * AREA_BONUS_MUL), atk: Math.round(stats.atk * AREA_BONUS_MUL) }
       return { ownedId: o.id, speciesId: o.species, level: o.level, stats, fx: moveFxOf(save, o, 0), fx2: moveFxOf(save,o,1), move: o.move, move2: o.move2 }
     })
+    guideLocked.current = onboardingBattle
     const waves = tutorialWaves(save, stage) ?? buildWaves(stage)
     preload([...allies.map(a => a.speciesId), ...waves.flat().map(w => w.species)])
     const b = createBattle(allies, waves, Math.random, stage)
@@ -135,7 +142,7 @@ export default function Battle() {
     const loop = (nowMs: number) => {
       const real = Math.min(0.1, (nowMs - last) / 1000)
       last = nowMs
-      const dt = paused.current ? 0 : real * speed.current
+      const dt = paused.current || guideLocked.current ? 0 : real * speed.current
       acc += dt
       while (acc >= 0.05) {
         step(b, 0.05)
@@ -175,7 +182,40 @@ export default function Battle() {
           const sx=(e.clientX-box.left)/box.width*W
           const sy=(e.clientY-box.top)/box.height*H
           movePartyTo(battle.current,visual.current.cameraX+sx-W/2,visual.current.cameraY+sy-H/2)
+          setLessonStep(v=>v===1?2:v)
         }} />
+
+      {onboardingBattle && lessonStep===0 && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-[#173d48]/70">
+          <div className="pq-panel pop-in w-[655px] border-4 border-[#e0a749] p-6 text-[#6b452a]">
+            <p className="mb-2 text-center text-sm font-black tracking-widest text-[#d28126]">모비 · 첫 전투 특훈 / 1-1</p>
+            <h2 className="text-center text-3xl font-black">나의 첫 탐험!</h2>
+            <p className="mt-3 text-center text-base leading-relaxed">여기서는 포켓몬을 2D 필드 안에서 <b>어느 방향으로든 이동</b>시킬 수 있어요. 적에게 다가가면 기본 공격은 자동으로 나가요. 기술은 버튼을 눌러 사용해요!</p>
+            <div className="mt-3 grid grid-cols-3 gap-2 text-center text-sm font-bold">
+              <div className="border-2 border-[#dca84c] bg-[#fff4cf] p-3">1. 터치 / WASD 이동</div>
+              <div className="border-2 border-[#dca84c] bg-[#fff4cf] p-3">2. 기술 1 · 기술 2</div>
+              <div className="border-2 border-[#dca84c] bg-[#fff4cf] p-3">3. 흩어지기로 회피</div>
+            </div>
+            <Btn color="green" className="mt-5 w-full py-3 text-xl" onClick={()=>{guideLocked.current=false;setLessonStep(1);sfx.select()}}>첫 전투 시작하기!</Btn>
+          </div>
+        </div>
+      )}
+      {onboardingBattle && lessonStep>=1 && lessonStep<=3 && (
+        <div className="absolute left-[198px] top-[56px] z-30 w-[512px] border-4 border-[#dca84c] bg-[#fff1bb]/95 p-2 text-[#604528] shadow-[4px_5px_0_#324c3a]">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <b className="block text-base">모비의 첫 탐험 · {TUTORIAL_BATTLE_HINTS[lessonStep-1].title}</b>
+              <p className="text-[12px] leading-snug">{TUTORIAL_BATTLE_HINTS[lessonStep-1].description}</p>
+            </div>
+            <Btn color="green" className="shrink-0 px-2 py-1 text-xs" onClick={()=>setLessonStep(v=>Math.min(4,v+1))}>{lessonStep===3?'완료':'다음'}</Btn>
+          </div>
+        </div>
+      )}
+      {secondLesson && (hud?.time??0)<6 && (
+        <div className="pointer-events-none absolute left-[210px] top-[56px] z-20 w-[530px] border-4 border-[#e2a843] bg-[#fff1be]/95 p-3 text-center text-sm font-bold text-[#70502a] shadow-[4px_5px_0_#334c3c]">
+          모비: 두 번째 탐험이에요! 장착한 P스톤의 힘과 두 기술을 활용해 보세요.
+        </div>
+      )}
 
       {/* 좌상단: 일시정지 + 카운터 */}
       <div className="absolute left-3 top-3 flex items-center gap-2">
@@ -230,7 +270,7 @@ export default function Battle() {
       </div>
       {/* 우하단: 흩어지기 / 포기 */}
       <div className="absolute bottom-3 right-3 flex flex-col gap-2">
-        <Btn color={hud && hud.scatterLeft <= 0 ? 'blue' : 'gray'} onClick={() => { if (b && scatter(b)) { sfx.step(); setHud(snapshot(b)) } }} className="h-[52px] w-[96px] px-0 py-0 text-sm">
+        <Btn color={hud && hud.scatterLeft <= 0 ? 'blue' : 'gray'} onClick={() => { if (b && scatter(b)) { sfx.step(); setHud(snapshot(b));setLessonStep(v=>v===3?4:v) } }} className="h-[52px] w-[96px] px-0 py-0 text-sm">
           {hud && hud.scatterLeft > 0 ? `흩어지기 ${Math.ceil(hud.scatterLeft)}` : '흩어지기'}
         </Btn>
         <Btn color="yellow" onClick={() => setQuit(true)} className="h-[52px] w-[96px] px-0 py-0 text-base">포기</Btn>
@@ -257,7 +297,7 @@ export default function Battle() {
                   const canUse = a.alive && hud.phase === 'fight' && cd <= 0
                   return (
                     <button key={i} disabled={!canUse}
-                      onClick={() => { if (b && useSpecial(b, a.uid, i as 0 | 1)) setHud(snapshot(b)) }}
+                      onClick={() => { if (b && useSpecial(b, a.uid, i as 0 | 1)) {setHud(snapshot(b));setLessonStep(v=>v===2?3:v)} }}
                       className={`pq-btn relative h-[68px] w-[62px] shrink-0 overflow-hidden px-0.5 text-xs ${canUse ? 'blink' : ''}`}
                       style={{ background: canUse ? TYPE_COLOR[type as keyof typeof TYPE_COLOR] : '#556' }}
                       title={name}>
