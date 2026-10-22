@@ -21,7 +21,7 @@ describe('Official 1.0 licensed soundtrack routing',()=>{
   expect(cueForBattle(17,4,false)).toBe('happenstance-cave')
   expect(cueForBattle(17,6,false)).toBe('happenstance-forest')
   expect(cueForBattle(17,7,false)).toBe('happenstance-forest')
-  expect(cueForBattle(17,8,true)).toBe('mewtwo-battle')
+  expect(cueForBattle(17,8,true)).toBe('happenstance-mountain')
  })
  it('has original synth fallback for every original scene',()=>{
   for(const cue of Object.values(DEFAULT_SCENE_CUE))expect(CUE_DETAILS[cue]).toBeTruthy()
