@@ -2,7 +2,7 @@ name: Remake quality gate
 
 on:
   push:
-    branches: [remake-1-0-final-audio]
+    branches: [remake-1-0-final-audio , release-1-0-stable-rebased]
   pull_request:
     branches: [main]
   workflow_dispatch:
