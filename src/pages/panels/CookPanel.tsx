@@ -58,7 +58,7 @@ export default function CookPanel() {
     <Panel title="요리 냄비" onClose={() => openPanel(null)} w={900}>
       {(tutorial==='cooking'||tutorial==='friends') && <div className="mb-2 flex items-center justify-between gap-2 rounded border-4 border-[#c98a00] bg-[#fff0b4] px-3 py-1 text-sm font-bold text-[#96601b]">
         <span>모비: {tutorial==='cooking'?'재료 5개를 넣어 요리하세요! 첫 요리에서는 구구와 꼬렛이 모두 찾아옵니다.':'요리가 완성됐어요! 냄비를 열어 구구와 꼬렛을 맞이하세요.'}</span>
-        {tutorial==='cooking' && <Btn color="yellow" onClick={()=>setSel([...tutorialIngredients])} className="shrink-0 px-2 text-xs">튜토리얼 재료 넣기</Btn>}
+        {tutorial==='cooking' && <Btn color="yellow" onClick={()=>setSel([...TUTORIAL_STEW_INGREDIENTS])} className="shrink-0 px-2 text-xs">튜토리얼 재료 넣기</Btn>}
       </div>}
       {tutorial==='cooking' && (
         <div className="mb-2 flex items-center justify-between gap-3 border-4 border-[#d8a642] bg-[#fff0b9] px-3 py-2 text-[#6a4825] shadow-[3px_4px_0_#8d6a3b]">
