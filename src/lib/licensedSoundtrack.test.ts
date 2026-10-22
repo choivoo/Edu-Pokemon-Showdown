@@ -16,7 +16,7 @@ describe('Fan Edition 1.0 licensed soundtrack stream',()=>{
   expect(scenes[26].end).toBeLessThanOrEqual(SOUNDTRACK_DURATION)
  })
  it('uses a public asset on the existing 1.0 official release for all devices',()=>{
-  expect(LICENSED_ASSET_URL).toMatch(/^https:\/\/github\.com\/choivoo\/Pokemon-Quest-fan\.Edition\/releases\/download\/v1\.0\.0-official\/quest-licensed-soundtrack\.mp3$/)
+  expect(LICENSED_ASSET_URL).toMatch(/^https:\/\/github\.com\/choivoo\/PQFE-Pokemon-Quest-fan\.Edition-\/releases\/download\/v1\.0\.0-official\/quest-licensed-soundtrack\.mp3$/)
  })
  it('accepts MM:SS and H:MM:SS chapter timestamps',()=>{
   expect(soundtrackSecond('00:00')).toBe(0)
