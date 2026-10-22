@@ -16,8 +16,8 @@ async function copy(text: string): Promise<boolean> {
 }
 
 export default function SavePanel() {
-  const { save, openPanel, markExported, importSave: apply } = useGame()
-  const [tab, setTab] = useState<'export' | 'import'>(save.started ? 'export' : 'import')
+  const { save, openPanel, markExported, importSave: apply, hardReset } = useGame()
+  const [tab, setTab] = useState<'export' | 'import' | 'reset'>(save.started ? 'export' : 'import')
   const [keys, setKeys] = useState<ExportedKeys | null>(null)
   const [busy, setBusy] = useState(false)
   const [note, setNote] = useState('')
@@ -25,6 +25,8 @@ export default function SavePanel() {
   const [inPw, setInPw] = useState('')
   const [err, setErr] = useState('')
   const [confirm, setConfirm] = useState(false)
+  const [resetPhrase, setResetPhrase] = useState('')
+  const [resetArmed, setResetArmed] = useState(false)
 
   const make = async () => {
     setBusy(true)
@@ -62,10 +64,11 @@ export default function SavePanel() {
   }
 
   return (
-    <Panel title="데이터 이전 (저장 키)" onClose={() => openPanel(null)} w={880} z={60}>
+    <Panel title="데이터 이전 · 계정 초기화" onClose={() => openPanel(null)} w={880} z={60}>
       <div className="mb-3 flex gap-2">
         <Btn color={tab === 'export' ? 'yellow' : 'gray'} onClick={() => setTab('export')} className="flex-1 py-1.5 text-lg">저장 키 만들기</Btn>
-        <Btn color={tab === 'import' ? 'yellow' : 'gray'} onClick={() => setTab('import')} className="flex-1 py-1.5 text-lg">저장 키로 불러오기</Btn>
+        <Btn color={tab === 'import' ? 'yellow' : 'gray'} onClick={() => setTab('import')} className="flex-1 py-1.5 text-lg">저장 키 불러오기</Btn>
+        <Btn color={tab === 'reset' ? 'red' : 'gray'} onClick={() => setTab('reset')} className="flex-1 py-1.5 text-lg">계정 초기화</Btn>
       </div>
 
       {tab === 'export' && (
@@ -90,6 +93,33 @@ export default function SavePanel() {
                 <span className="text-sm font-bold text-[#c0392b]">{note}</span>
               </div>
               <p className="flex items-start gap-1 text-sm text-[#a03a2a]"><Icon n="warn" s={20} />암호 키가 없으면 저장 키를 열 수 없고, 이 키 없이는 잃어버린 데이터를 복구할 수 없어요. 꼭 두 가지를 함께 보관하세요.</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {tab === 'reset' && (
+        <div className="flex min-h-[330px] flex-col gap-4 px-2 py-4">
+          <div className="rounded-lg border-4 border-[#d96b44] bg-[#fff0db] p-4">
+            <p className="flex items-center gap-2 text-2xl font-bold text-[#b12d2d]"><Icon n="warn" s={27}/>이 기기의 모험 데이터 초기화</p>
+            <p className="mt-2 text-base leading-relaxed">현재 기기에 저장된 <b>모든 포켓몬·레벨·진행 지역·재료·P스톤·티켓·장식·업적</b>이 사라져요. 이 게임은 별도의 서버 계정이 없으므로 다른 기기에 저장된 정보까지 지우지는 않아요.</p>
+            <p className="mt-2 text-base font-bold">먼저 저장 키와 암호 키를 백업해야 나중에 복구할 수 있어요.</p>
+            <Btn color="blue" onClick={() => {setTab('export');setResetArmed(false);setResetPhrase('')}} className="mt-3 px-4 py-2 text-base">초기화 전에 저장 키 백업하기</Btn>
+          </div>
+          {!resetArmed ? (
+            <Btn color="red" disabled={!save.started} onClick={() => setResetArmed(true)} className="mx-auto px-8 py-3 text-lg">{save.started ? '초기화 과정 시작' : '아직 초기화할 모험이 없어요'}</Btn>
+          ) : (
+            <div className="flex flex-col gap-2 rounded-lg border-4 border-[#bf4735] bg-white/80 p-4">
+              <p className="text-base font-bold text-[#ad2e23]">정말로 모든 진행 상황을 지우려면 아래 칸에 <b>초기화</b>를 정확히 입력하세요.</p>
+              <input value={resetPhrase} onChange={e=>setResetPhrase(e.target.value)} placeholder="초기화" autoComplete="off" className="rounded-lg border-4 border-[#d47c62] bg-white px-3 py-2 text-xl text-[#5f2b27]"/>
+              <div className="flex justify-end gap-2">
+                <Btn color="gray" onClick={()=>{setResetArmed(false);setResetPhrase('')}}>취소</Btn>
+                <Btn color="red" disabled={resetPhrase.trim()!=='초기화'} onClick={()=>{
+                  if(resetPhrase.trim()!=='초기화')return
+                  hardReset()
+                  setResetArmed(false);setResetPhrase('')
+                }}>모든 데이터 삭제하고 처음부터</Btn>
+              </div>
             </div>
           )}
         </div>
