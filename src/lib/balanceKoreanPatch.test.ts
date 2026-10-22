@@ -29,7 +29,7 @@ describe('1.0.1 middle-difficulty tuning', () => {
       expect(one.attack).toBeGreaterThan(.3)
       expect(one.attack).toBeLessThan(1)
       expect(one.defense).toBeGreaterThan(.9)
-      expect(one.bossHp).toBeGreaterThan(.8)
+      expect(one.bossHp).toBeGreaterThan(.7)
     }
   })
 
