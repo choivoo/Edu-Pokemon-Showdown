@@ -121,7 +121,7 @@ export default function Battle() {
     battle.current = b
     setHud(snapshot(b))
     const regionMusic = (['tide', 'grove', 'echo', 'spark', 'ember', 'astral'] as const)[stage.area] ?? 'battle'
-    bgm.playScene(cueForBattle(stage.area,stage.index,stage.boss),stage.boss?'boss':regionMusic)
+    bgm.playScene(isTutorialStage(save,stage) ? 'tutorial' : cueForBattle(stage.area,stage.index,stage.boss),stage.boss?'boss':regionMusic)
     if (stage.boss && stage.area >= 0) sfx.cry(waves.flat().find(w => w.boss)?.species ?? AREAS[stage.area].boss)
 
     const ctx = canvas.current!.getContext('2d')!
@@ -161,7 +161,7 @@ export default function Battle() {
       if (hudT > 0.1) { hudT = 0; setHud(snapshot(b)) }
       if ((b.phase === 'won' || b.phase === 'lost') && !finished.current) {
         endT += real
-        if (endT > (stage.area===6 && [0,1,3].includes(stage.index) ? 2.45 : 1.3)) { finished.current = true; setHud(snapshot(b)); finishBattle(b.phase === 'won', stage, b.kills) }
+        if (endT > (b.phase==='won' ? 2.45 : 1.3)) { finished.current = true; setHud(snapshot(b)); finishBattle(b.phase === 'won', stage, b.kills) }
       }
       raf = requestAnimationFrame(loop)
     }

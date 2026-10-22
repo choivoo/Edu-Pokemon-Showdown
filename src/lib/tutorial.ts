@@ -39,8 +39,8 @@ export function canTutorialExplore(save:SaveData,stage:Stage):boolean {
 export function tutorialWaves(save:SaveData,stage:Stage):WaveEnemy[][]|null {
  if (!isTutorialStage(save,stage))return null
  return stage.index===0 ? [
-  [{species:19,level:1}],
   [{species:16,level:1}],
+  [{species:19,level:1}],
   [{species:52,level:2,elite:true}],
  ] : [
   [{species:10,level:2}],
