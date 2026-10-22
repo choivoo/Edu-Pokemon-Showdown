@@ -72,7 +72,7 @@ export default function Result() {
         <div className="mt-4 flex justify-end gap-3">
           <Btn color="gray" onClick={camp}>캠프로</Btn>
           {bat.n <= 0 && <span className="mr-auto flex items-center gap-1 self-center text-base text-[#d23c36]"><Icon n="batteryEmpty" s={22} />배터리가 없어요. 충전되길 기다리거나 상점에서 충전하세요.</span>}
-          <Btn color="blue" disabled={bat.n <= 0} onClick={() => startStage(stage)}>{r.win ? '다시' : '재도전'}</Btn>
+          {(!guidedResult || !r.win) && <Btn color="blue" disabled={bat.n <= 0} onClick={() => startStage(stage)}>{r.win ? '다시' : '재도전'}</Btn>}
           {next && <Btn color="green" onClick={next} disabled={nextStarts && bat.n <= 0} className="flex items-center gap-2">다음<Icon n="next" s={22} /></Btn>}
         </div>
       </Panel>
