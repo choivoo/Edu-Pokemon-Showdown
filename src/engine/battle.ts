@@ -85,7 +85,7 @@ export interface Unit {
 }
 
 export type FxEvent =
-  | { k: 'attack'; from: number; to: number[]; type: PokemonType; special: boolean; ranged: boolean }
+  | { k: 'attack'; from: number; to: number[]; type: PokemonType; special: boolean; ranged: boolean; moveId?: string }
   | { k: 'hit'; from: number; to: number; amount: number; eff: number; crit: boolean; type: PokemonType; special: boolean }
   | { k: 'faint'; uid: number }
   | { k: 'bossDefeated'; uid: number; x: number; y: number }
@@ -201,7 +201,7 @@ function makeUnit(b: Battle, side: Side, speciesId: number, level: number, stats
     critTakenResist: stats.critTakenResist ?? 0,
     spirit: { mul: 0, until: 0 },
     buff: { atk: 0, def: 0, speed: 0, until: 0 }, debuff: { atk: 0, def: 0, speed: 0, until: 0 }, status: null, scatterT: 0, elite,
-    spCd: side === 'ally' ? 1.2 : boss ? 2.8 + b.rng() * 1.0 : 3.2 + b.rng() * 1.8,
+    spCd: side === 'ally' ? 1.2 : b.balance.earlyEnemyHitCap ? boss ? 5.1 + b.rng()*1.4 : 4.7 + b.rng()*1.5 : boss ? 2.8 + b.rng() * 1.0 : 3.2 + b.rng() * 1.8,
     alive: true, deadT: 0, revives: 0, lunge: 0, hurt: 0,
   }
 }
@@ -350,7 +350,7 @@ function castSupport(b: Battle, u: Unit, mv: Move = u.special): boolean {
   const main = nearest(b, u)
   u.lunge = 0.35
   if (mv.role === 'buff') {
-    b.events.push({ k: 'attack', from: u.uid, to: friends.map(f => f.uid), type: mv.type, special: true, ranged: true })
+    b.events.push({ k: 'attack', from: u.uid, to: friends.map(f => f.uid), type: mv.type, special: true, ranged: true, moveId: mv.id })
     for (const f of friends) {
       if (fx.heal) {
         const h = Math.floor(f.maxHp * fx.heal)
@@ -367,7 +367,7 @@ function castSupport(b: Battle, u: Unit, mv: Move = u.special): boolean {
   if (!main) return false
   if (mv.role === 'debuff') {
     const targets = foes.filter(f => Math.hypot(f.x - main.x, f.y - main.y) <= AOE_RADIUS + 120)
-    b.events.push({ k: 'attack', from: u.uid, to: targets.map(t => t.uid), type: mv.type, special: true, ranged: true })
+    b.events.push({ k: 'attack', from: u.uid, to: targets.map(t => t.uid), type: mv.type, special: true, ranged: true, moveId: mv.id })
     for (const t of targets) {
       if (b.rng() < t.effectResist) continue
       t.debuff = { atk: fx.atk ?? 0, def: fx.def ?? 0, speed: fx.speed ?? 0, until: b.t + (fx.secs ?? 8) * (t.boss ? 0.6 : 1) }
@@ -377,7 +377,7 @@ function castSupport(b: Battle, u: Unit, mv: Move = u.special): boolean {
   }
   // 상태이상
   const targets = foes.filter(f => Math.hypot(f.x - main.x, f.y - main.y) <= AOE_RADIUS)
-  b.events.push({ k: 'attack', from: u.uid, to: targets.map(t => t.uid), type: mv.type, special: true, ranged: true })
+  b.events.push({ k: 'attack', from: u.uid, to: targets.map(t => t.uid), type: mv.type, special: true, ranged: true, moveId: mv.id })
   for (const t of targets) if (fx.status) applyStatus(b, t, fx.status, fx.secs)
   return true
 }
@@ -393,7 +393,7 @@ function castSpecial(b: Battle, u: Unit, extraMul = 1, mv: Move = u.special, slo
   const aoe = u.boss || (isQuest ? ['burst','wave','cone'].includes(profile.shape) : AOE_TYPES.includes(mv.type))
   const { widen, multiply } = slot===1 ? u.fx2 : u.fx
   let targets: Unit[]
-  if (u.boss) targets = foes
+  if (u.boss) targets = foes.filter(f => isQuest ? moveHits({...profile,range:profile.range+80,radius:profile.radius+90},u,main,f,f.radius) : Math.hypot(f.x-main.x,f.y-main.y)<=190+f.radius)
   else if (isQuest) targets = foes.filter(f => moveHits({...profile,radius:profile.radius+50*widen,range:profile.range+35*widen},u,main,f,f.radius))
   else if (aoe) targets = foes.filter(f => Math.hypot(f.x - main.x, f.y - main.y) <= AOE_RADIUS + 50 * widen)
   else {
@@ -408,7 +408,7 @@ function castSpecial(b: Battle, u: Unit, extraMul = 1, mv: Move = u.special, slo
   const geometry = isQuest ? {profile:{...profile,radius:profile.radius+50*widen,range:profile.range+35*widen},origin:{x:u.x,y:u.y},aim:{x:main.x,y:main.y}} : undefined
   u.lunge = 0.35
   u.face = main.x >= u.x ? 1 : -1
-  b.events.push({ k: 'attack', from: u.uid, to: targets.map(t => t.uid), type: mv.type, special: true, ranged: true })
+  b.events.push({ k: 'attack', from: u.uid, to: targets.map(t => t.uid), type: mv.type, special: true, ranged: true, moveId: mv.id })
   for (const t of targets) for(let hit=0;hit<(isQuest?profile.hits:1);hit++)
     strike(b,u,t,mv,true,mul/(isQuest?Math.sqrt(profile.hits):1), Math.max(profile.windup,travel(u,t))+hit*.12,geometry)
   // 넓히기: 한 명만 맞히던 필살기도 주변까지 번진다
@@ -672,7 +672,7 @@ export function step(b: Battle, dt: number): void {
         if (u.atkCd <= 0) {
           const ranged = u.range > MELEE_RANGE + 10 && !u.boss
           u.lunge = 0.25
-          b.events.push({ k: 'attack', from: u.uid, to: [t.uid], type: u.basic.type, special: false, ranged })
+          b.events.push({ k: 'attack', from: u.uid, to: [t.uid], type: u.basic.type, special: false, ranged, moveId: u.basic.id })
           strike(b, u, t, u.basic, false, 1, ranged ? travel(u, t) : 0.12)
           u.atkCd = attackInterval(u.spe) * (1 - u.atkCdCut) * (0.9 + b.rng() * 0.2)
         }

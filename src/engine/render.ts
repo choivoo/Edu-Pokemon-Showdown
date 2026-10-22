@@ -6,6 +6,9 @@ import { drawOpenField } from '../art/openField'
 import { iconCanvas } from '../art/icons'
 import { STATUS_INFO } from '../lib/moveSet'
 import { H, rect, W } from './draw'
+import { getMove } from '../lib/roster'
+import { koreanMoveName } from '../data/questMoveKorean'
+import { createSkillVfx, drawImpactVfx, drawSkillVfx, type SkillVfx } from './skillVfx'
 
 export { H, W }
 
@@ -45,9 +48,12 @@ export interface Visual {
   parts: Particle[]
   floats: Floater[]
   slashes: Slash[]
+  /** Cinematic layered 2D spell trails and light signatures for all moves. */
+  skills: SkillVfx[]
+  impacts: {x:number;y:number;t0:number;color:string;size:number}[]
   banner: { text: string; t0: number; tone?: 'info' | 'warn' | 'boss' } | null
 }
-export const newVisual = (): Visual => ({ scroll: 0, cameraX: 560, cameraY: 640, bossBurst:null, shake: 0, projs: [], parts: [], floats: [], slashes: [], banner: null })
+export const newVisual = (): Visual => ({ scroll: 0, cameraX: 560, cameraY: 640, bossBurst:null, shake: 0, projs: [], parts: [], floats: [], slashes: [], skills: [], impacts: [], banner: null })
 
 /** 엔진이 쌓아 둔 이벤트를 시각 효과로 바꾼다 */
 export function consumeEvents(b: Battle, v: Visual, now: number, hooks: { hit: (e: Extract<FxEvent, { k: 'hit' }>) => void; special: () => void; faint: () => void; wave: (boss: boolean) => void; bossDefeated?: () => void }) {
@@ -56,10 +62,24 @@ export function consumeEvents(b: Battle, v: Visual, now: number, hooks: { hit: (
       const from = b.units.find(u => u.uid === e.from)
       if (!from) continue
       if (e.special) hooks.special()
+      const move = e.moveId ? getMove(e.moveId) : undefined
+      const target = e.to.map(id=>b.units.find(u=>u.uid===id)).find(u=>!!u)
+      if (move && v.skills.length < 34) {
+        const dest=target ?? from
+        const specialScale=e.special ? (from.boss ? 1.45 : 1.16) : .62
+        v.skills.push(createSkillVfx(move,from.x,from.y-43,dest.x,dest.y-43,now,
+          move.role==='buff',specialScale))
+        if (e.special) {
+          v.floats.push({x:from.x,y:from.y-120,text:koreanMoveName(move.name),
+            color:'#ffe48f',t0:now,big:false})
+          // A flashy cast has short local shake, not a long motion-sickness jitter.
+          v.shake=Math.max(v.shake,Math.min(9,move.power/65+2))
+        }
+      }
       for (const tid of e.to) {
         const to = b.units.find(u => u.uid === tid)
         if (!to) continue
-        if (e.ranged || e.special) {
+        if ((e.ranged || e.special) && !move) {
           const d = Math.hypot(to.x - from.x, to.y - from.y)
           v.projs.push({ x0: from.x, y0: from.y - 40, x1: to.x, y1: to.y - 40, t0: now, dur: Math.max(0.12, d / 560), color: TYPE_COLOR[e.type], big: e.special })
         }
@@ -69,11 +89,12 @@ export function consumeEvents(b: Battle, v: Visual, now: number, hooks: { hit: (
       if (!to) continue
       const cx = to.x, cy = to.y - 40
       const color = TYPE_COLOR[e.type]
-      for (let i = 0; i < (e.special ? 16 : 8); i++) {
+      for (let i = 0; i < (e.special ? 24 : 8); i++) {
         const a = Math.random() * Math.PI * 2, sp = 40 + Math.random() * 90
         v.parts.push({ x: cx, y: cy, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 20, life: 0.5, max: 0.5, color, size: 4 + Math.floor(Math.random() * 3) })
       }
       v.slashes.push({ x: cx, y: cy, t0: now, color })
+      if (e.special && v.impacts.length < 28) v.impacts.push({x:cx,y:cy,t0:now,color,size:Math.max(55,Math.min(145,72+(to.boss?45:0)))})
       const txt = e.amount === 0 ? '효과 없음' : String(e.amount) + (e.crit ? '!' : '')
       v.floats.push({ x: cx + (Math.random() * 20 - 10), y: cy - 40, text: txt, color: e.crit ? '#ffe14d' : e.eff > 1 ? '#ff7a45' : e.eff < 1 ? '#c9c9d9' : '#ffffff', t0: now, big: e.crit || e.eff > 1 })
       if (e.special || to.boss) v.shake = Math.max(v.shake, e.special ? 7 : 3)
@@ -202,6 +223,8 @@ export function drawBattle(ctx: CanvasRenderingContext2D, b: Battle, v: Visual, 
   v.projs = v.projs.filter(p => now - p.t0 < p.dur + 0.02)
   v.floats = v.floats.filter(f => now - f.t0 < 0.9)
   v.slashes = v.slashes.filter(s => now - s.t0 < 0.25)
+  v.skills=v.skills.filter(s=>now-s.t0<s.duration)
+  v.impacts=v.impacts.filter(s=>now-s.t0<.65)
 
   ctx.save()
   if (v.shake > 0) ctx.translate(Math.round((Math.random() - 0.5) * v.shake), Math.round((Math.random() - 0.5) * v.shake))
@@ -224,6 +247,8 @@ export function drawBattle(ctx: CanvasRenderingContext2D, b: Battle, v: Visual, 
     ctx.restore()
   }
   for (const u of [...b.units].sort((a, c) => a.y - c.y)) drawUnit(ctx, b, u, now)
+  for (const fx of v.skills) drawSkillVfx(ctx,fx,now)
+  for (const impact of v.impacts) drawImpactVfx(ctx,impact.x,impact.y,impact.color,(now-impact.t0)/.65,impact.size)
   if(v.bossBurst){
     const age=now-v.bossBurst.t0
     if(age<1.65){

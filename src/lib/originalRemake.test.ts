@@ -46,7 +46,8 @@ describe('2D 원작 진행 / 팬 후속편', () => {
     expect(areaUnlocked(save, 17)).toBe(true)
     for (let i = 0; i < 9; i++) expect(getStage(17, i).timeLimitSec).toBe(300)
     expect(getStage(6, 0).recommended).toBe(140)
-    expect(getStage(6, 3).recommended).toBe(520)
+    expect(getStage(6, 2).recommended).toBe(900)
+    expect(getStage(6, 3).recommended).toBe(1220)
   })
 
   it('상위 냄비는 특정 석상 보스 클리어 후에 열리며 재료를 더 소모한다', () => {
