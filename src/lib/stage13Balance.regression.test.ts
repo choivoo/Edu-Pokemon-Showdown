@@ -28,9 +28,9 @@ const simulate=(index:number,power:number,seed:number,auto=true)=>{
  return {outcome:b.phase,time:b.t,kills:b.kills,ticks,totalPower:mediumTeam(power).reduce((n,p)=>n+powerRating(p.stats),0)}
 }
 describe('1-3 recommended-power regression',()=>{
- it('confirms 1-3 is the expedition with recommended power 390',()=>{
-  expect(getStage(ORIGINAL_FIRST,2).recommended).toBe(390)
-  expect(recommendedPower(getStage(ORIGINAL_FIRST,2))).toBe(390)
+ it('recommends calibrated power for 1-3 instead of the previous misleading 390',()=>{
+  expect(getStage(ORIGINAL_FIRST,2).recommended).toBe(900)
+  expect(recommendedPower(getStage(ORIGINAL_FIRST,2))).toBe(900)
  })
  it('three ~1318-power beginners should win 1-3 in a majority of seeded auto runs',()=>{
   const runs=[3,7,12,23,39].map(seed=>simulate(2,1318,seed))
