@@ -261,6 +261,12 @@ export function createBattle(allies: AllyInput[], waves: WaveEnemy[][], rng: Rng
 
 const alive = (b: Battle, side: Side) => b.units.filter(u => u.side === side && u.alive)
 export const unitById = (b: Battle, uid: number) => b.units.find(u => u.uid === uid)
+/** Final-enemy finisher applies even to original stages without a named boss. */
+function isStageFinale(b: Battle, u: Unit): boolean {
+  if(u.side!=='enemy' || b.wave!==b.waves.length-1)return false
+  if(u.boss||u.elite)return true
+  return !b.units.some(other=>other!==u&&other.side==='enemy'&&other.alive) && b.late.length===0
+}
 
 function nearest(b: Battle, u: Unit): Unit | undefined {
   let best: Unit | undefined
@@ -470,7 +476,7 @@ function applyHit(b: Battle, p: Pending) {
       }
     }
     b.events.push({ k: 'faint', uid: to.uid })
-    if((to.boss || (to.elite && b.wave === b.waves.length - 1)) && to.side === 'enemy') b.events.push({ k: 'bossDefeated', uid: to.uid, x: to.x, y: to.y })
+    if(isStageFinale(b,to)) b.events.push({ k: 'bossDefeated', uid: to.uid, x: to.x, y: to.y })
     // 보스가 쓰러지면 부하들은 도망친다
     if (to.boss && to.side === 'enemy') {
       for (const m of b.units) if (m.side === 'enemy' && m.alive) { m.alive = false; m.deadT = 0; b.events.push({ k: 'flee', uid: m.uid }) }
@@ -559,7 +565,7 @@ export function step(b: Battle, dt: number): void {
               u.alive = false; u.deadT = 0; u.status = null
               if (u.side === 'enemy') { b.kills++; b.waveKills++ }
               b.events.push({ k: 'faint', uid: u.uid })
-              if ((u.boss || (u.elite && b.wave === b.waves.length - 1)) && u.side === 'enemy') b.events.push({ k: 'bossDefeated', uid: u.uid, x: u.x, y: u.y })
+              if (isStageFinale(b,u)) b.events.push({ k: 'bossDefeated', uid: u.uid, x: u.x, y: u.y })
               continue
             }
           }
