@@ -34,7 +34,7 @@ export default function Intro() {
               className="w-full border-4 border-[#c98a00] bg-white px-4 py-3 text-center text-2xl text-[#5a3a00]" />
             <div className="flex justify-center gap-4">
               <Btn color="gray" onClick={() => go('title')}>뒤로</Btn>
-              <Btn color="green" disabled={!name.trim()} onClick={() => { bgm.play('story'); setStep('story') }}>다음</Btn>
+              <Btn color="green" disabled={!name.trim()} onClick={() => { bgm.playScene('intro','story'); setStep('story') }}>다음</Btn>
             </div>
           </div>
         </Panel>
