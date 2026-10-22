@@ -23,6 +23,12 @@ export default function Result() {
     bgm.playScene('expedition-results','camp')
   }, [r])
 
+  useEffect(() => {
+    if(!r) return
+    if(storyMode) bgm.playScene(r.stage.area === 16 && storyMode === 'outro' ? 'staff-roll' : 'story-talk', 'story')
+    else bgm.playScene('expedition-results','camp')
+  }, [r, storyMode])
+
   if (!r) return null
   const { stage } = r
   const field = stage.area >= 0 ? fieldScene(stage.area, stage.index) : undefined
