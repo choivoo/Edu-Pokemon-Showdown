@@ -7,6 +7,7 @@ import { HAPPENSTANCE_AREA } from '../lib/originalCampaign'
 import { cueForBattle } from '../lib/officialCues'
 import { tutorialWaves, isTutorialStage, TUTORIAL_BATTLE_HINTS } from '../lib/tutorial'
 import { getSpecies } from '../lib/roster'
+import { koreanMoveName } from '../data/questMoveKorean'
 import { moveFxOf, partyMons, statsOf } from '../lib/party'
 import { bgm, sfx } from '../lib/sound'
 import { TYPE_COLOR } from '../lib/typeChart'
@@ -35,7 +36,7 @@ const snapshot = (b: BattleState): Hud => ({
   targetX: waveCenter(Math.min(b.wave,b.waves.length-1),b.waves.length).x,
   targetY: waveCenter(Math.min(b.wave,b.waves.length-1),b.waves.length).y,
   allies: b.units.filter(u => u.side === 'ally').sort((a, c) => a.slot - c.slot).map(u => ({
-    uid: u.uid, id: u.speciesId, name: u.name, level: u.level, hp: u.hp, maxHp: u.maxHp, cd: u.spCd, max: u.spMax, alive: u.alive, slot: u.slot, move: u.special.name, type: u.special.type, ...(u.secondary ? { move2: u.secondary.name, type2: u.secondary.type, cd2: u.spCd2, max2: u.spMax2 } : {}),
+    uid: u.uid, id: u.speciesId, name: u.name, level: u.level, hp: u.hp, maxHp: u.maxHp, cd: u.spCd, max: u.spMax, alive: u.alive, slot: u.slot, move: koreanMoveName(u.special.name), type: u.special.type, ...(u.secondary ? { move2: koreanMoveName(u.secondary.name), type2: u.secondary.type, cd2: u.spCd2, max2: u.spMax2 } : {}),
   })),
 })
 
@@ -298,11 +299,12 @@ export default function Battle() {
                   return (
                     <button key={i} disabled={!canUse}
                       onClick={() => { if (b && useSpecial(b, a.uid, i as 0 | 1)) {setHud(snapshot(b));setLessonStep(v=>v===2?3:v)} }}
-                      className={`pq-btn relative h-[68px] w-[62px] shrink-0 overflow-hidden px-0.5 text-xs ${canUse ? 'blink' : ''}`}
+                      className={`pq-btn relative flex h-[70px] w-[66px] shrink-0 flex-col items-center justify-center gap-0.5 overflow-hidden px-1 py-1 ${canUse ? 'blink' : ''}` }
                       style={{ background: canUse ? TYPE_COLOR[type as keyof typeof TYPE_COLOR] : '#556' }}
                       title={name}>
-                      <span className="flex justify-center"><Icon n="star" s={24} /></span>
-                      <span className="block truncate text-xs leading-tight">{!a.alive ? '기절' : canUse ? name : cd > 0 ? Math.ceil(cd) + '초' : '…'}</span>
+                      <span className="flex shrink-0 justify-center"><Icon n="star" s={19} /></span>
+                      <span className="block w-full text-center text-[11px] font-bold leading-[13px] break-all whitespace-normal" style={{wordBreak:'keep-all',overflowWrap:'anywhere'}}>{!a.alive ? '기절' : name}</span>
+                      {a.alive && !canUse && <span className="absolute right-0 top-0 rounded-bl bg-[#26343ccc] px-0.5 text-[10px] font-bold text-white">{cd > 0 ? `${Math.ceil(cd)}초` : '…'}</span>}
                       {a.alive && !canUse && <span className="absolute inset-x-0 bottom-0 bg-yellow-300" style={{ height: 6, width: `${(1 - cd / max) * 100}%` }} />}
                     </button>
                   )

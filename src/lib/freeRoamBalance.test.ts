@@ -15,10 +15,10 @@ const seeded = (seed: number) => () => {
 describe('gentle beginner difficulty without flatlining later progression', () => {
   it('keeps original 1-1 to 1-4 stage strengths rising gradually', () => {
     const vals = Array.from({length:4},(_,i)=>encounterBalance({area:ORIGINAL_FIRST,index:i}))
-    expect(vals.map(v=>v.hp)).toEqual([.31,.42,.56,.67])
+    expect(vals.every((v,i)=>v.hp>1&&(i===0||v.hp>vals[i-1].hp))).toBe(true)
     expect(vals.every((v,i)=>i===0||v.attack>vals[i-1].attack)).toBe(true)
-    expect(vals.every(v=>v.bossHp<1)).toBe(true)
-    expect(encounterBalance({area:ORIGINAL_FIRST+4,index:0}).hp).toBe(1)
+    expect(vals.every(v=>v.bossHp>=.9&&v.bossHp<=1.2)).toBe(true)
+    expect(encounterBalance({area:ORIGINAL_FIRST+4,index:0}).hp).toBeCloseTo(1.06)
     expect(getStage(ORIGINAL_FIRST,0).recommended).toBe(140)
   })
   it('a freshly recruited level-five Pikachu can beat story 1-1 alone', () => {

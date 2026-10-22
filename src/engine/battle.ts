@@ -9,6 +9,7 @@ import { moveHits, moveProfile, type MoveProfile } from '../lib/moveProfiles'
 import { encounterBalance, type EncounterBalance } from '../lib/battleBalance'
 import { WORLD_BOUNDS } from '../art/openField'
 import type { Stage } from '../lib/stages'
+import { ORIGINAL_FIRST } from '../lib/originalCampaign'
 
 export type Side = 'ally' | 'enemy'
 
@@ -137,8 +138,8 @@ export const RANGED_TYPES: PokemonType[] = ['fire', 'water', 'electric', 'psychi
 export const STAB = 1.3
 export const AOE_RADIUS = 150
 
-const BOSS = { hp: 3, atk: 1.12, def: 1.05 }
-const ELITE = { hp: 1.7, atk: 1.1, def: 1.05 }
+const BOSS = { hp: 3.15, atk: 1.05, def: 1.20 }
+const ELITE = { hp: 1.95, atk: 1.08, def: 1.14 }
 /** 아군은 스톤으로 강해지므로 일반 적의 공격은 살짝 낮춘다 */
 const ENEMY_ATK = 0.96
 
@@ -200,7 +201,7 @@ function makeUnit(b: Battle, side: Side, speciesId: number, level: number, stats
     critTakenResist: stats.critTakenResist ?? 0,
     spirit: { mul: 0, until: 0 },
     buff: { atk: 0, def: 0, speed: 0, until: 0 }, debuff: { atk: 0, def: 0, speed: 0, until: 0 }, status: null, scatterT: 0, elite,
-    spCd: side === 'ally' ? 1.2 : 6 + b.rng() * 3,
+    spCd: side === 'ally' ? 1.2 : boss ? 2.8 + b.rng() * 1.0 : 3.2 + b.rng() * 1.8,
     alive: true, deadT: 0, revives: 0, lunge: 0, hurt: 0,
   }
 }
@@ -250,11 +251,30 @@ function joinLate(b: Battle, kind: 'call' | 'new' | 'bossHp') {
 }
 
 export function createBattle(allies: AllyInput[], waves: WaveEnemy[][], rng: Rng = Math.random, stage?: Pick<Stage,'area'|'index'>): Battle {
+  // Retail encounter data has sequential small segments. Our 2D 3-wave
+  // representation otherwise spawns four foes simultaneously against one
+  // tutorial starter, unfairly stacking special attacks. Keep all source
+  // encounters for full parties; cap only non-final 1-1 solo groups at two.
+  const soloIntro = stage?.area === ORIGINAL_FIRST && stage.index === 0 && allies.length === 1
+  const adjustedWaves = soloIntro
+    ? waves.map((group, index) => index === waves.length - 1 ? group : group.slice(0, 2))
+    : waves
   const b: Battle = {
-    late: [], scatterCd: 0, surrounded: false, waveKills: 0, t: 0, units: [], waves, wave: 0, phase: 'fight', phaseT: 0, pending: [], queue: [], events: [],
+    late: [], scatterCd: 0, surrounded: false, waveKills: 0, t: 0, units: [], waves: adjustedWaves, wave: 0, phase: 'fight', phaseT: 0, pending: [], queue: [], events: [],
     auto: false, kills: 0, nextUid: 1, rng, manualPoint: null, manualDirection: null, balance: stage ? encounterBalance(stage, allies.length) : { hp: 1, attack: 1, defense: 1, allyHeal: 0.1, bossHp: 1 },
   }
   allies.forEach((a, i) => b.units.push(makeUnit(b, 'ally', a.speciesId, a.level, a.stats, i, false, { ownedId: a.ownedId, fx: a.fx, move: a.move, move2: a.move2, fx2: a.fx2 })))
+  if (soloIntro) {
+    // A first-time explorer has no stones or teammates. Give their single
+    // starter a temporary, stage-only HP safety buffer; all enemy HP, moves
+    // and strength remain at the normal medium-difficulty baseline.
+    const starter = b.units.find(u => u.side === 'ally')!
+    starter.maxHp = Math.ceil(starter.maxHp * 1.8)
+    starter.hp = starter.maxHp
+    // Mobee's first-expedition safety support is restricted to 1-1 solo.
+    // It offsets multiple ranged enemies during auto-combat, not enemy HP.
+    starter.regen = Math.max(starter.regen, 0.025)
+  }
   spawnWave(b)
   return b
 }
@@ -575,7 +595,8 @@ export function step(b: Battle, dt: number): void {
       u.atkCd -= u.status?.kind === 'paralyze' ? dt * 0.5 : dt
       u.spCd = Math.max(0, u.spCd - dt)
       u.spCd2 = Math.max(0, u.spCd2 - dt)
-      const automated = u.boss || (u.side === 'ally' && b.auto) || u.side === 'enemy' && u.special.role
+      // Every hostile Pokémon may use its offensive move, not just bosses or support users.
+      const automated = u.side === 'enemy' || (u.side === 'ally' && b.auto)
       if (automated && u.scatterT <= 0) {
         const primary = u.spCd <= 0
         const secondary = !!u.secondary && u.spCd2 <= 0 && u.side === 'ally'

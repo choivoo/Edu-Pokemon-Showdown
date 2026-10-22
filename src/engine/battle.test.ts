@@ -18,7 +18,8 @@ const ally = (id: number, level: number, i: number): AllyInput => ({ ownedId: 'o
 /** 헤드리스 시뮬레이션 (필살기 자동 사용) */
 function sim(team: AllyInput[], area: number, stageIdx: number, seed: number) {
   const rng = mulberry(seed)
-  const b = createBattle(team, buildWaves(getStage(area, stageIdx), rng), rng)
+  const stage = getStage(area, stageIdx)
+  const b = createBattle(team, buildWaves(stage, rng), rng, stage)
   b.auto = true
   for (let i = 0; i < 20 * 60 * 10 && b.phase !== 'won' && b.phase !== 'lost'; i++) step(b, 0.1)
   return b
