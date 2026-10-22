@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useGame } from '../../store/gameStore'
 import { ALL_STORY_SCENES, EPILOGUE_SCENES, STORY_CHAPTERS, storyProgress, storyUnlocked, type StoryScene } from '../../lib/storyCampaign'
 import Dialog from '../../components/Dialog'
 import { Btn, Panel } from '../../ui/kit'
 import Icon from '../../ui/Icon'
+import { bgm } from '../../lib/sound'
 
 /** 탐험 결과에서 처음 본 장면뿐 아니라 보너스 기록도 다시 읽을 수 있는 모험일지. */
 export default function StoryPanel() {
@@ -11,6 +12,11 @@ export default function StoryPanel() {
   const [chapter, setChapter] = useState(0)
   const [selected, setSelected] = useState<string | null>(null)
   const [reading, setReading] = useState<StoryScene | null>(null)
+  useEffect(()=>{
+    if (reading) bgm.playScene(/비상|긴급|위기|폭주|경고/.test(reading.title) ? 'story-emergency' : 'story-talk', 'story')
+    else bgm.play('camp')
+    return ()=>{if(reading)bgm.play('camp')}
+  },[reading])
   const ch = STORY_CHAPTERS[chapter]
   const episodes = chapter === STORY_CHAPTERS.length - 1 ? [...ch.scenes, ...EPILOGUE_SCENES] : ch.scenes
   const usable = episodes.filter(scene => storyUnlocked(save, scene))
