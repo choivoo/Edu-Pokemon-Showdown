@@ -4,6 +4,7 @@ import { type AllyInput, type Battle as BattleState, createBattle, movePartyTo, 
 import { consumeEvents, drawBattle, H, newVisual, preload, SLOT_COLORS, W } from '../engine/render'
 import { AREAS, AREA_BONUS_MUL, buildWaves, hasAreaBonus, type Theme } from '../lib/stages'
 import { HAPPENSTANCE_AREA } from '../lib/originalCampaign'
+import { cueForBattle } from '../lib/officialCues'
 import { getSpecies } from '../lib/roster'
 import { moveFxOf, partyMons, statsOf } from '../lib/party'
 import { bgm, sfx } from '../lib/sound'
