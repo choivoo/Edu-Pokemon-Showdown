@@ -42,7 +42,7 @@ describe('저장 키', () => {
     const keys = await exportSave(save)
     expect(keys.saveKey.startsWith('PQF1')).toBe(true)
     const back = await importSave(keys.saveKey, keys.password)
-    expect(back).toEqual({ ...save, seenStory: ['intro-0'] })
+    expect(back).toEqual(save)
   })
 
   it('붙여 넣을 때 공백·줄바꿈·소문자·하이픈이 섞여도 복원된다', async () => {
@@ -98,6 +98,6 @@ describe('저장 키', () => {
 
   it('pack/unpack 왕복', () => {
     const s = sample()
-    expect(unpack(pack(s))).toEqual({ ...s, seenStory: ['intro-0'] })
+    expect(unpack(pack(s))).toEqual(s)
   })
 })
