@@ -13,8 +13,23 @@ describe('웨이브 이벤트', () => {
     const w = buildWaves(getStage(1, 1), seq(5))
     expect(w[w.length - 1].some(e => e.elite)).toBe(true)
   })
-  it('첫 두 판은 이벤트 없이 시작한다', () => {
-    for (let s = 1; s < 30; s++) for (const w of buildWaves(getStage(0, 0), seq(s))) expect(w.some(e => e.late || e.surround || e.elite)).toBe(false)
+  it('첫 스테이지는 호출/포위가 없고 마지막 웨이브에 강적이 등장한다', () => {
+    for (let s = 1; s < 30; s++) {
+      const waves = buildWaves(getStage(0, 0), seq(s))
+      expect(waves.flat().some(e => e.late || e.surround)).toBe(false)
+      expect(waves[waves.length-1].some(e => e.elite || e.boss)).toBe(true)
+    }
+  })
+  it('각 스테이지의 마지막 강적을 쓰러뜨리면 폭발 팡파르 이벤트를 남긴다', () => {
+    const waves: WaveEnemy[][] = [[{species:19,level:1,elite:true}]]
+    const b = createBattle([ally(150,90,0)], waves, seq(20))
+    b.auto = true
+    const enemy = b.units.find(u=>u.side==='enemy')!
+    enemy.hp=1
+    enemy.atkCd=999
+    for (let i=0;i<2000 && enemy.alive;i++) step(b,.05)
+    expect(enemy.alive).toBe(false)
+    expect(b.events.some(e=>e.k==='bossDefeated'&&e.uid===enemy.uid)).toBe(true)
   })
   it('여러 시드에서 호출/새 무리/포위 이벤트가 모두 나온다', () => {
     const kinds = new Set<string>()
