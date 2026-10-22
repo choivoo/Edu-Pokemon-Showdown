@@ -27,6 +27,7 @@ function sim(team: AllyInput[], area: number, stageIdx: number, seed: number) {
 describe('battle engine', () => {
   it('충분히 강한 팀은 1-1을 클리어한다', () => {
     const wins = [1, 2, 3, 4, 5].filter(s => sim([ally(4, 6, 0), ally(7, 6, 1), ally(1, 6, 2)], 6, 0, s).phase === 'won')
+    if(wins.length<4) {for(const seed of [1,2]){const b=sim([ally(4,6,0),ally(7,6,1),ally(1,6,2)],6,0,seed);console.log('TEAM-DIAG',JSON.stringify({seed,phase:b.phase,t:b.t,wave:b.wave,units:b.units.map(u=>({name:u.name,side:u.side,hp:Math.round(u.hp),maxHp:u.maxHp,alive:u.alive})),balance:b.balance}))}}
     expect(wins.length).toBeGreaterThanOrEqual(4)
   })
   it('레벨이 너무 낮으면 보스에게 진다', () => {
