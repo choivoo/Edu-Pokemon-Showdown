@@ -1,6 +1,7 @@
 import { audio, masterOut } from './audio'
 import { DRUM_INSTS, NOTE_INSTS } from './instruments'
 import { JINGLES, SONGS, STEPS, type JingleName, type Song, type SongName } from './songs'
+import { SOUNDTRACK_CUES, type TrackCue } from './officialCueMap'
 
 const indexCache = new WeakMap<Song, Array<Array<{ trackIdx: number; kind: 'note' | 'drum'; midi?: number; dur: number; vel: number }>>>()
 
@@ -116,12 +117,39 @@ const CUE_INDEX:Record<SongName,number>={
 }
 export const LOCAL_CUES:Record<SongName,{start:number;end:number}>=Object.fromEntries(
  (Object.entries(CUE_INDEX) as [SongName,number][]).map(([name,index])=>[name,OST_TRACKLIST[index]])
-) as Record<SongName,{start:number;end:number}>
+) as unknown as Record<SongName,{start:number;end:number}>
 
 let localAudio:HTMLAudioElement|null=null
 let localBlobUrl:string|null=null
 let activeLocalCue:{start:number;end:number}|null=null
 let activeLocalIndex=-1
+let sceneCue:TrackCue|null=null
+let remoteChecked=false
+let sharedMode=false
+const PART_STARTS=[0,1260,2412,3494] as const
+const partIndex=(n:number)=>n>=3494?3:n>=2412?2:n>=1260?1:0
+const partUrl=(n:number)=>import.meta.env.BASE_URL+'audio/quest-part-'+(n+1)+'.mp3'
+const toScene=(name:SongName):TrackCue=>({
+  title:'title',camp:'camp',map:'expeditions',battle:'firstSteppe',boss:'boss1',
+  story:'storyTalk',tide:'brook',grove:'gloom',echo:'cave',spark:'peak',
+  ember:'plain',astral:'happenGrass'
+} satisfies Record<SongName,TrackCue>)[name]
+
+function startChapter(player:HTMLAudioElement,start:number,end:number){
+ const index=partIndex(start)
+ const offset=sharedMode ? PART_STARTS[index] : 0
+ if(sharedMode){
+   const desired=partUrl(index)
+   if(!player.src.endsWith(desired)){player.src=desired;player.load()}
+ }
+ activeLocalCue={start:start-offset,end:end-offset}
+ const cue=activeLocalCue
+ const seek=()=>{if(activeLocalCue===cue)player.currentTime=cue.start}
+ if(player.readyState>=1)seek()
+ else player.addEventListener('loadedmetadata',seek,{once:true})
+ void player.play().catch(()=>{/* mobile browsers require a first tap */})
+}
+
 
 
 function bgmBus(ctx: AudioContext): AudioNode | null {
@@ -148,6 +176,7 @@ export const bgm = {
     const node=ctx.createMediaElementSource(player)
     node.connect(bus)
     localAudio=player
+    sharedMode=false
     activeLocalIndex=-1
     player.preload='auto'
     player.addEventListener('timeupdate',()=>{
@@ -164,63 +193,91 @@ export const bgm = {
     const previous=currentName || 'title'
     localAudio?.pause()
     if(localAudio){localAudio.removeAttribute('src');localAudio.load()}
-    localAudio=null;activeLocalCue=null;activeLocalIndex=-1
+    localAudio=null;activeLocalCue=null;activeLocalIndex=-1;sharedMode=false
     if(localBlobUrl)URL.revokeObjectURL(localBlobUrl)
     localBlobUrl=null;currentName=''
     this.play(previous)
   },
-  /** Play exactly the user's 27-section MP3 cue, with original synth as fallback.
-   * A soundtrack is never bundled into the public website.
-   */
+  /** No file picker: use the same hosted four-part licensed soundtrack on every device. */
+  enableSharedMusic(){
+    if(remoteChecked)return
+    remoteChecked=true
+    void fetch(partUrl(0),{method:'HEAD'}).then(res=>{
+      if(!res.ok||localAudio)return
+      const ctx=audio(),bus=ctx&&bgmBus(ctx)
+      if(!ctx||!bus)return
+      const player=new Audio(partUrl(0))
+      player.crossOrigin='anonymous'
+      player.preload='auto'
+      ctx.createMediaElementSource(player).connect(bus)
+      player.addEventListener('timeupdate',()=>{
+        if(!activeLocalCue)return
+        if(player.currentTime>=activeLocalCue.end-.1 ||
+           player.currentTime<activeLocalCue.start-.5)player.currentTime=activeLocalCue.start
+      })
+      player.addEventListener('error',()=>{
+        if(localAudio!==player)return
+        localAudio=null;activeLocalCue=null;sharedMode=false;currentName=''
+        this.play('camp')
+      })
+      localAudio=player;sharedMode=true
+      const selected=sceneCue??toScene(currentName||'title')
+      const fallback=currentName||'title'
+      current?.fadeOut(.25);current=null;currentName=''
+      this.playCue(selected,fallback)
+    }).catch(()=>{/* original synthesized tracks remain available */})
+  },
   playTrack(index:number,fallback:SongName='battle'){
-    const cue=OST_TRACKLIST[index]
-    if(!cue){this.play(fallback);return}
+    const track=OST_TRACKLIST[index]
+    if(!track){this.play(fallback);return}
+    sceneCue=(Object.keys(SOUNDTRACK_CUES) as TrackCue[]).find(k=>SOUNDTRACK_CUES[k][0]===track.start)??null
     if(!localAudio){this.play(fallback);return}
-    if(activeLocalIndex===index && currentName===fallback && !localAudio.paused)return
+    const same=activeLocalIndex===index&&currentName===fallback&&!localAudio.paused
+    if(same)return
     activeLocalIndex=index
-    activeLocalCue=cue
-    current?.fadeOut(0.18);current=null
-    const player=localAudio
-    const seek=()=>{
-      if(localAudio===player && activeLocalCue===cue)
-        player.currentTime=Math.min(cue.start,Math.max(0,(player.duration||4524)-1))
-    }
-    if(player.readyState>=1)seek()
-    else player.addEventListener('loadedmetadata',seek,{once:true})
-    void player.play().catch(()=>{/* user may need to tap for mobile audio permission */})
+    current?.fadeOut(.18);current=null
+    startChapter(localAudio,track.start,Number.isFinite(track.end)?track.end:4524.23)
     currentName=fallback
   },
-  /** 배경음악을 바꾼다. 이미 같은 곡이면 그대로 둔다. */
-  play(name: SongName) {
-    if (currentName === name && activeLocalIndex===-1 && (current || (localAudio && !localAudio.paused)))return
+  playCue(cue:TrackCue,fallback:SongName='battle'){
+    sceneCue=cue
+    if(!remoteChecked)this.enableSharedMusic()
+    if(!localAudio){
+      this.play(fallback)
+      sceneCue=cue
+      return
+    }
+    const range=SOUNDTRACK_CUES[cue]
+    if(currentName===fallback&&activeLocalCue &&
+       activeLocalCue.start === range[0]-(sharedMode?PART_STARTS[partIndex(range[0])]:0) &&
+       !localAudio.paused)return
+    activeLocalIndex=-1
+    current?.fadeOut(.18);current=null
+    startChapter(localAudio,range[0],range[1])
+    currentName=fallback
+  },
+  play(name:SongName){
+    sceneCue=toScene(name)
+    if(!remoteChecked)this.enableSharedMusic()
+    if(currentName===name && activeLocalIndex===-1&&(current || (localAudio&&!localAudio.paused)))return
     activeLocalIndex=-1
     if(localAudio){
-      const cue=LOCAL_CUES[name]
-      activeLocalCue=cue
-      current?.fadeOut(0.15);current=null
-      const player=localAudio
-      const seek=()=>{
-        if(localAudio===player && activeLocalCue===cue)
-          player.currentTime=Math.min(cue.start,Math.max(0,(player.duration||4524)-1))
-      }
-      if(player.readyState>=1)seek()
-      else player.addEventListener('loadedmetadata',seek,{once:true})
-      void player.play().catch(()=>{/* browsers may require a new user gesture */})
+      current?.fadeOut(.15);current=null
+      const range=LOCAL_CUES[name]
+      startChapter(localAudio,range.start,range.end)
       currentName=name
       return
     }
-    const ctx = audio()
-    const bus = ctx && bgmBus(ctx)
-    if (!ctx || !bus) return
-    current?.fadeOut(0.35)
-    current = new Player(SONGS[name], ctx, bus, ctx.currentTime + 0.08)
-    currentName = name
+    const ctx=audio(),bus=ctx&&bgmBus(ctx)
+    if(!ctx||!bus)return
+    current?.fadeOut(.35)
+    current=new Player(SONGS[name],ctx,bus,ctx.currentTime+.08)
+    currentName=name
   },
-  stop() {
+  stop(){
     localAudio?.pause()
-    current?.fadeOut(0.3)
-    current = null
-    currentName = ''
+    current?.fadeOut(.3)
+    current=null;currentName=''
   },
   /** 효과 음악이 나오는 동안 배경음악을 줄인다 */
   duck(seconds: number) {
