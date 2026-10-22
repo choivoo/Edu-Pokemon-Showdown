@@ -33,9 +33,9 @@ export function encounterBalance(stage: Pick<Stage,'area'|'index'>, partySize = 
     const i=Math.max(0,Math.min(stage.index,4))
     // Former 0.31 × 0.65 health made the first enemies die to a single
     // unupgraded basic move. The new band is deliberately near neutral HP.
-    const hp=[1.07,1.11,1.17,1.24,1.30][i]
-    const attack=[0.60,0.66,0.72,0.79,0.86][i]
-    const defense=[1.02,1.05,1.08,1.12,1.15][i]
+    const hp=[1.07,1.11,1.13,1.21,1.27][i]
+    const attack=[0.60,0.66,0.59,0.75,0.84][i]
+    const defense=[1.02,1.05,1.04,1.10,1.13][i]
     return {
       // 1-1 to 1-4: regular foes withstand at least two ordinary hits;
       // elite finales and the region boss last several well-aimed impacts.
@@ -43,9 +43,9 @@ export function encounterBalance(stage: Pick<Stage,'area'|'index'>, partySize = 
       hp:hp*(solo?0.83:duo?0.93:1),
       attack:attack*(solo?(i===0?0.61:i===1?0.70:0.74):duo?0.87:1),
       defense:defense*(solo?0.96:duo?0.99:1.02),
-      allyHeal:(i<2?0.16:0.10)+(solo?0.12:duo?0.035:0),
+      allyHeal:(i<2?0.16:i===2?0.19:0.12)+(solo?0.12:duo?0.035:0),
       // A boss's multiplier is applied on top of the large innate boss HP.
-      bossHp:(i<3?0.94:1.05)*(solo?(i===0?0.76:0.88):duo?0.96:1),
+      bossHp:(i<2?0.94:i===2?0.84:1.05)*(solo?(i===0?0.76:0.88):duo?0.96:1),
     }
   }
   if(stage.area===ORIGINAL_FIRST+1||stage.area===ORIGINAL_FIRST+2){
