@@ -1,28 +1,23 @@
-# Pokémon Quest Fan Edition — 1.0 Official Release 오디오 배포
+# Pokémon Quest Fan Edition 1.0 Official — 실제 출시·음악 재생 상태
 
-**최종 앱 버전:** 1.0.0. 사용자는 Pokémon Quest OST MP3를 제공하고 사용 허가를 받았다고 밝혔습니다. 이 저장소에서는 원본의 실제 권리·허가서를 검증하지 않았습니다.
+**현재 저장소:** https://github.com/choivoo/PQFE-Pokemon-Quest-fan.Edition-  
+**게임:** https://choivoo.github.io/PQFE-Pokemon-Quest-fan.Edition-/  
+**출시:** https://github.com/choivoo/PQFE-Pokemon-Quest-fan.Edition-/releases/tag/v1.0.0-official
 
-## 27개 음악 자동 장면 매핑
-- 타이틀: Title; 새 게임: Intro; 튜토리얼: Tutorial(추후 실제 튜토리얼 화면 별도 대응)
-- 탐험 결과: Expedition Results; 베이스캠프: Base Camp; 월드맵: Expeditions
-- 본편 1~10지역: First Steppe, Gloomy Grove, Backforth Brook, Parched Peak, Belly Button Cave, Pincushion Plain, Miasma Moor, Hushed Highlands, Nightlight Nook, Farside Fjord
-- 보스전: Boss Battle 1 / Boss Battle 2; 최종 뮤츠: Mewtwo Battle
-- 기이한 섬: Grassland, Waterside, Cave, Forest, Mountain
-- Story Talk, Story Emergency, Staff Roll 음원은 매니페스트에 포함되며 실제 해당 장면에서 호출 가능한 구조입니다. 별도 스토리 스크립트/크레딧 진입 흐름이 연결되지 않은 화면은 곡만 준비된 상태입니다.
+## 공개 음원은 이미 업로드되어 있습니다
 
-## 현재 GitHub 배포의 중요한 제한
+사용자가 제공하고 공개 사용 허가를 받았다고 밝힌 **75분 24초 MP3**가 `v1.0.0-official` GitHub 릴리스에 `quest-licensed-soundtrack.mp3`라는 이름으로 약 **36MB 크기**로 등록되어 있습니다. 각 기기에서 사용자가 따로 MP3를 선택할 필요가 없으며, 게임은 동일한 공개 릴리스 URL을 브라우저 HTMLAudioElement로 직접 스트리밍합니다.
 
-연결된 GitHub 파일 편집 도구는 **텍스트 파일만 전송**할 수 있습니다. 사용자가 제공한 원본은 **174MB**이고, 여기서 분리한 27개 크로스브라우저 MP3는 합계 약 **36MB**입니다. 이 MP3 **바이너리까지 저장소에 업로드된 것은 아닙니다**. 따라서 코드가 1.0으로 배포돼도, 개별 MP3를 저장소에 저장하기 전에는 공식 음원이 모든 기기에서 재생되는 상태가 아닙니다. 오디오를 찾지 못하면 기존 자체 작곡 BGM을 사용합니다.
+`src/lib/licensedSoundtrack.ts`는 **변경된 저장소명**을 사용합니다. `src/lib/officialCues.ts`에서 지정된 **27개 연속 트랙 구간**을 해당 단일 MP3에서 탐색하고, 구간 종료 시 해당 부분을 반복 재생합니다. 별도 `public/soundtrack/` 폴더나 27개 MP3 업로드는 필요하지 않습니다.
 
-### 배포 마지막 단계
+장면 자동 매칭: 시작(Title), 입항(Intro), 첫 두 탐험(Tutorial), 탐험 결과(Expedition Results), 캠프(Base Camp), 지도(Expeditions), 1~10지역, 중·후반 보스전, 뮤츠, 스태프롤, 기이한 섬 5종 환경. 효과음과 강적 퇴장 팡파르는 별도 게임 오디오 합성 경로를 사용합니다.
 
-1. 첨부된 `quest_official_1_0_music_pack.zip` 압축을 풉니다.
-2. ZIP 내부의 `public/soundtrack/`에 들어 있는 **27개의 MP3**를 동일한 경로로 GitHub 저장소에 커밋합니다. 필요시 GitHub 웹 업로드 또는 Git 클라이언트로 파일을 올리세요. 파일당 2.6MB 이하여서 GitHub의 파일 크기 제한 안에 있습니다.
-3. main으로 병합한 뒤 GitHub Actions의 **Deploy to GitHub Pages**가 성공했는지 확인합니다.
-4. 제목, 각 지역, 보스전, 뮤츠전 등에서 음악이 장면마다 바뀌는지 확인합니다. iOS/Android에서는 첫 터치로 오디오 권한을 활성화합니다.
+브라우저의 자동 재생 차단으로 **첫 터치·클릭 또는 키 입력 이후에 재생이 시작**될 수 있습니다. 사용자가 음소거한 경우 음악도 음소거됩니다. 릴리스 음원이 응답하지 않거나 디코딩에 실패하면 기본 창작 2D 게임 신시사이저 BGM으로 자동 전환합니다.
 
-기존 게임/암호화 저장 데이터는 삭제하지 않습니다. **계정 초기화**는 게임 내 계정 초기화 UI가 기존 기능을 호출합니다. 초기화 시 데이터 손실 가능성을 반드시 확인해야 합니다.
+## 1.0 배포 및 보존
 
-## 중요한 고지
+`.github/workflows/official-1-0-release.yml`은 현재 저장소명으로 검증을 통과한 `main` 커밋마다 Official 웹 ZIP을 새로 만들고 릴리스에 **덮어쓰기**합니다. 음원 자산은 삭제하거나 덮어쓰지 않고 그대로 유지합니다. Pages 워크플로도 `main`으로부터 게임을 빌드합니다. npm 패키지 버전은 `1.0.0`을 유지합니다.
 
-버전의 'Official Release'는 **이 팬게임의 최종 공식 버전명**이지, Nintendo·The Pokémon Company의 공식 게임 또는 그 승인을 의미하지 않습니다.
+기존 포켓몬·빙고·재료·석상·스테이지 진행은 보존합니다. 게임 내 계정 초기화는 사용자 확인 문구 입력을 요구하는 별도 기능이며, 배포·업데이트가 자동으로 초기화를 실행하지 않습니다.
+
+**권리 안내:** 사용자는 음원 사용 허가를 받았다고 진술했습니다. 공개 배포 권한의 구체적인 범위 및 권리자 동의를 저장소나 이 문서에서 독립 검증한 것은 아닙니다. 'Official'은 이 팬게임 버전명일 뿐 Pokémon 권리자의 승인·제휴를 뜻하지 않습니다.
