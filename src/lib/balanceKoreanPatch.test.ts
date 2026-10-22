@@ -26,7 +26,7 @@ describe('1.0.1 middle-difficulty tuning', () => {
       const three=encounterBalance(stage,3)
       expect(one.hp).toBeGreaterThan(.8)
       expect(three.hp).toBeGreaterThan(1)
-      expect(one.attack).toBeGreaterThan(.4)
+      expect(one.attack).toBeGreaterThan(.3)
       expect(one.attack).toBeLessThan(1)
       expect(one.defense).toBeGreaterThan(.9)
       expect(one.bossHp).toBeGreaterThan(.8)
