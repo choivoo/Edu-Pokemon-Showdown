@@ -26,7 +26,7 @@ export function cueForExpedition(area:number,boss:boolean,stageIndex:number):Tra
    return (['happenGrass','happenWater','happenCave','happenForest','happenMountain'] as const)[biome]
  }
  if(boss)return area===16?'mewtwo':stageIndex>=4?'boss2':'boss1'
- return REGION_CUES[Math.max(0,Math.min(REGION_CUES.length-1,area))]??'expeditions'
+ return REGION_CUES[Math.max(0,Math.min(REGION_CUES.length-1,area>=6 ? area-6 : area))]??'expeditions'
 }
 export function cueForScene(screen:string):TrackCue {
  switch(screen){
