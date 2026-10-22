@@ -30,17 +30,6 @@ describe('gentle beginner difficulty without flatlining later progression', () =
       const b=createBattle([pikachu],buildWaves(stage,rng),rng,stage)
       let steps=0
       while(b.phase!=='won'&&b.phase!=='lost'&&steps++<5000)step(b,.1)
-      if(b.phase!=='won') {
-        const hero=b.units.find(u=>u.side==='ally')!
-        console.log('PIKACHU-DIAG',JSON.stringify({
-          seed,phase:b.phase,t:b.t,wave:b.wave,balance:b.balance,
-          hero:{hp:hero.hp,maxHp:hero.maxHp,move:hero.special.name,move2:hero.secondary?.name,atk:hero.atk},
-          foes:b.units.filter(u=>u.side==='enemy').map(u=>({hp:u.hp,maxHp:u.maxHp,name:u.name})),
-          cast:b.events.filter(e=>e.k==='attack'&&e.from===hero.uid).length,
-          hit:b.events.filter(e=>e.k==='hit'&&e.from===hero.uid).length,
-          hitValues:b.events.filter(e=>e.k==='hit'&&e.from===hero.uid).map(e=>e.k==='hit'?e.amount:0).slice(-15),
-        }))
-      }
       expect(b.phase).toBe('won')
     }
   })
