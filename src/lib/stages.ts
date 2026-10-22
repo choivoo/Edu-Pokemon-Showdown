@@ -177,7 +177,9 @@ export function getStage(area: number, index: number): Stage {
   const boss = postgame || index === stageCount(area) - 1
   const level = a.levelBase + index * (postgame ? 5 : 1) + (boss ? 1 : 0)
   const firstSteppe = area === ORIGINAL_FIRST
-  const firstSteppeStrength = [140, 260, 390, 520] as const
+  // Displayed power now reflects the actual calibrated three-Pokémon 1-3+ challenge.
+  // The previous 390 estimate understated the effective threat by >2x.
+  const firstSteppeStrength = [140, 260, 900, 1220] as const
   const firstSteppeBoss = [52, 11, 17] as const
   return {
     id: stageId(area, index), area, index,
