@@ -171,7 +171,16 @@ export default function TeamPanel() {
             ) : right === 'moves' ? (
               <div className="space-y-1.5">
                 <p className="text-sm font-bold">장착 중 ({equipped.length}/{moveSlots}) · 각 기술에 개별 적용</p>
-                {mon.move2 && <div className="flex gap-1 pb-1"><Btn color={activeMoveSlot===0?'yellow':'gray'} onClick={()=>setActiveMoveSlot(0)} className="flex-1 text-sm">기술 1: {koreanMoveName(getMove(mon.move??sp.special).name)}</Btn><Btn color={activeMoveSlot===1?'yellow':'gray'} onClick={()=>setActiveMoveSlot(1)} className="flex-1 text-sm">기술 2: {koreanMoveName(getMove(mon.move2).name)}</Btn></div>}
+                {mon.move2 && <div className="grid grid-cols-2 gap-1 pb-1">
+                  <Btn color={activeMoveSlot===0?'yellow':'gray'} onClick={()=>setActiveMoveSlot(0)}
+                    className="min-w-0 whitespace-normal break-all px-1 py-1 text-xs leading-snug">
+                    기술 1: {koreanMoveName(getMove(mon.move??sp.special).name)}
+                  </Btn>
+                  <Btn color={activeMoveSlot===1?'yellow':'gray'} onClick={()=>setActiveMoveSlot(1)}
+                    className="min-w-0 whitespace-normal break-all px-1 py-1 text-xs leading-snug">
+                    기술 2: {koreanMoveName(getMove(mon.move2).name)}
+                  </Btn>
+                </div>}
                 <div className="grid grid-cols-3 gap-2">
                   {Array.from({ length: moveSlots }, (_, i) => {
                     const m = equipped[i]
