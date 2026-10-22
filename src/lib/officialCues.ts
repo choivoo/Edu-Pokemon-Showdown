@@ -1,6 +1,6 @@
-/** Public licensed soundtrack cue manifest. Timecodes supplied by user.
- * Files must be actual audio assets under public/soundtrack/ at build time.
- * The website falls back to bundled original synthesized music otherwise.
+/** User-authorized original soundtrack cue manifest. The 27 chapters stream
+ * from the public GitHub v1.0.0-official release asset, NOT from files in
+ * public/soundtrack/. Synthesizer tracks are a fail-safe fallback.
  */
 export const OFFICIAL_CUES = [
  ['title','Title','00:00','02:38'],
