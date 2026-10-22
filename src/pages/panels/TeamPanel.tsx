@@ -3,6 +3,7 @@ import { useGame } from '../../store/gameStore'
 import { expToNext, MAX_LEVEL } from '../../lib/stats'
 import { canPlace, cellsOf, GRID_H, GRID_W, occupancy, SHAPES, type Stone, STONE_INFO, STONE_PERK_LABEL, stoneName, unlockedSet } from '../../lib/stones'
 import { getMove, getSpecies } from '../../lib/roster'
+import { koreanMoveName } from '../../data/questMoveKorean'
 import { bingoOf, equippedMoveStones, powerOf, statsOf, usedMoveStoneIds, usedStoneIds } from '../../lib/party'
 import { BONUS_INFO, completeLines } from '../../lib/bingo'
 import { questBingoOptions } from '../../lib/questBingo'
@@ -100,7 +101,7 @@ export default function TeamPanel() {
               <span key={k as string} className="rounded-lg px-1 py-0.5 text-white" style={{ background: c as string }}>{k}<br /><b className="text-base">{v}</b></span>
             ))}
           </div>
-          <p className="flex items-center gap-1 text-sm"><Icon n="sword" s={18} />{powerRating(stats)} · {getMove(sp.basic).name}(자동) · <Icon n="star" s={16} />{getMove(mon.move ?? sp.special).name}{mon.move2 ? ' / ' + getMove(mon.move2).name : ''}</p>
+          <p className="flex items-center gap-1 text-sm"><Icon n="sword" s={18} />{powerRating(stats)} · {koreanMoveName(getMove(sp.basic).name)}(자동) · <Icon n="star" s={16} />{koreanMoveName(getMove(mon.move ?? sp.special).name)}{mon.move2 ? ' / ' + koreanMoveName(getMove(mon.move2).name) : ''}</p>
 
           <div className="flex gap-3">
             <div className="pq-dark relative p-2" style={{ width: GRID_W * CELL + 16 }} onMouseLeave={() => setHover(null)}>
@@ -170,7 +171,7 @@ export default function TeamPanel() {
             ) : right === 'moves' ? (
               <div className="space-y-1.5">
                 <p className="text-sm font-bold">장착 중 ({equipped.length}/{moveSlots}) · 각 기술에 개별 적용</p>
-                {mon.move2 && <div className="flex gap-1 pb-1"><Btn color={activeMoveSlot===0?'yellow':'gray'} onClick={()=>setActiveMoveSlot(0)} className="flex-1 text-sm">기술 1: {getMove(mon.move??sp.special).name}</Btn><Btn color={activeMoveSlot===1?'yellow':'gray'} onClick={()=>setActiveMoveSlot(1)} className="flex-1 text-sm">기술 2: {getMove(mon.move2).name}</Btn></div>}
+                {mon.move2 && <div className="flex gap-1 pb-1"><Btn color={activeMoveSlot===0?'yellow':'gray'} onClick={()=>setActiveMoveSlot(0)} className="flex-1 text-sm">기술 1: {koreanMoveName(getMove(mon.move??sp.special).name)}</Btn><Btn color={activeMoveSlot===1?'yellow':'gray'} onClick={()=>setActiveMoveSlot(1)} className="flex-1 text-sm">기술 2: {koreanMoveName(getMove(mon.move2).name)}</Btn></div>}
                 <div className="grid grid-cols-3 gap-2">
                   {Array.from({ length: moveSlots }, (_, i) => {
                     const m = equipped[i]
