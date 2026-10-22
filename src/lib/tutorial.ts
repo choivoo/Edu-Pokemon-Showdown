@@ -5,8 +5,11 @@
  * -> scripted Pidgey and Rattata recruitment.
  */
 import type { SaveData } from './storage'
+import type { IngredientId } from './cooking'
 import type { WaveEnemy, Stage } from './stages'
 import { ORIGINAL_FIRST } from './originalCampaign'
+/** Five starter ingredients, available before the first expedition. */
+export const TUTORIAL_STEW_INGREDIENTS: IngredientId[] = ['mushroomRed','berryBlue','nutYellow','fossil','rootRed']
 export const TUTORIAL_ACTIVE = 'tutorial:guided-v1'
 export const TUTORIAL_FINISHED = 'tutorial:completed-v1'
 export const TUTORIAL_ACKNOWLEDGED = 'tutorial:completion-seen-v1'
