@@ -16,7 +16,7 @@ async function copy(text: string): Promise<boolean> {
 }
 
 export default function SavePanel() {
-  const { save, openPanel, markExported, importSave: apply } = useGame()
+  const { save, openPanel, markExported, importSave: apply, hardReset } = useGame()
   const [tab, setTab] = useState<'export' | 'import'>(save.started ? 'export' : 'import')
   const [keys, setKeys] = useState<ExportedKeys | null>(null)
   const [busy, setBusy] = useState(false)
@@ -25,6 +25,8 @@ export default function SavePanel() {
   const [inPw, setInPw] = useState('')
   const [err, setErr] = useState('')
   const [confirm, setConfirm] = useState(false)
+  const [resetCode,setResetCode]=useState('')
+  const [resetShown,setResetShown]=useState(false)
 
   const make = async () => {
     setBusy(true)
@@ -116,6 +118,15 @@ export default function SavePanel() {
           </div>
         </div>
       )}
+      <div className="mt-2 rounded border-2 border-red-500/50 bg-red-50 p-2 text-red-900">
+        {!resetShown ? <Btn color="red" onClick={() => setResetShown(true)} className="px-3 text-sm">계정 데이터 초기화</Btn> :
+        <div className="flex items-center gap-2">
+          <p className="text-sm">모든 포켓몬·재료·업적·진행도가 영구 삭제됩니다. 먼저 저장 키를 백업하세요.</p>
+          <input aria-label="초기화 확인" className="w-[100px] border-2 p-1 text-black" value={resetCode} placeholder="초기화" onChange={e=>setResetCode(e.target.value)} />
+          <Btn color="gray" onClick={()=>{setResetShown(false);setResetCode('')}} className="text-sm">취소</Btn>
+          <Btn color="red" disabled={resetCode!=='초기화'} onClick={()=>{hardReset();openPanel(null);setResetShown(false);setResetCode('')}} className="text-sm">완전 삭제</Btn>
+        </div>}
+      </div>
     </Panel>
   )
 }
