@@ -45,7 +45,7 @@ export function encounterBalance(stage: Pick<Stage,'area'|'index'>, partySize = 
       defense:defense*(solo?0.96:duo?0.99:1.02),
       allyHeal:(i<2?0.16:i===2?0.19:0.12)+(solo?0.12:duo?0.035:0),
       // A boss's multiplier is applied on top of the large innate boss HP.
-      bossHp:(i<2?0.94:i===2?0.84:1.05)*(solo?(i===0?0.76:0.88):duo?0.96:1),
+      bossHp:(i<2?0.94:i===2?0.92:1.05)*(solo?(i===0?0.76:0.88):duo?0.96:1),
     }
   }
   if(stage.area===ORIGINAL_FIRST+1||stage.area===ORIGINAL_FIRST+2){
