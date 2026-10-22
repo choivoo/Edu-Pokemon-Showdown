@@ -40,7 +40,7 @@ export function cuePath(cue:OfficialCue):string {
 export function cueForBattle(area:number,index:number,boss:boolean):OfficialCue {
  if(area===16)return 'mewtwo-battle'
  if(area===17) {
-   if(boss&&index===8)return 'mewtwo-battle'
+   if(boss&&index===8)return 'happenstance-mountain'
    return ['happenstance-grassland','happenstance-waterside','happenstance-cave','happenstance-forest','happenstance-mountain'][Math.min(4,Math.floor(index/2))] as OfficialCue
  }
  if(boss) return area>=11 ? 'boss-battle-2' : 'boss-battle-1'
