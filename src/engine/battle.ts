@@ -9,6 +9,7 @@ import { moveHits, moveProfile, type MoveProfile } from '../lib/moveProfiles'
 import { encounterBalance, type EncounterBalance } from '../lib/battleBalance'
 import { WORLD_BOUNDS } from '../art/openField'
 import type { Stage } from '../lib/stages'
+import { ORIGINAL_FIRST } from '../lib/originalCampaign'
 
 export type Side = 'ally' | 'enemy'
 
@@ -254,7 +255,7 @@ export function createBattle(allies: AllyInput[], waves: WaveEnemy[][], rng: Rng
   // representation otherwise spawns four foes simultaneously against one
   // tutorial starter, unfairly stacking special attacks. Keep all source
   // encounters for full parties; cap only non-final 1-1 solo groups at two.
-  const soloIntro = stage?.area === 6 && stage.index === 0 && allies.length === 1
+  const soloIntro = stage?.area === ORIGINAL_FIRST && stage.index === 0 && allies.length === 1
   const adjustedWaves = soloIntro
     ? waves.map((group, index) => index === waves.length - 1 ? group : group.slice(0, 2))
     : waves
@@ -263,6 +264,14 @@ export function createBattle(allies: AllyInput[], waves: WaveEnemy[][], rng: Rng
     auto: false, kills: 0, nextUid: 1, rng, manualPoint: null, manualDirection: null, balance: stage ? encounterBalance(stage, allies.length) : { hp: 1, attack: 1, defense: 1, allyHeal: 0.1, bossHp: 1 },
   }
   allies.forEach((a, i) => b.units.push(makeUnit(b, 'ally', a.speciesId, a.level, a.stats, i, false, { ownedId: a.ownedId, fx: a.fx, move: a.move, move2: a.move2, fx2: a.fx2 })))
+  if (soloIntro) {
+    // A first-time explorer has no stones or teammates. Give their single
+    // starter a temporary, stage-only HP safety buffer; all enemy HP, moves
+    // and strength remain at the normal medium-difficulty baseline.
+    const starter = b.units.find(u => u.side === 'ally')!
+    starter.maxHp = Math.ceil(starter.maxHp * 1.8)
+    starter.hp = starter.maxHp
+  }
   spawnWave(b)
   return b
 }
