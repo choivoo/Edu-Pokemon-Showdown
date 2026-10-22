@@ -40,7 +40,7 @@ export default function App() {
   const loadingFinished = useCallback(() => setBootReady(true), [])
   // 브라우저는 첫 터치 이후에만 소리를 허용한다
   useEffect(() => {
-    const unlock = () => { audio() }
+    const unlock = () => { bgm.unlock() }
     window.addEventListener('pointerdown', unlock)
     window.addEventListener('keydown', unlock)
     return () => { window.removeEventListener('pointerdown', unlock); window.removeEventListener('keydown', unlock) }
