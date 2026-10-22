@@ -10,7 +10,7 @@ import { CUE_DETAILS, type OfficialCue } from './officialCues'
 
 /** Existing public GitHub release. Upload the authorized MP3 once under this exact asset filename. */
 export const LICENSED_ASSET_URL =
-  'https://github.com/choivoo/Pokemon-Quest-fan.Edition/releases/download/v1.0.0-official/quest-licensed-soundtrack.mp3'
+  'https://github.com/choivoo/PQFE-Pokemon-Quest-fan.Edition-/releases/download/v1.0.0-official/quest-licensed-soundtrack.mp3'
 export const SOUNDTRACK_DURATION = 4524.225
 
 export function soundtrackSecond(timestamp: string): number {
