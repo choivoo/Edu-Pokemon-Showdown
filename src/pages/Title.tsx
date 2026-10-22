@@ -37,7 +37,7 @@ export default function Title(){
    <div className="quest-title-spark quest-title-spark-two">◆</div>
    <div className="quest-title-spark quest-title-spark-three">✧</div>
    <header className="quest-title-head">
-     <p className="quest-title-overline">AN ORIGINAL 2D PIXEL ADVENTURE <span>◈</span> VOL. 03</p>
+     <p className="quest-title-overline">OFFICIAL FAN EDITION 1.0 <span>◈</span> 2D PIXEL ADVENTURE</p>
      <div className="quest-title-logo">
        <span className="quest-title-emblem">Q</span>
        <div>
@@ -46,7 +46,7 @@ export default function Title(){
          <p>작은 친구들과 떠나는 커다란 모험!</p>
        </div>
      </div>
-     <div className="quest-title-tag"><span>2D</span><span>151 KANTO</span><span>93 EXPEDITIONS</span><span>16 NEW TRACKS</span></div>
+     <div className="quest-title-tag"><span>2D</span><span>151 KANTO</span><span>93 EXPEDITIONS</span><span>27 SCENE CUES</span></div>
    </header>
    <section className="quest-title-cast" aria-label="모험을 함께할 포켓몬">
      {POSTER.map(({id,x},i)=><div key={id} className="quest-title-cast-item" style={{transform:`rotate(${x})`,animationDelay:`${i*.18}s`}}>
@@ -61,7 +61,7 @@ export default function Title(){
        <Icon n="play" s={28}/><span>{save.started?`이어하기 · ${save.name}`:'새로운 모험 시작'}</span><span className="quest-title-arrow">➜</span>
      </button>
      <div className="quest-title-actions">
-       <Btn color="blue" onClick={()=>openPanel('save')} className="flex items-center gap-2 text-sm"><Icon n="key" s={19}/>데이터 이전</Btn>
+       <Btn color="blue" onClick={()=>openPanel('save')} className="flex items-center gap-2 text-sm"><Icon n="key" s={19}/>저장/초기화</Btn>
        <Btn color="gray" onClick={()=>void enterLandscapeFullscreen()} className="flex items-center gap-2 text-sm"><Icon n="expand" s={19}/>전체화면</Btn>
        <Btn color="gray" onClick={toggleMute} className="flex items-center gap-2 text-sm"><Icon n={save.muted?'mute':'sound'} s={19}/>{save.muted?'소리 켜기':'소리 끄기'}</Btn>
      </div>
