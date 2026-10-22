@@ -1,6 +1,7 @@
 import { audio, masterOut } from './audio'
 import { DRUM_INSTS, NOTE_INSTS } from './instruments'
 import { JINGLES, SONGS, STEPS, type JingleName, type Song, type SongName } from './songs'
+import { SOUNDTRACK_CUES, type TrackCue } from './officialCueMap'
 
 const indexCache = new WeakMap<Song, Array<Array<{ trackIdx: number; kind: 'note' | 'drum'; midi?: number; dur: number; vel: number }>>>()
 
@@ -102,6 +103,40 @@ export const LOCAL_CUES: Record<SongName,{start:number;end:number}>={
 let localAudio:HTMLAudioElement|null=null
 let localBlobUrl:string|null=null
 let activeLocalCue:{start:number;end:number}|null=null
+let activeCue:TrackCue|null=null
+let remoteChecked=false
+let remoteReady=false
+/** Shared, optionally deployed licensed asset. No per-device file picker required. */
+const sharedMusicUrl = import.meta.env.BASE_URL + 'audio/quest-complete.mp3'
+function cueOf(name:SongName):TrackCue {
+ return ({title:'title',camp:'camp',map:'expeditions',story:'storyTalk',battle:'firstSteppe',boss:'boss1',tide:'brook',grove:'gloom',echo:'cave',spark:'peak',ember:'plain',astral:'happenGrass'} as Record<SongName,TrackCue>)[name]
+}
+function setCue(player:HTMLAudioElement,cue:TrackCue){
+ const range=SOUNDTRACK_CUES[cue]
+ activeCue=cue
+ activeLocalCue={start:range[0],end:range[1]}
+ const seek=()=>{if(activeCue===cue)player.currentTime=range[0]}
+ if(player.readyState>=1)seek()
+ else player.addEventListener('loadedmetadata',seek,{once:true})
+ void player.play().catch(()=>{/* gesture restrictions: next tap resumes */})
+}
+function attachSharedMusic(ctx:AudioContext,dest:AudioNode):boolean{
+ if(localAudio || !remoteReady)return false
+ const player=new Audio(sharedMusicUrl)
+ player.preload='auto'
+ player.crossOrigin='anonymous'
+ const node=ctx.createMediaElementSource(player)
+ node.connect(dest)
+ player.addEventListener('timeupdate',()=>{
+  if(!activeLocalCue)return
+  const t=player.currentTime
+  if(t>=activeLocalCue.end-.12||t<activeLocalCue.start-.5)player.currentTime=activeLocalCue.start
+ })
+ player.addEventListener('error',()=>{if(localAudio===player){localAudio=null;currentName='';activeLocalCue=null;bgm.play('camp')}})
+ localAudio=player
+ return true
+}
+
 
 
 function bgmBus(ctx: AudioContext): AudioNode | null {
@@ -143,22 +178,47 @@ export const bgm = {
     const previous=currentName || 'title'
     localAudio?.pause()
     if(localAudio){localAudio.removeAttribute('src');localAudio.load()}
-    localAudio=null;activeLocalCue=null
+    localAudio=null;activeLocalCue=null;activeCue=null
     if(localBlobUrl)URL.revokeObjectURL(localBlobUrl)
     localBlobUrl=null;currentName=''
     this.play(previous)
   },
+  /** Play the licensed shared soundtrack chapter corresponding to a game scene. */
+  playCue(cue:TrackCue, fallback:SongName='battle'){
+    activeCue=cue
+    if(localAudio){currentName='';this.play(fallback);return}
+    this.play(fallback)
+  },
+  /** Browser-only one-time check; works across devices after asset is hosted on Pages. */
+  enableSharedMusic(){
+    if(remoteChecked)return
+    remoteChecked=true
+    void fetch(sharedMusicUrl,{method:'HEAD'}).then(async res=>{
+      if(!res.ok)return
+      remoteReady=true
+      const ctx=audio(),out=ctx&&bgmBus(ctx)
+      if(!ctx||!out||localAudio)return
+      if(attachSharedMusic(ctx,out)){
+        const name=currentName||'title'
+        current?.fadeOut(.2);current=null;currentName=''
+        this.play(name)
+      }
+    }).catch(()=>{/* synth audio is safe fallback */})
+  },
   /** 배경음악을 바꾼다. 이미 같은 곡이면 그대로 둔다. */
   play(name: SongName) {
     if (currentName === name && (current || localAudio))return
+    if(!remoteChecked)this.enableSharedMusic()
+    if(remoteReady && !localAudio){const ctx=audio(),out=ctx&&bgmBus(ctx);if(ctx&&out)attachSharedMusic(ctx,out)}
     if(localAudio){
-      const cue=LOCAL_CUES[name]
-      activeLocalCue=cue
+      const cue=activeCue ?? cueOf(name)
+      const range=SOUNDTRACK_CUES[cue]
+      activeLocalCue={start:range[0],end:range[1]}
       current?.fadeOut(0.15);current=null
       const player=localAudio
       const seek=()=>{
-        if(localAudio===player && activeLocalCue===cue)
-          player.currentTime=Math.min(cue.start,Math.max(0,(player.duration||4524)-1))
+        if(localAudio===player && activeCue===cue)
+          player.currentTime=Math.min(range[0],Math.max(0,(player.duration||4524)-1))
       }
       if(player.readyState>=1)seek()
       else player.addEventListener('loadedmetadata',seek,{once:true})
