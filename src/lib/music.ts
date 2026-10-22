@@ -2,6 +2,8 @@ import { audio, masterOut } from './audio'
 import { DRUM_INSTS, NOTE_INSTS } from './instruments'
 import { JINGLES, SONGS, STEPS, type JingleName, type Song, type SongName } from './songs'
 import { OFFICIAL_CUES, cuePath, DEFAULT_SCENE_CUE, type OfficialCue } from './officialCues'
+import { LicensedSoundtrack } from './licensedSoundtrack'
+import { isMuted } from './audio'
 
 const indexCache = new WeakMap<Song, Array<Array<{ trackIdx: number; kind: 'note' | 'drum'; midi?: number; dur: number; vel: number }>>>()
 
@@ -125,6 +127,7 @@ let activeLocalCue:{start:number;end:number}|null=null
 let activeLocalIndex=-1
 let publicAudio:HTMLAudioElement|null=null
 let publicCue:OfficialCue|null=null
+let licensedAudio:LicensedSoundtrack|null=null
 let currentCue:OfficialCue|null=null
 const missingPublic=new Set<OfficialCue>()
 function closePublic(){
@@ -144,9 +147,11 @@ function bgmBus(ctx: AudioContext): AudioNode | null {
 export const bgm = {
   get playing(): SongName | '' { return currentName },
   get localMusicActive():boolean {return !!localAudio},
-  get publicMusicActive():boolean {return !!publicAudio},
+  get publicMusicActive():boolean {return !!publicAudio || !!licensedAudio?.active},
   get sceneCue():OfficialCue|null {return currentCue},
-  unlock(){audio();if(publicAudio?.paused)void publicAudio.play().catch(()=>{});if(localAudio?.paused)void localAudio.play().catch(()=>{})},
+  unlock(){audio();licensedAudio?.unlock();if(publicAudio?.paused)void publicAudio.play().catch(()=>{});if(localAudio?.paused)void localAudio.play().catch(()=>{})},
+  /** The licensed release asset bypasses WebAudio CORS, so mute it directly. */
+  syncMute(){licensedAudio?.mute(isMuted())},
   playScene(cue:OfficialCue,fallback:SongName='battle'){this.play(fallback,cue)},
   /** Playback is a device-local opt-in; no user MP3 is included in the public app. */
   useLocalFile(file:File):boolean {
@@ -155,6 +160,7 @@ export const bgm = {
     if(!ctx||!bus)return false
     const selected=currentName || 'title'
     closePublic()
+    licensedAudio?.pause()
     localAudio?.pause()
     if(localAudio){localAudio.removeAttribute('src');localAudio.load()}
     if(localBlobUrl)URL.revokeObjectURL(localBlobUrl)
@@ -208,8 +214,27 @@ export const bgm = {
   /** 배경음악을 바꾼다. 이미 같은 곡이면 그대로 둔다. */
   play(name: SongName,override?:OfficialCue) {
     const cue=override??DEFAULT_SCENE_CUE[name]
-    if(currentName===name && currentCue===cue && activeLocalIndex===-1 && (current||localAudio||publicAudio))return
+    if(currentName===name && currentCue===cue && activeLocalIndex===-1 && (current||localAudio||publicAudio||licensedAudio?.active))return
     currentCue=cue
+    // First choice: single release-hosted MP3 (27 timecoded scenes).
+    // The soundtrack is not included in the web bundle; if the asset has
+    // not been uploaded, an error event reverts to synthesized tracks.
+    if(!localAudio){
+      if(!licensedAudio)licensedAudio=new LicensedSoundtrack(()=>{
+        const fallback=currentName||'title'
+        const failedCue=currentCue??DEFAULT_SCENE_CUE[fallback]
+        currentName=''
+        bgm.play(fallback,failedCue)
+      })
+      licensedAudio.mute(isMuted())
+      if(licensedAudio.play(cue)){
+        closePublic()
+        current?.fadeOut(.22);current=null
+        currentName=name
+        activeLocalIndex=-1
+        return
+      }
+    }
     if(!localAudio && !missingPublic.has(cue)){
       if(publicAudio && publicCue===cue){currentName=name;return}
       const ctx=audio(),bus=ctx&&bgmBus(ctx)
@@ -257,6 +282,7 @@ export const bgm = {
   },
   stop() {
     closePublic()
+    licensedAudio?.pause()
     localAudio?.pause()
     current?.fadeOut(0.3)
     current = null
@@ -265,6 +291,7 @@ export const bgm = {
   /** 효과 음악이 나오는 동안 배경음악을 줄인다 */
   duck(seconds: number) {
     const ctx = audio()
+    licensedAudio?.duck(seconds)
     if (!ctx || !duckGain) return
     const t = ctx.currentTime
     duckGain.gain.cancelScheduledValues(t)
