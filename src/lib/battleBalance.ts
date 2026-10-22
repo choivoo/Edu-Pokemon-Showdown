@@ -5,7 +5,27 @@
  */
 import { ORIGINAL_FIRST } from './originalCampaign'
 import type { Stage } from './stages'
-export interface EncounterBalance { hp:number; attack:number; defense:number; allyHeal:number; bossHp:number }
+export interface EncounterBalance {
+  hp:number; attack:number; defense:number; allyHeal:number; bossHp:number
+  /** Optional maximum percentage of enemy maximum HP removed by ONE impact.
+   * Restricts one-shot attacks ONLY in first-original-world expeditions.
+   * Later content and all enemy-to-player damage stay unchanged.
+   */
+  earlyEnemyHitCap?: { normal:number; elite:number; boss:number }
+}
+
+/** A single beginner hit should feel powerful but not instantly erase the
+ * enemies, especially strong-looking Pokémon in the final encounter.
+ * Basic attacks have a slightly lower ceiling than named Quest techniques.
+ * Damage taken by the player's Pokémon is never capped by this function.
+ */
+export function capFirstWorldHit(rawDamage:number, targetMaxHp:number,
+  cap:EncounterBalance['earlyEnemyHitCap'], target:'normal'|'elite'|'boss', isSpecial:boolean):number {
+  const raw=Math.max(0,Math.round(rawDamage))
+  if (!cap || !Number.isFinite(targetMaxHp) || targetMaxHp<=0) return raw
+  const share=cap[target] * (isSpecial?1:0.85)
+  return Math.min(raw,Math.max(1,Math.floor(targetMaxHp*share)))
+}
 export function encounterBalance(stage: Pick<Stage,'area'|'index'>, partySize = 3):EncounterBalance {
   const solo=partySize<=1
   const duo=partySize===2
@@ -17,6 +37,9 @@ export function encounterBalance(stage: Pick<Stage,'area'|'index'>, partySize = 
     const attack=[0.60,0.66,0.72,0.79,0.86][i]
     const defense=[1.02,1.05,1.08,1.12,1.15][i]
     return {
+      // 1-1 to 1-4: regular foes withstand at least two ordinary hits;
+      // elite finales and the region boss last several well-aimed impacts.
+      earlyEnemyHitCap: { normal:0.58, elite:0.39, boss:0.30 },
       hp:hp*(solo?0.83:duo?0.93:1),
       attack:attack*(solo?(i===0?0.61:i===1?0.70:0.74):duo?0.87:1),
       defense:defense*(solo?0.96:duo?0.99:1.02),

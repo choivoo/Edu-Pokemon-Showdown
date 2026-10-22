@@ -299,11 +299,16 @@ export default function Battle() {
                   return (
                     <button key={i} disabled={!canUse}
                       onClick={() => { if (b && useSpecial(b, a.uid, i as 0 | 1)) {setHud(snapshot(b));setLessonStep(v=>v===2?3:v)} }}
-                      className={`pq-btn relative flex h-[70px] w-[66px] shrink-0 flex-col items-center justify-center gap-0.5 overflow-hidden px-1 py-1 ${canUse ? 'blink' : ''}` }
+                      className={`pq-btn relative flex h-[76px] w-[66px] shrink-0 flex-col items-center justify-center gap-0.5 px-0.5 py-1 ${canUse ? 'blink' : ''}` }
                       style={{ background: canUse ? TYPE_COLOR[type as keyof typeof TYPE_COLOR] : '#556' }}
-                      title={name}>
+                      title={name} aria-label={`${a.name}의 ${name} 기술 사용`}>
                       <span className="flex shrink-0 justify-center"><Icon n="star" s={19} /></span>
-                      <span className="block w-full text-center text-[11px] font-bold leading-[13px] break-all whitespace-normal" style={{wordBreak:'keep-all',overflowWrap:'anywhere'}}>{!a.alive ? '기절' : name}</span>
+                      <span
+                        className="block w-full text-center font-bold whitespace-normal"
+                        style={{ fontSize: name.length >= 9 ? 9 : name.length >= 6 ? 10 : 11,
+                          lineHeight: '12px', wordBreak: 'keep-all', overflowWrap: 'anywhere',
+                          textWrap: 'balance' }}
+                      >{!a.alive ? '기절' : name}</span>
                       {a.alive && !canUse && <span className="absolute right-0 top-0 rounded-bl bg-[#26343ccc] px-0.5 text-[10px] font-bold text-white">{cd > 0 ? `${Math.ceil(cd)}초` : '…'}</span>}
                       {a.alive && !canUse && <span className="absolute inset-x-0 bottom-0 bg-yellow-300" style={{ height: 6, width: `${(1 - cd / max) * 100}%` }} />}
                     </button>
