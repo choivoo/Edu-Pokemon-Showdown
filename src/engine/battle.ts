@@ -201,7 +201,7 @@ function makeUnit(b: Battle, side: Side, speciesId: number, level: number, stats
     critTakenResist: stats.critTakenResist ?? 0,
     spirit: { mul: 0, until: 0 },
     buff: { atk: 0, def: 0, speed: 0, until: 0 }, debuff: { atk: 0, def: 0, speed: 0, until: 0 }, status: null, scatterT: 0, elite,
-    spCd: side === 'ally' ? 1.2 : boss ? 2.8 + b.rng() * 1.0 : 3.2 + b.rng() * 1.8,
+    spCd: side === 'ally' ? 1.2 : b.balance.earlyEnemyHitCap ? boss ? 5.1 + b.rng()*1.4 : 4.7 + b.rng()*1.5 : boss ? 2.8 + b.rng() * 1.0 : 3.2 + b.rng() * 1.8,
     alive: true, deadT: 0, revives: 0, lunge: 0, hurt: 0,
   }
 }
@@ -393,7 +393,7 @@ function castSpecial(b: Battle, u: Unit, extraMul = 1, mv: Move = u.special, slo
   const aoe = u.boss || (isQuest ? ['burst','wave','cone'].includes(profile.shape) : AOE_TYPES.includes(mv.type))
   const { widen, multiply } = slot===1 ? u.fx2 : u.fx
   let targets: Unit[]
-  if (u.boss) targets = foes
+  if (u.boss) targets = foes.filter(f => isQuest ? moveHits({...profile,range:profile.range+80,radius:profile.radius+90},u,main,f,f.radius) : Math.hypot(f.x-main.x,f.y-main.y)<=190+f.radius)
   else if (isQuest) targets = foes.filter(f => moveHits({...profile,radius:profile.radius+50*widen,range:profile.range+35*widen},u,main,f,f.radius))
   else if (aoe) targets = foes.filter(f => Math.hypot(f.x - main.x, f.y - main.y) <= AOE_RADIUS + 50 * widen)
   else {
