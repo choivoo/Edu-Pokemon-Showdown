@@ -277,19 +277,30 @@ export default function Battle() {
         <Btn color="yellow" onClick={() => setQuit(true)} className="h-[52px] w-[96px] px-0 py-0 text-base">포기</Btn>
       </div>
 
-      {/* 하단 중앙: 빨강/초록/파랑 포켓몬 바 */}
-      <div className="pointer-events-none absolute bottom-3 flex gap-2" style={{ left: 112, right: 112 }}>
+      {/* 하단 중앙: 세 포켓몬의 상태와 기술 2개를 각각 두 줄로 배치해 이름 잘림 방지.
+          960px 가상 해상도 기준으로 카드 너비는 약 240px이며 버튼의 최소 너비는 96px. */}
+      <div className="pointer-events-none absolute bottom-3 z-10 grid grid-cols-3 gap-2" style={{ left: 112, right: 112 }}>
         {hud?.allies.map(a => {
-          const hpr = a.hp / a.maxHp
+          const hpr = a.hp / Math.max(1, a.maxHp)
           return (
-            <div key={a.uid} className={`pointer-events-auto flex h-[92px] min-w-0 flex-1 items-center gap-1.5 border-4 border-[#2b2838] px-1.5 ${a.alive ? '' : 'grayscale'}`} style={{ background: SLOT_COLORS[a.slot % 3] }}>
-              <Portrait id={a.id} size={54} />
-              <div className="min-w-0 flex-1 text-white" style={{ textShadow: '0 1px 0 #0008' }}>
-                <div className="truncate text-sm font-bold">{a.name} <span className="text-xs">Lv{a.level}</span></div>
-                <div className="mt-1 h-3 overflow-hidden border-2 border-[#2b2838] bg-black/40"><div className="h-full" style={{ width: `${hpr * 100}%`, background: hpr > 0.5 ? '#46d2ff' : hpr > 0.2 ? '#f5d02e' : '#ff5a4a' }} /></div>
-                <div className="mt-0.5 text-xs">{Math.ceil(a.hp)}/{a.maxHp}</div>
+            <div key={a.uid}
+              className={`pointer-events-auto flex h-[116px] min-w-0 flex-col gap-1 border-[3px] border-[#2b2838] p-1 ${a.alive ? '' : 'grayscale'}`}
+              style={{ background: SLOT_COLORS[a.slot % 3] }}>
+              <div className="flex h-[42px] min-w-0 items-center gap-2">
+                <div className="shrink-0"><Portrait id={a.id} size={42} /></div>
+                <div className="min-w-0 flex-1 text-white" style={{ textShadow: '0 1px 0 #0008' }}>
+                  <div className="flex min-w-0 justify-between gap-1 text-[13px] font-bold">
+                    <span className="min-w-0 truncate" title={a.name}>{a.name}</span>
+                    <span className="shrink-0 text-[11px]">Lv{a.level}</span>
+                  </div>
+                  <div className="mt-0.5 h-2.5 overflow-hidden border border-[#2b2838] bg-black/40">
+                    <div className="h-full" style={{ width: `${Math.max(0, Math.min(100, hpr * 100))}%`,
+                      background: hpr > 0.5 ? '#46d2ff' : hpr > 0.2 ? '#f5d02e' : '#ff5a4a' }} />
+                  </div>
+                  <div className="mt-0.5 text-[11px] tabular-nums">{Math.ceil(a.hp)}/{a.maxHp}</div>
+                </div>
               </div>
-              <div className="flex shrink-0 gap-1">
+              <div className="grid min-h-0 flex-1 grid-cols-2 gap-1">
                 {([0, ...(a.move2 ? [1] : [])] as number[]).map(i => {
                   const cd = i ? a.cd2 ?? 0 : a.cd
                   const max = i ? a.max2 ?? 1 : a.max
@@ -298,19 +309,19 @@ export default function Battle() {
                   const canUse = a.alive && hud.phase === 'fight' && cd <= 0
                   return (
                     <button key={i} disabled={!canUse}
-                      onClick={() => { if (b && useSpecial(b, a.uid, i as 0 | 1)) {setHud(snapshot(b));setLessonStep(v=>v===2?3:v)} }}
-                      className={`pq-btn relative flex h-[76px] w-[66px] shrink-0 flex-col items-center justify-center gap-0.5 px-0.5 py-1 ${canUse ? 'blink' : ''}` }
+                      onClick={() => { if (b && useSpecial(b, a.uid, i as 0 | 1)) { setHud(snapshot(b)); setLessonStep(v => v === 2 ? 3 : v) } }}
+                      className={`pq-btn relative flex min-w-0 flex-col items-center justify-center gap-0.5 px-1 py-0.5 ${canUse ? 'blink' : ''}`}
                       style={{ background: canUse ? TYPE_COLOR[type as keyof typeof TYPE_COLOR] : '#556' }}
                       title={name} aria-label={`${a.name}의 ${name} 기술 사용`}>
-                      <span className="flex shrink-0 justify-center"><Icon n="star" s={19} /></span>
-                      <span
-                        className="block w-full text-center font-bold whitespace-normal"
-                        style={{ fontSize: name.length >= 9 ? 9 : name.length >= 6 ? 10 : 11,
-                          lineHeight: '12px', wordBreak: 'keep-all', overflowWrap: 'anywhere',
-                          textWrap: 'balance' }}
-                      >{!a.alive ? '기절' : name}</span>
-                      {a.alive && !canUse && <span className="absolute right-0 top-0 rounded-bl bg-[#26343ccc] px-0.5 text-[10px] font-bold text-white">{cd > 0 ? `${Math.ceil(cd)}초` : '…'}</span>}
-                      {a.alive && !canUse && <span className="absolute inset-x-0 bottom-0 bg-yellow-300" style={{ height: 6, width: `${(1 - cd / max) * 100}%` }} />}
+                      <span className="shrink-0"><Icon n="star" s={15} /></span>
+                      <span className="block w-full text-center font-extrabold whitespace-normal"
+                        style={{ fontSize: name.length > 10 ? 10 : 12, lineHeight: '13px', wordBreak: 'break-all',
+                          overflowWrap: 'anywhere' }}>
+                        {!a.alive ? '기절' : name}
+                      </span>
+                      {a.alive && !canUse && <span className="absolute right-0 top-0 rounded-bl bg-[#26343ccc] px-0.5 text-[9px] font-bold text-white">{cd > 0 ? `${Math.ceil(cd)}초` : '…'}</span>}
+                      {a.alive && !canUse && <span className="absolute inset-x-0 bottom-0 bg-yellow-300"
+                        style={{ height: 4, width: `${Math.max(0, Math.min(100, (1 - cd / max) * 100))}%` }} />}
                     </button>
                   )
                 })}
