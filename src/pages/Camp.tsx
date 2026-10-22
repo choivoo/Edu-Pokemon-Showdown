@@ -12,12 +12,13 @@ import Icon, { Coins } from '../ui/Icon'
 import BatteryMeter from '../ui/BatteryMeter'
 import { bgm, sfx } from '../lib/sound'
 import { claimable, themeFilter } from '../lib/quests'
-import { tutorialPhase, TUTORIAL_ACKNOWLEDGED } from '../lib/tutorial'
+import { tutorialPhase, TUTORIAL_ACKNOWLEDGED, ONBOARDING_LINES, tutorialHint } from '../lib/tutorial'
+import Dialog from '../components/Dialog'
 import { getStage } from '../lib/stages'
 import { ORIGINAL_FIRST } from '../lib/originalCampaign'
 
 export default function Camp() {
-  const { save, go, openPanel, toggleMute, startStage, autoPlaceStone, markStory } = useGame()
+  const { save, panel, go, openPanel, toggleMute, startStage, autoPlaceStone, markStory } = useGame()
   const canvas = useRef<HTMLCanvasElement>(null)
   const party = partyMons(save)
   const others = save.owned.filter(o => !save.party.includes(o.id)).slice(0, 5).map(o => o.species)
@@ -83,11 +84,7 @@ export default function Camp() {
             </span>
           </div>
           <p className="my-2 text-sm leading-snug">
-            {tutorial==='first-expedition'?'첫 번째 전투부터 시작해요! 출발의초원 1-1로 향해서 이동과 기술 사용을 연습하세요.':tutorial==='power-stone'?'첫 탐험에서 받은 P스톤을 장착하면 더욱 든든해져요. 아래 버튼으로 팀 화면을 열고 직접 장착해 보세요.'
-            :tutorial==='second-expedition'?'준비됐어요! 출발의초원 1-2에서 두 번째 전투를 익혀 볼까요?'
-            :tutorial==='cooking'?'두 번째 탐험 성공! 캠프의 냄비에 다섯 종류 재료를 넣어 새 친구를 초대해요.'
-            :tutorial==='friends'?'요리가 완성됐어요! 구구와 꼬렛을 차례대로 맞이해 세 마리 파티를 완성하세요.'
-            :'구구와 꼬렛까지 합류! 이제 탐험대 세 마리가 함께 출발할 수 있어요.'}
+            {tutorialHint(tutorial)}
           </p>
           <div className="flex gap-2">
             {tutorial==='first-expedition' && <Btn color="yellow" onClick={()=>startStage(getStage(ORIGINAL_FIRST,0))} className="w-full text-base">1-1 첫 탐험 계속하기</Btn>}
@@ -100,6 +97,10 @@ export default function Camp() {
             {tutorial==='complete'&&<Btn color="green" onClick={()=>markStory(TUTORIAL_ACKNOWLEDGED)} className="w-full text-base">이제 자유롭게 탐험하기!</Btn>}
           </div>
         </div>
+      )}
+      {tutorial==='complete' && panel===null && !save.seenStory.includes(TUTORIAL_ACKNOWLEDGED) && (
+        <Dialog key="first-expedition-graduation" lines={[...ONBOARDING_LINES.finished]} name={save.name}
+          onDone={()=>markStory(TUTORIAL_ACKNOWLEDGED)}/>
       )}
       {/* 하단 바: 메뉴 / 파티 / 탐험 */}
       <div className="absolute inset-x-0 bottom-0 flex h-[112px] items-center justify-between gap-3 px-4 pb-3 pt-4">

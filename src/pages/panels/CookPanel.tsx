@@ -11,13 +11,14 @@ import Icon, { RarityMark } from '../../ui/Icon'
 import TypeBadge from '../../components/TypeBadge'
 import { sfx } from '../../lib/sound'
 import type { OwnedMon } from '../../lib/stats'
-import { tutorialPhase } from '../../lib/tutorial'
+import { tutorialPhase, TUTORIAL_STEW_INGREDIENTS } from '../../lib/tutorial'
 
 export default function CookPanel() {
   const { save, startCooking, collectCooked, openPanel } = useGame()
   const [sel, setSel] = useState<IngredientId[]>([])
   const [tier, setTier] = useState<CookingTier>(0)
   const pot = COOKING_TIERS[tier]
+  const tutorial = tutorialPhase(save)
   const [got, setGot] = useState<{ mon: OwnedMon; isNew: boolean } | null>(null)
   const [book, setBook] = useState(false)
 
@@ -27,16 +28,14 @@ export default function CookPanel() {
     sfx.select()
     setSel([...sel, id])
   }
-  const recipe = sel.length ? recipeFor(sel) : null
+  const recipe = sel.length ? (tutorial==='cooking' ? ALL_RECIPES[0] : recipeFor(sel)) : null
   const grade = sel.length ? gradeOf(sel) : null
   const owned = INGREDIENTS.filter(i => save.ingredients[i.id] >= pot.perSlot || used(i.id) > 0)
-  const tutorial = tutorialPhase(save)
-  const tutorialIngredients: IngredientId[] = ['mushroomRed','berryBlue','nutYellow','fossil','rootRed']
   const predictedOdds = sel.length === DISH_SIZE ? attractionOdds(sel).sort((a,b)=>b.probability-a.probability).slice(0,4) : []
   const sourceVerified = sel.length === DISH_SIZE && !!recipe && !!grade && !!verifiedRecipeOdds(recipe.no,grade)
 
   const autoFill = () => {
-    if(tutorial==='cooking' && tutorialIngredients.every(id => save.ingredients[id]>=pot.perSlot)) {setSel([...tutorialIngredients]);return}
+    if(tutorial==='cooking' && TUTORIAL_STEW_INGREDIENTS.every(id => save.ingredients[id]>=pot.perSlot)) {setSel([...TUTORIAL_STEW_INGREDIENTS]);return}
     const best = INGREDIENTS.filter(i => i.rarity === 0).map(i => ({ id: i.id, n: save.ingredients[i.id] })).sort((a, b) => b.n - a.n)[0]
     setSel(Array(Math.min(DISH_SIZE, Math.floor(best.n / pot.perSlot))).fill(best.id))
   }
@@ -57,10 +56,22 @@ export default function CookPanel() {
 
   return (
     <Panel title="요리 냄비" onClose={() => openPanel(null)} w={900}>
-      {(tutorial==='cooking'||tutorial==='friends') && <div className="mb-2 flex items-center justify-between gap-2 rounded border-4 border-[#c98a00] bg-[#fff0b4] px-3 py-1 text-sm font-bold text-[#96601b]">
-        <span>모비: {tutorial==='cooking'?'재료 5개를 넣어 요리하세요! 첫 요리에서는 구구와 꼬렛이 모두 찾아옵니다.':'요리가 완성됐어요! 냄비를 열어 구구와 꼬렛을 맞이하세요.'}</span>
-        {tutorial==='cooking' && <Btn color="yellow" onClick={()=>setSel([...tutorialIngredients])} className="shrink-0 px-2 text-xs">튜토리얼 재료 넣기</Btn>}
-      </div>}
+      {tutorial==='cooking' && (
+        <div className="mb-2 flex items-center justify-between gap-3 border-4 border-[#d8a642] bg-[#fff0b9] px-3 py-2 text-[#6a4825] shadow-[3px_4px_0_#8d6a3b]">
+          <div className="min-w-0">
+            <b className="text-base">모비 · 첫 요리 수업 (1/3)</b>
+            <p className="text-xs">재료 5개를 넣고 「요리!」를 누르면 네모루루수프가 완성돼요. 이번엔 구구와 꼬렛이 찾아옵니다!</p>
+          </div>
+          <Btn color="green" disabled={!!save.pot} onClick={()=>{
+            if (TUTORIAL_STEW_INGREDIENTS.every(id=>save.ingredients[id]>=1)) setSel([...TUTORIAL_STEW_INGREDIENTS])
+          }} className="shrink-0 text-sm">모비 추천 재료 담기</Btn>
+        </div>
+      )}
+      {tutorial==='friends' && (
+        <div className="mb-2 border-4 border-[#ddaa40] bg-[#fff2c4] p-2 text-center text-sm font-bold text-[#775326]">
+          모비 · 새 친구를 맞이해요 (2/3) · 구구를 먼저, 꼬렛을 다음으로 받아 주세요!
+        </div>
+      )}
       <div className="mb-2 flex gap-1.5">
         {COOKING_TIERS.map((p, index) => {
           const unlocked = p.unlockArea < 0 || areaCleared(save, p.unlockArea)

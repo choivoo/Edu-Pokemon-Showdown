@@ -213,7 +213,7 @@ export const useGame = create<GameState>((set, get) => {
       // The one-time onboarding pot is immediately ready, so new players never
       // get trapped waiting for two more expeditions before receiving a party.
       const total = tutorialCook ? 1 : cookingExpeditions(sel, tier)
-      const recipe = recipeFor(sel).no
+      const recipe = tutorialCook ? 1 : recipeFor(sel).no
       commit({ ingredients, pot: { species: visitor.id, visitors: extras, remaining: tutorialCook ? 0 : total, total, recipe, ...(tier ? { tier } : {}) } })
       return true
     },
