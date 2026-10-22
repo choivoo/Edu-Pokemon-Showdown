@@ -21,6 +21,10 @@ jobs:
         with:
           node-version: '22'
           cache: npm
+      - name: Resolve actual licensed 27-track audio from official release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash scripts/prepareSoundtrack.sh
       - name: Validate 1.0 Official Edition and OST cue manifest
         run: |
           npm ci
@@ -34,12 +38,13 @@ jobs:
         run: |
           zip -qr pokemon-quest-fan-edition-1.0-official-web.zip dist
           unzip -t pokemon-quest-fan-edition-1.0-official-web.zip
-      - name: Publish 1.0.0-official if absent
+      - name: Publish or refresh 1.0.0-official static website distribution
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           if gh release view v1.0.0-official --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            echo "Preserving existing 1.0.0-official release"
+            echo "Replacing outdated existing 1.0.0-official ZIP"
+            gh release upload v1.0.0-official pokemon-quest-fan-edition-1.0-official-web.zip --repo "$GITHUB_REPOSITORY" --clobber
             exit 0
           fi
           gh release create v1.0.0-official pokemon-quest-fan-edition-1.0-official-web.zip \
