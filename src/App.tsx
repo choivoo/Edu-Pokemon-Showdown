@@ -17,7 +17,7 @@ import QuestPanel from './pages/panels/QuestPanel'
 import StoryPanel from './pages/panels/StoryPanel'
 import { enterLandscapeFullscreen } from './lib/fullscreen'
 import Icon from './ui/Icon'
-import { audio } from './lib/audio'
+import { bgm } from './lib/sound'
 
 /** 게임은 항상 960×540(16:9) 가상 화면에 그려지고, 창 크기에 맞춰 통째로 확대/축소된다. */
 const VW = 960
