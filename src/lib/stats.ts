@@ -93,7 +93,10 @@ export function computeStats(sp: Species, level: number, stones: Stone[] = [], m
   return {
     maxHp: Math.floor(((quest ? quest.hp + level + (individual?.potBonus ?? 0) + (individual?.ivHp ?? 0) : calcMaxHp(sp.stats.hp, level) * HP_SCALE) + flatHp) * hp),
     atk: Math.floor(((quest ? quest.atk + level + (individual?.potBonus ?? 0) + (individual?.ivAtk ?? 0) : calcStat(sp.stats.atk, level)) + flatAtk) * atk),
-    def: Math.floor(calcStat(sp.stats.def, level) * def),
+    // Quest HP/ATK use base + level. Low-level main-series defense would be ~5-8
+    // and make untrained level-5 normal hits lethal. Give defense a comparable
+    // base-stat floor so the first enemy can take several regular attacks.
+    def: Math.floor((quest ? sp.stats.def + level : calcStat(sp.stats.def, level)) * def),
     spe: Math.floor(calcStat(sp.stats.spe, level) * spd),
     crit: crit + (mods.critRate + perks.critRate) / 100,
     critDmg: (mods.critDmg + perks.critDmg) / 100,
