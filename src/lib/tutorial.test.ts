@@ -32,6 +32,8 @@ describe('Official Quest introductory tutorial — original sequence',()=>{
       expect(isTutorialStage(state.save,first())).toBe(true)
       const waves=tutorialWaves(state.save,first())!
       expect(waves.map(group=>group.length)).toEqual([1,1,1])
+      expect(waves.flat().map(w=>w.species)).toEqual([16,19,52])
+      expect(waves[2][0].elite).toBe(true)
       expect(Math.max(...waves.flat().map(x=>x.level))).toBeLessThanOrEqual(2)
       expect(state.startStage(getStage(ORIGINAL_FIRST,2))).toBe(false)
     }
