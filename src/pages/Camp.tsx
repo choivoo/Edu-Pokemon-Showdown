@@ -12,9 +12,12 @@ import Icon, { Coins } from '../ui/Icon'
 import BatteryMeter from '../ui/BatteryMeter'
 import { bgm, sfx } from '../lib/sound'
 import { claimable, themeFilter } from '../lib/quests'
+import { tutorialPhase, TUTORIAL_ACKNOWLEDGED } from '../lib/tutorial'
+import { getStage } from '../lib/stages'
+import { ORIGINAL_FIRST } from '../lib/originalCampaign'
 
 export default function Camp() {
-  const { save, go, openPanel, toggleMute } = useGame()
+  const { save, go, openPanel, toggleMute, startStage, autoPlaceStone, markStory } = useGame()
   const canvas = useRef<HTMLCanvasElement>(null)
   const party = partyMons(save)
   const others = save.owned.filter(o => !save.party.includes(o.id)).slice(0, 5).map(o => o.species)
@@ -27,6 +30,9 @@ export default function Camp() {
 
   const needBackup = save.exportedAt === 0 ? save.owned.length >= 6 : save.clearsSinceExport >= 3
   const firstTime = save.owned.length <= 3
+  const tutorial = tutorialPhase(save)
+  const starter = save.owned.find(o=>save.party.includes(o.id))
+  const beginnerStone = save.stones.find(st=>!save.owned.some(o=>o.stones.some(p=>p.stone===st.id)))
 
   return (
     <div className="absolute inset-0">
@@ -68,6 +74,32 @@ export default function Camp() {
 
       <Btn color="blue" onClick={() => openPanel('story')} className="absolute bottom-[124px] left-4 z-10 flex items-center gap-2 px-4 py-1.5 text-base"><Icon n="book" s={22} />모험일지</Btn>
 
+      {tutorial && (tutorial !== 'complete' || !save.seenStory.includes(TUTORIAL_ACKNOWLEDGED)) && (
+        <div className="absolute right-5 top-[104px] z-30 w-[415px] border-[5px] border-[#bd8626] bg-[#fff2c3]/95 p-3 text-[#553e27] shadow-[6px_7px_0_#385c53]">
+          <div className="flex items-center justify-between gap-2">
+            <b className="text-lg text-[#b96813]">모비의 첫 모험 가이드</b>
+            <span className="rounded bg-[#e8ba55] px-2 text-xs font-bold">
+              {tutorial==='power-stone'?'2 / 5':tutorial==='second-expedition'?'3 / 5':tutorial==='cooking'?'4 / 5':tutorial==='friends'?'5 / 5':'완료!'}
+            </span>
+          </div>
+          <p className="my-2 text-sm leading-snug">
+            {tutorial==='power-stone'?'첫 탐험에서 받은 P스톤을 장착하면 더욱 든든해져요. 아래 버튼으로 팀 화면을 열고 직접 장착해 보세요.'
+            :tutorial==='second-expedition'?'준비됐어요! 출발의초원 1-2에서 두 번째 전투를 익혀 볼까요?'
+            :tutorial==='cooking'?'두 번째 탐험 성공! 캠프의 냄비에 다섯 종류 재료를 넣어 새 친구를 초대해요.'
+            :tutorial==='friends'?'요리가 완성됐어요! 구구와 꼬렛을 차례대로 맞이해 세 마리 파티를 완성하세요.'
+            :'구구와 꼬렛까지 합류! 이제 탐험대 세 마리가 함께 출발할 수 있어요.'}
+          </p>
+          <div className="flex gap-2">
+            {tutorial==='power-stone' && <>
+              <Btn color="yellow" onClick={()=>openPanel('team')} className="flex-1 text-sm">P애뮬릿 열기</Btn>
+              <Btn color="green" disabled={!starter||!beginnerStone} onClick={()=>{if(starter&&beginnerStone)autoPlaceStone(starter.id,beginnerStone.id)}} className="flex-1 text-sm">추천 칸에 장착</Btn>
+            </>}
+            {tutorial==='second-expedition'&&<Btn color="yellow" onClick={()=>startStage(getStage(ORIGINAL_FIRST,1))} className="w-full text-base">1-2 탐험 출발!</Btn>}
+            {(tutorial==='cooking'||tutorial==='friends')&&<Btn color="yellow" onClick={()=>openPanel('cook')} className="w-full text-base">요리 냄비 열기</Btn>}
+            {tutorial==='complete'&&<Btn color="green" onClick={()=>markStory(TUTORIAL_ACKNOWLEDGED)} className="w-full text-base">이제 자유롭게 탐험하기!</Btn>}
+          </div>
+        </div>
+      )}
       {/* 하단 바: 메뉴 / 파티 / 탐험 */}
       <div className="absolute inset-x-0 bottom-0 flex h-[112px] items-center justify-between gap-3 px-4 pb-3 pt-4">
         <div className="flex gap-2">
