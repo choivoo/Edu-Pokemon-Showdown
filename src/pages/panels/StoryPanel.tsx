@@ -4,6 +4,7 @@ import { ALL_STORY_SCENES, EPILOGUE_SCENES, STORY_CHAPTERS, storyProgress, story
 import Dialog from '../../components/Dialog'
 import { Btn, Panel } from '../../ui/kit'
 import Icon from '../../ui/Icon'
+import { bgm } from '../../lib/sound'
 
 /** 탐험 결과에서 처음 본 장면뿐 아니라 보너스 기록도 다시 읽을 수 있는 모험일지. */
 export default function StoryPanel() {
@@ -71,7 +72,7 @@ export default function StoryPanel() {
                         <p key={i} className="mb-2 text-sm leading-relaxed"><b className="text-[#a37231]">{line.speaker ? line.speaker + ': ' : ''}</b>{line.text.replaceAll('{name}', save.name)}</p>)}
                       <p className="text-xs text-[#a18b69]">모든 장면은 버튼을 눌러 대사창으로 다시 감상할 수 있습니다.</p>
                     </div>
-                    <Btn color="green" onClick={() => setReading(active)} className="mt-2 w-full text-base">이야기 다시 보기</Btn>
+                    <Btn color="green" onClick={() => { bgm.playScene('story-talk','story');setReading(active) }} className="mt-2 w-full text-base">이야기 다시 보기</Btn>
                   </>
                 ) : (
                   <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
@@ -86,7 +87,7 @@ export default function StoryPanel() {
         </div>
         <p className="mt-2 text-right text-xs text-[#9c7c47]">원작 본편 재구성 54장면 · 추가 스토리 46장면 · 총 {ALL_STORY_SCENES.length}장면</p>
       </Panel>
-      {reading && <Dialog key={reading.id} lines={reading.lines} name={save.name} onDone={() => setReading(null)} />}
+      {reading && <Dialog key={reading.id} lines={reading.lines} name={save.name} onDone={() => {setReading(null);bgm.play('camp')}} />}
     </>
   )
 }

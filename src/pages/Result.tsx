@@ -20,7 +20,9 @@ export default function Result() {
   useEffect(() => {
     if (!r) return
     if (r.win) { sfx.win(); if (r.levelUps.length) setTimeout(() => sfx.levelup(), 700) } else sfx.lose()
-    bgm.playScene('expedition-results','camp')
+    if(r.win && r.stage.area===16)bgm.playScene('staff-roll','story')
+    else if(r.win && r.firstClear && r.stage.area===15 && r.stage.boss)bgm.playScene('story-emergency','story')
+    else bgm.playScene('expedition-results','camp')
   }, [r])
 
   if (!r) return null
