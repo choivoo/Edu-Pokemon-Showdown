@@ -19,7 +19,7 @@ import { bgm, sfx } from '../lib/sound'
 export default function Island() {
   const { save, go, startStage, markStory, openPanel } = useGame()
   const canvas = useRef<HTMLCanvasElement>(null)
-  useEffect(() => { bgm.play('map') }, [])
+  useEffect(() => { bgm.playCue('expeditions','map') }, [])
   const [area, setArea] = useState<number | null>(null)
   const [story, setStory] = useState<number | null>(null)
   const [mode, setMode] = useState<'original' | 'fan'>(() => legacyFanProgress(save) ? 'fan' : 'original')
