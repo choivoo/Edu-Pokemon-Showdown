@@ -30,6 +30,7 @@ describe('gentle beginner difficulty without flatlining later progression', () =
       const b=createBattle([pikachu],buildWaves(stage,rng),rng,stage)
       let steps=0
       while(b.phase!=='won'&&b.phase!=='lost'&&steps++<5000)step(b,.1)
+      if(b.phase!=='won')console.log('PIKACHU-DIAG',JSON.stringify({seed,phase:b.phase,t:b.t,wave:b.wave,balance:b.balance,units:b.units.map(u=>({name:u.name,hp:Math.round(u.hp),maxHp:u.maxHp,side:u.side,alive:u.alive,spCd:u.spCd}))}))
       expect(b.phase).toBe('won')
     }
   })
