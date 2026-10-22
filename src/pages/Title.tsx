@@ -37,7 +37,7 @@ export default function Title(){
    <div className="quest-title-spark quest-title-spark-two">◆</div>
    <div className="quest-title-spark quest-title-spark-three">✧</div>
    <header className="quest-title-head">
-     <p className="quest-title-overline">AN ORIGINAL 2D PIXEL ADVENTURE <span>◈</span> VOL. 03</p>
+     <p className="quest-title-overline">AN ORIGINAL 2D PIXEL ADVENTURE <span>◈</span> RELEASE 1.0</p>
      <div className="quest-title-logo">
        <span className="quest-title-emblem">Q</span>
        <div>
@@ -46,7 +46,7 @@ export default function Title(){
          <p>작은 친구들과 떠나는 커다란 모험!</p>
        </div>
      </div>
-     <div className="quest-title-tag"><span>2D</span><span>151 KANTO</span><span>93 EXPEDITIONS</span><span>16 NEW TRACKS</span></div>
+     <div className="quest-title-tag"><span>2D</span><span>151 KANTO</span><span>93 EXPEDITIONS</span><span>27 SOUNDTRACK CUES</span></div>
    </header>
    <section className="quest-title-cast" aria-label="모험을 함께할 포켓몬">
      {POSTER.map(({id,x},i)=><div key={id} className="quest-title-cast-item" style={{transform:`rotate(${x})`,animationDelay:`${i*.18}s`}}>
@@ -71,12 +71,12 @@ export default function Title(){
           onChange={e=>{const file=e.target.files?.[0];if(!file)return
             const ok=bgm.useLocalFile(file);setLocalSound(ok);setMusicMessage(ok?'내 기기 음악 재생 중':'오디오 파일을 열 수 없습니다')
           }} />
-         개인 MP3 음악 선택
+         내 MP3 선택 (선택 사항)
        </label>
        {localSound && <button className="border-2 border-white bg-[#4f665c] px-2 py-1" onClick={()=>{
          bgm.disableLocalFile();setLocalSound(false);setMusicMessage('새로 만든 게임 음악')
        }}>기본 음악 복원</button>}
-       <span>{musicMessage || '선택 파일은 서버로 전송하지 않습니다'}</span>
+       <span>{musicMessage || '온라인 음원이 게시되면 모든 기기에서 자동 재생됩니다'}</span>
      </div>
    </div>
    <footer className="quest-title-footer">비공식 · 비상업 2D 팬게임  |  Pokémon 관련 권리는 원권리자 소유  |  PokéAPI 도트 사용</footer>
