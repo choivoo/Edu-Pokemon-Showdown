@@ -117,7 +117,7 @@ const CUE_INDEX:Record<SongName,number>={
 }
 export const LOCAL_CUES:Record<SongName,{start:number;end:number}>=Object.fromEntries(
  (Object.entries(CUE_INDEX) as [SongName,number][]).map(([name,index])=>[name,OST_TRACKLIST[index]])
-) as Record<SongName,{start:number;end:number}>
+) as unknown as Record<SongName,{start:number;end:number}>
 
 let localAudio:HTMLAudioElement|null=null
 let localBlobUrl:string|null=null
