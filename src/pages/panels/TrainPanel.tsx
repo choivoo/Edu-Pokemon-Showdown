@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useGame } from '../../store/gameStore'
 import { getMove, getSpecies } from '../../lib/roster'
+import { koreanMoveName } from '../../data/questMoveKorean'
 import { expToNext, MAX_LEVEL } from '../../lib/stats'
 import { recallChance, recallFatigue, trainExp, TRAIN_MAX } from '../../lib/training'
 import { STATUS_INFO } from '../../lib/moveSet'
@@ -32,7 +33,7 @@ export default function TrainPanel() {
     if (!r) return
     setFoods([])
     if (mode === 'exp') { sfx.levelup(); setMsg(`경험치 ${r.exp}을(를) 얻었어요!`) }
-    else if (r.ok && r.recall?.move) { sfx.levelup(); setMsg(`새 필살기 「${r.recall.move.name}」을(를) 떠올렸어요!`) }
+    else if (r.ok && r.recall?.move) { sfx.levelup(); setMsg(`새 필살기 「${koreanMoveName(r.recall.move.name)}」을(를) 떠올렸어요!`) }
     else { sfx.faint(); setMsg('아쉽지만 아무것도 떠오르지 않았어요…') }
   }
 
@@ -81,7 +82,7 @@ export default function TrainPanel() {
               </div>
             )}
             {move && (
-              <p className="flex flex-wrap items-center gap-1 text-sm"><Icon n="star" s={16} />지금 필살기: <b>{move.name}</b> <TypeBadge type={move.type} />{move.role && <span className="border-2 border-[#2b2838] px-1" style={{ background: move.fx?.status ? STATUS_INFO[move.fx.status].color : '#fff' }}>{ROLE[move.role]}</span>}</p>
+              <p className="flex flex-wrap items-center gap-1 text-sm"><Icon n="star" s={16} />지금 필살기: <b>{koreanMoveName(move.name)}</b> <TypeBadge type={move.type} />{move.role && <span className="border-2 border-[#2b2838] px-1" style={{ background: move.fx?.status ? STATUS_INFO[move.fx.status].color : '#fff' }}>{ROLE[move.role]}</span>}</p>
             )}
             <span className="flex-1" />
             {msg && <p className="border-4 border-[#2b2838] bg-white p-1 text-center text-base font-bold text-[#c03a30]">{msg}</p>}
