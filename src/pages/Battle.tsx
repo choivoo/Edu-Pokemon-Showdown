@@ -5,7 +5,7 @@ import { consumeEvents, drawBattle, H, newVisual, preload, SLOT_COLORS, W } from
 import { AREAS, AREA_BONUS_MUL, buildWaves, hasAreaBonus, type Theme } from '../lib/stages'
 import { HAPPENSTANCE_AREA } from '../lib/originalCampaign'
 import { cueForBattle } from '../lib/officialCues'
-import { tutorialWaves, isTutorialStage } from '../lib/tutorial'
+import { tutorialWaves } from '../lib/tutorial'
 import { getSpecies } from '../lib/roster'
 import { moveFxOf, partyMons, statsOf } from '../lib/party'
 import { bgm, sfx } from '../lib/sound'
