@@ -31,6 +31,16 @@ describe('웨이브 이벤트', () => {
     expect(enemy.alive).toBe(false)
     expect(b.events.some(e=>e.k==='bossDefeated'&&e.uid===enemy.uid)).toBe(true)
   })
+  it('보스 명칭이 없는 원작 스테이지도 마지막 적 격파 시 폭발 팡파르가 발생한다', () => {
+    const b = createBattle([ally(150,90,0)], [[{species:19,level:1}]], seq(31))
+    b.auto = true
+    const enemy = b.units.find(u=>u.side==='enemy')!
+    enemy.hp=1
+    enemy.atkCd=999
+    for(let i=0;i<2000&&enemy.alive;i++)step(b,.05)
+    expect(enemy.alive).toBe(false)
+    expect(b.events.filter(e=>e.k==='bossDefeated'&&e.uid===enemy.uid)).toHaveLength(1)
+  })
   it('여러 시드에서 호출/새 무리/포위 이벤트가 모두 나온다', () => {
     const kinds = new Set<string>()
     for (let s = 1; s < 80; s++) for (const w of buildWaves(getStage(2, 2), seq(s))) for (const e of w) { if (e.late) kinds.add(e.late); if (e.surround) kinds.add('surround') }
