@@ -6,7 +6,7 @@ import { computeStats, type Stats } from '../lib/stats'
 import type { WaveEnemy } from '../lib/stages'
 import { type MoveFx, NO_FX, SPIRIT_ATK, SPIRIT_SECONDS } from '../lib/moveStones'
 import { moveHits, moveProfile, type MoveProfile } from '../lib/moveProfiles'
-import { encounterBalance, type EncounterBalance } from '../lib/battleBalance'
+import { encounterBalance, capFirstWorldHit, type EncounterBalance } from '../lib/battleBalance'
 import { WORLD_BOUNDS } from '../art/openField'
 import type { Stage } from '../lib/stages'
 import { ORIGINAL_FIRST } from '../lib/originalCampaign'
@@ -467,13 +467,19 @@ function applyHit(b: Battle, p: Pending) {
   // frame, not locked to a target's position at the casting frame.
   if (p.geometry && !moveHits(p.geometry.profile,p.geometry.origin,p.geometry.aim,to,to.radius)) return
   if (to.scatterT > 0 && b.rng() < (p.special ? 0.55 : 0.3)) return
-  const resisted = Math.round(p.amount * Math.max(0.05, 1 - (to.typeDamageResist[p.type] ?? 0)) * (p.crit ? Math.max(0,1-to.critTakenResist) : 1))
+  const from = unitById(b, p.from)
+  const baseDamage = Math.round(p.amount * Math.max(0.05, 1 - (to.typeDamageResist[p.type] ?? 0)) * (p.crit ? Math.max(0,1-to.critTakenResist) : 1))
+  // Only the opening four expeditions soften a full-health enemy's one-shot
+  // spikes. Both weak and powered-up attacks still deal meaningful damage.
+  const resisted = from?.side === 'ally' && to.side === 'enemy'
+    ? capFirstWorldHit(baseDamage,to.maxHp,b.balance.earlyEnemyHitCap,
+      to.boss ? 'boss' : to.elite ? 'elite' : 'normal',p.special)
+    : baseDamage
   to.hp = Math.max(0, to.hp - resisted)
   to.hurt = 0.3
   // 잠듦은 맞으면 깬다
   if (to.status?.kind === 'sleep') to.status = null
   b.events.push({ k: 'hit', from: p.from, to: p.to, amount: resisted, eff: p.eff, crit: p.crit, type: p.type, special: p.special })
-  const from = unitById(b, p.from)
   if (from && from.alive && from.lifesteal > 0 && !p.special && p.amount > 0) {
     const heal = Math.max(1, Math.floor(from.maxHp * from.lifesteal))
     from.hp = Math.min(from.maxHp, from.hp + heal)
