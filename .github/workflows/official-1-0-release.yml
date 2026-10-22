@@ -1,0 +1,49 @@
+name: Pokémon Quest Fan Edition 1.0 Official Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    if: github.repository == 'choivoo/Pokemon-Quest-fan.Edition'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Validate 1.0 Official Edition and OST cue manifest
+        run: |
+          npm ci
+          npm run typecheck
+          npm test
+          npm run build
+          test -s dist/index.html
+          test -f src/lib/officialCues.ts
+          node -e "const p=require('./package.json');if(p.version!=='1.0.0')process.exit(1)"
+      - name: Package standalone website
+        run: |
+          zip -qr pokemon-quest-fan-edition-1.0-official-web.zip dist
+          unzip -t pokemon-quest-fan-edition-1.0-official-web.zip
+      - name: Publish 1.0.0-official if absent
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view v1.0.0-official --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Preserving existing 1.0.0-official release"
+            exit 0
+          fi
+          gh release create v1.0.0-official pokemon-quest-fan-edition-1.0-official-web.zip \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "Pokémon Quest Fan Edition v1.0.0-official — 1.0 Official Release" \
+            --notes-file OFFICIAL_1_0_SOUNDTRACK_DEPLOY.md
