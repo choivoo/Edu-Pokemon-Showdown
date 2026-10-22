@@ -5,7 +5,7 @@ import { consumeEvents, drawBattle, H, newVisual, preload, SLOT_COLORS, W } from
 import { AREAS, AREA_BONUS_MUL, buildWaves, hasAreaBonus, type Theme } from '../lib/stages'
 import { HAPPENSTANCE_AREA } from '../lib/originalCampaign'
 import { cueForBattle } from '../lib/officialCues'
-import { tutorialWaves } from '../lib/tutorial'
+import { isTutorialStage, tutorialWaves } from '../lib/tutorial'
 import { getSpecies } from '../lib/roster'
 import { moveFxOf, partyMons, statsOf } from '../lib/party'
 import { bgm, sfx } from '../lib/sound'
@@ -43,6 +43,7 @@ const fmt = (t: number) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).p
 
 export default function Battle() {
   const { stage, save, finishBattle, go } = useGame()
+  const guidedBattle = !!stage && isTutorialStage(save,stage)
   const canvas = useRef<HTMLCanvasElement>(null)
   const battle = useRef<BattleState | null>(null)
   const visual = useRef(newVisual())
@@ -114,7 +115,7 @@ export default function Battle() {
     battle.current = b
     setHud(snapshot(b))
     const regionMusic = (['tide', 'grove', 'echo', 'spark', 'ember', 'astral'] as const)[stage.area] ?? 'battle'
-    bgm.playScene(cueForBattle(stage.area,stage.index,stage.boss),stage.boss?'boss':regionMusic)
+    bgm.playScene(isTutorialStage(save,stage) ? 'tutorial' : cueForBattle(stage.area,stage.index,stage.boss),stage.boss?'boss':regionMusic)
     if (stage.boss && stage.area >= 0) sfx.cry(waves.flat().find(w => w.boss)?.species ?? AREAS[stage.area].boss)
 
     const ctx = canvas.current!.getContext('2d')!
@@ -154,7 +155,7 @@ export default function Battle() {
       if (hudT > 0.1) { hudT = 0; setHud(snapshot(b)) }
       if ((b.phase === 'won' || b.phase === 'lost') && !finished.current) {
         endT += real
-        if (endT > (stage.area===6 && [0,1,3].includes(stage.index) ? 2.45 : 1.3)) { finished.current = true; setHud(snapshot(b)); finishBattle(b.phase === 'won', stage, b.kills) }
+        if (endT > (b.phase==='won' ? 2.45 : 1.3)) { finished.current = true; setHud(snapshot(b)); finishBattle(b.phase === 'won', stage, b.kills) }
       }
       raf = requestAnimationFrame(loop)
     }
@@ -176,6 +177,22 @@ export default function Battle() {
           const sy=(e.clientY-box.top)/box.height*H
           movePartyTo(battle.current,visual.current.cameraX+sx-W/2,visual.current.cameraY+sy-H/2)
         }} />
+
+      {guidedBattle && hud?.phase==='fight' && (
+        <div role="status" aria-live="polite" className="pointer-events-none absolute left-[170px] top-[69px] z-20 max-w-[555px] rounded-md border-4 border-[#815c34] bg-[#fff4c8]/95 px-3 py-2 text-[#513c21] shadow-[4px_5px_0_#344d46]">
+          <p className="flex items-center gap-2 text-base font-black text-[#a86912]">
+            <Icon n="sparkle" s={18}/> 모비의 전투 안내 · {stage.index===0?'1-1 첫 모험':'1-2 두 번째 모험'}
+          </p>
+          <p className="mt-1 text-sm font-semibold leading-snug">
+            {hud.wave===hud.waves ? (stage.index===0
+              ? '강적 나옹 등장! 기술 1·2를 사용하고, 이동 패드로 위험한 공격을 피해 보세요.'
+              : '마지막 웨이브예요! 강적을 물리치면 요리 튜토리얼이 열립니다.')
+              : hud.time < 8
+              ? '화면을 터치하거나 방향 패드·WASD로 자유롭게 이동해요. 포켓몬은 가까운 적을 자동으로 공격합니다.'
+              : '하단 포켓몬 카드에 있는 기술 1·2를 눌러 강력한 공격을 사용해 보세요. 쿨타임이 지나면 다시 사용할 수 있어요.'}
+          </p>
+        </div>
+      )}
 
       {/* 좌상단: 일시정지 + 카운터 */}
       <div className="absolute left-3 top-3 flex items-center gap-2">
