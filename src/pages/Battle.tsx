@@ -113,7 +113,7 @@ export default function Battle() {
     battle.current = b
     setHud(snapshot(b))
     const regionMusic = (['tide', 'grove', 'echo', 'spark', 'ember', 'astral'] as const)[stage.area] ?? 'battle'
-    bgm.play(stage.boss ? 'boss' : regionMusic)
+    bgm.playScene(cueForBattle(stage.area,stage.index,stage.boss),stage.boss?'boss':regionMusic)
     if (stage.boss && stage.area >= 0) sfx.cry(waves.flat().find(w => w.boss)?.species ?? AREAS[stage.area].boss)
 
     const ctx = canvas.current!.getContext('2d')!
