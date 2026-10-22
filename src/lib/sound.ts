@@ -1,8 +1,9 @@
 // 효과음은 Web Audio API로 직접 만든다. 배경음악/효과 음악은 music.ts, 곡 악보는 songs.ts
-import { audio, isMuted, masterOut, setMuted } from './audio'
+import { audio, isMuted, masterOut, setMuted as setMasterMuted } from './audio'
 import { bgm, jingle } from './music'
 
-export { bgm, isMuted, setMuted }
+export { bgm, isMuted }
+export function setMuted(muted:boolean){ setMasterMuted(muted); bgm.syncMute() }
 
 function beep(freq: number, start: number, dur: number, type: OscillatorType = 'square', vol = 0.08, slideTo?: number) {
   const c = audio()
