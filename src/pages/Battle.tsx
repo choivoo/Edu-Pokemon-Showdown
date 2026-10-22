@@ -7,6 +7,7 @@ import { HAPPENSTANCE_AREA } from '../lib/originalCampaign'
 import { getSpecies } from '../lib/roster'
 import { moveFxOf, partyMons, statsOf } from '../lib/party'
 import { bgm, sfx } from '../lib/sound'
+import { cueForExpedition } from '../lib/officialCueMap'
 import { TYPE_COLOR } from '../lib/typeChart'
 import { Btn, Portrait } from '../ui/kit'
 import Icon from '../ui/Icon'
@@ -112,7 +113,7 @@ export default function Battle() {
     battle.current = b
     setHud(snapshot(b))
     const regionMusic = (['tide', 'grove', 'echo', 'spark', 'ember', 'astral'] as const)[stage.area] ?? 'battle'
-    bgm.play(stage.boss ? 'boss' : regionMusic)
+    bgm.playCue(cueForExpedition(stage.area,stage.boss,stage.index),stage.boss?'boss':regionMusic)
     if (stage.boss && stage.area >= 0) sfx.cry(waves.flat().find(w => w.boss)?.species ?? AREAS[stage.area].boss)
 
     const ctx = canvas.current!.getContext('2d')!
