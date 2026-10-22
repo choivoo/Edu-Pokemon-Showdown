@@ -107,7 +107,6 @@ describe('Every starting species can finish the introductory expedition',()=>{
      stats:computeStats(getSpecies(speciesId),5),...defaultDualMoves(speciesId)}],buildWaves(stage,rng),rng,stage)
     b.auto=true
     for(let i=0;i<3500 && b.phase!=='lost' && b.phase!=='won';i++)step(b,.1)
-    if(b.phase!=='won') console.log('SOLO-DIAG',JSON.stringify({speciesId,seed,phase:b.phase,t:b.t,wave:b.wave,units:b.units.map(u=>({name:u.name,side:u.side,hp:Math.round(u.hp),maxHp:u.maxHp,alive:u.alive,spCd:u.spCd,special:u.special.name})),balance:b.balance}))
     expect(b.phase,`starter ${speciesId} seed ${seed}`).toBe('won')
    }
   }
