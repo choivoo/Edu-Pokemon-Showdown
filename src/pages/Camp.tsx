@@ -79,17 +79,18 @@ export default function Camp() {
           <div className="flex items-center justify-between gap-2">
             <b className="text-lg text-[#b96813]">모비의 첫 모험 가이드</b>
             <span className="rounded bg-[#e8ba55] px-2 text-xs font-bold">
-              {tutorial==='power-stone'?'2 / 5':tutorial==='second-expedition'?'3 / 5':tutorial==='cooking'?'4 / 5':tutorial==='friends'?'5 / 5':'완료!'}
+              {tutorial==='first-expedition'?'1 / 5':tutorial==='power-stone'?'2 / 5':tutorial==='second-expedition'?'3 / 5':tutorial==='cooking'?'4 / 5':tutorial==='friends'?'5 / 5':'완료!'}
             </span>
           </div>
           <p className="my-2 text-sm leading-snug">
-            {tutorial==='power-stone'?'첫 탐험에서 받은 P스톤을 장착하면 더욱 든든해져요. 아래 버튼으로 팀 화면을 열고 직접 장착해 보세요.'
+            {tutorial==='first-expedition'?'첫 번째 전투부터 시작해요! 출발의초원 1-1로 향해서 이동과 기술 사용을 연습하세요.':tutorial==='power-stone'?'첫 탐험에서 받은 P스톤을 장착하면 더욱 든든해져요. 아래 버튼으로 팀 화면을 열고 직접 장착해 보세요.'
             :tutorial==='second-expedition'?'준비됐어요! 출발의초원 1-2에서 두 번째 전투를 익혀 볼까요?'
             :tutorial==='cooking'?'두 번째 탐험 성공! 캠프의 냄비에 다섯 종류 재료를 넣어 새 친구를 초대해요.'
             :tutorial==='friends'?'요리가 완성됐어요! 구구와 꼬렛을 차례대로 맞이해 세 마리 파티를 완성하세요.'
             :'구구와 꼬렛까지 합류! 이제 탐험대 세 마리가 함께 출발할 수 있어요.'}
           </p>
           <div className="flex gap-2">
+            {tutorial==='first-expedition' && <Btn color="yellow" onClick={()=>startStage(getStage(ORIGINAL_FIRST,0))} className="w-full text-base">1-1 첫 탐험 계속하기</Btn>}
             {tutorial==='power-stone' && <>
               <Btn color="yellow" onClick={()=>openPanel('team')} className="flex-1 text-sm">P애뮬릿 열기</Btn>
               <Btn color="green" disabled={!starter||!beginnerStone} onClick={()=>{if(starter&&beginnerStone)autoPlaceStone(starter.id,beginnerStone.id)}} className="flex-1 text-sm">추천 칸에 장착</Btn>
