@@ -16,8 +16,8 @@ async function copy(text: string): Promise<boolean> {
 }
 
 export default function SavePanel() {
-  const { save, openPanel, markExported, importSave: apply } = useGame()
-  const [tab, setTab] = useState<'export' | 'import'>(save.started ? 'export' : 'import')
+  const { save, openPanel, markExported, importSave: apply, hardReset } = useGame()
+  const [tab, setTab] = useState<'export' | 'import' | 'reset'>(save.started ? 'export' : 'import')
   const [keys, setKeys] = useState<ExportedKeys | null>(null)
   const [busy, setBusy] = useState(false)
   const [note, setNote] = useState('')
@@ -25,6 +25,8 @@ export default function SavePanel() {
   const [inPw, setInPw] = useState('')
   const [err, setErr] = useState('')
   const [confirm, setConfirm] = useState(false)
+  const [resetPhrase, setResetPhrase] = useState('')
+  const [resetConfirmed, setResetConfirmed] = useState(false)
 
   const make = async () => {
     setBusy(true)
@@ -66,6 +68,7 @@ export default function SavePanel() {
       <div className="mb-3 flex gap-2">
         <Btn color={tab === 'export' ? 'yellow' : 'gray'} onClick={() => setTab('export')} className="flex-1 py-1.5 text-lg">저장 키 만들기</Btn>
         <Btn color={tab === 'import' ? 'yellow' : 'gray'} onClick={() => setTab('import')} className="flex-1 py-1.5 text-lg">저장 키로 불러오기</Btn>
+        <Btn color={tab === 'reset' ? 'red' : 'gray'} onClick={() => setTab('reset')} className="flex-1 py-1.5 text-lg">계정 초기화</Btn>
       </div>
 
       {tab === 'export' && (
@@ -114,6 +117,26 @@ export default function SavePanel() {
               </>
             )}
           </div>
+        </div>
+      )}
+      {tab === 'reset' && (
+        <div className="flex flex-col gap-3 border-4 border-[#b4312b] bg-[#fff0df] p-5" style={{ minHeight:330 }}>
+          <p className="text-2xl font-black text-[#a82d21]">모험 데이터 영구 초기화</p>
+          <p className="text-base leading-relaxed">이 기기의 포켓몬, 스테이지 진행, PM티켓, P스톤, 장식과 획득 기록이 모두 삭제되고 <b>처음 시작 화면</b>으로 돌아갑니다. 되돌릴 수 없으므로 먼저 <b>저장 키 만들기</b>에서 백업을 내려받는 것을 권장합니다. 다른 기기의 데이터와 이미 따로 백업한 키는 지우지 않습니다.</p>
+          {!save.started && <p className="text-base font-bold">현재 저장된 모험이 없어 초기화할 필요가 없습니다.</p>}
+          {save.started && <>
+            <label htmlFor="delete-account-confirm" className="text-base font-bold">정말 초기화하려면 아래에 <b>초기화</b>라고 정확히 입력하세요.</label>
+            <input id="delete-account-confirm" type="text" value={resetPhrase} autoComplete="off" spellCheck={false}
+              onChange={e=>{setResetPhrase(e.target.value);setResetConfirmed(false)}}
+              placeholder="초기화" className="w-full rounded border-4 border-[#c76b4f] bg-white px-3 py-2 text-xl text-[#7a2e28]" />
+            <div className="flex items-center gap-3">
+              <Btn color="gray" onClick={()=>{setTab('export');setResetConfirmed(false)}} className="flex-1">취소하고 백업하기</Btn>
+              {!resetConfirmed
+                ? <Btn color="red" disabled={resetPhrase !== '초기화'} onClick={()=>setResetConfirmed(true)} className="flex-1">1차 확인</Btn>
+                : <Btn color="red" disabled={resetPhrase !== '초기화'} onClick={()=>{hardReset();sfx.wrong()}} className="flex-1">최종 초기화 실행</Btn>}
+            </div>
+            {resetConfirmed && <p role="alert" className="text-center text-base font-bold text-[#ad1b19]">마지막 확인입니다. 진행 상황을 영구 삭제합니다.</p>}
+          </>}
         </div>
       )}
     </Panel>
