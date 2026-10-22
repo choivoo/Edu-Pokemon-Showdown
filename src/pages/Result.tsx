@@ -20,7 +20,7 @@ export default function Result() {
   useEffect(() => {
     if (!r) return
     if (r.win) { sfx.win(); if (r.levelUps.length) setTimeout(() => sfx.levelup(), 700) } else sfx.lose()
-    bgm.play('camp')
+    bgm.playCue('results','camp')
   }, [r])
 
   if (!r) return null
