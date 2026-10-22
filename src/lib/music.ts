@@ -119,11 +119,17 @@ function cueOf(name:SongName):TrackCue {
 function setCue(player:HTMLAudioElement,cue:TrackCue){
  const range=SOUNDTRACK_CUES[cue]
  activeCue=cue
- activeLocalCue={start:range[0],end:range[1]}
+ const index=partIndex(range[0])
+ const offset=sharedMode?PART_STARTS[index]:0
+ if(sharedMode){
+   const wanted=partUrl(index)
+   if(!player.src.endsWith(wanted)){player.src=wanted;player.load()}
+ }
+ activeLocalCue={start:range[0]-offset,end:range[1]-offset}
  const seek=()=>{if(activeCue===cue)player.currentTime=range[0]-offset}
  if(player.readyState>=1)seek()
  else player.addEventListener('loadedmetadata',seek,{once:true})
- void player.play().catch(()=>{/* gesture restrictions: next tap resumes */})
+ void player.play().catch(()=>{/* browsers require interaction before playback */})
 }
 function attachSharedMusic(ctx:AudioContext,dest:AudioNode):boolean{
  if(localAudio || !remoteReady)return false
@@ -138,7 +144,7 @@ function attachSharedMusic(ctx:AudioContext,dest:AudioNode):boolean{
   const t=player.currentTime
   if(t>=activeLocalCue.end-.12||t<activeLocalCue.start-.5)player.currentTime=activeLocalCue.start
  })
- player.addEventListener('error',()=>{if(localAudio===player){localAudio=null;currentName='';activeLocalCue=null;bgm.play('camp')}})
+ player.addEventListener('error',()=>{if(localAudio===player){localAudio=null;sharedMode=false;currentName='';activeLocalCue=null;remoteReady=false;bgm.play('camp')}})
  localAudio=player
  return true
 }
