@@ -251,7 +251,7 @@ export function buildWaves(stage: Stage, rng: Rng = Math.random): WaveEnemy[][] 
     }
     const lv = stage.level - (last ? 0 : 1)
     const base = Array.from({ length: count }, () => mk(lv))
-    if (last && !stage.boss && (eventsOn || !!stage.finalEnemy)) base[0] = { ...base[0], ...(stage.finalEnemy ? { species: stage.finalEnemy } : {}), elite: true, level: lv + 1 }
+    if (last && !stage.boss) base[0] = { ...base[0], ...(stage.finalEnemy ? { species: stage.finalEnemy } : {}), elite: true, level: lv + 1 }
     if (!eventsOn || (last && !stage.boss)) return base
     const roll = rng()
     if (roll < 0.22) return [...base, mk(lv - 1, { late: 'call' }), mk(lv - 1, { late: 'call' }), mk(lv - 1, { late: 'call' })]
