@@ -36,8 +36,8 @@ export function canTutorialExplore(save:SaveData,stage:Stage):boolean {
 export function tutorialWaves(save:SaveData,stage:Stage):WaveEnemy[][]|null {
  if (!isTutorialStage(save,stage))return null
  return stage.index===0 ? [
-  [{species:19,level:1}],
   [{species:16,level:1}],
+  [{species:19,level:1}],
   [{species:52,level:2,elite:true}],
  ] : [
   [{species:10,level:2}],
@@ -58,15 +58,15 @@ export const ONBOARDING_LINES={
   ],
   starters:[
     {speaker:'모비',text:'{name} 님! 이 섬에서 함께할 첫 포켓몬을 골라 주세요.'},
-    {speaker:'모비',text:'첫 번째 탐험에서는 기술을 눌러서 공격하고, 이동으로 적을 피하는 방법을 익혀요.'},
-    {speaker:null,text:'스타팅 포켓몬을 선택하면 바로 출발의초원 1-1 탐험이 시작됩니다!'},
+    {speaker:'모비',text:'첫 번째 탐험에서 화면의 기술 1·기술 2를 누르는 법과 자유로운 2D 이동을 익혀요. 포켓몬은 기본적으로 스스로 공격합니다.'},
+    {speaker:null,text:'스타팅 포켓몬을 선택하면 1-1 첫 전투가 곧바로 시작됩니다. 마지막에는 강적 나옹이 나타납니다!'},
   ],
   firstClear:[
     {speaker:'모비',text:'첫 탐험 성공! 이제 숲속의 공터에 베이스캠프를 세웠어요.'},
     {speaker:'모비',text:'방금 얻은 P스톤을 동료의 P애뮬릿에 넣어 보세요. 체력과 공격력이 올라갑니다!'},
   ],
   secondClear:[
-    {speaker:'모비',text:'두 번째 탐험도 무사히 끝났네요! 캠프로 돌아가 냄비를 사용해 봐요.'},
-    {speaker:'모비',text:'다섯 칸에 재료를 넣으면 맛있는 음식이 완성됩니다. 냄새를 맡고 새 친구들이 찾아올 거예요.'},
+    {speaker:'모비',text:'두 번째 탐험도 성공! 원작처럼 캠프의 첫 요리로 새로운 포켓몬 둘을 만나는 차례예요.'},
+    {speaker:'모비',text:'요리 냄비의 다섯 칸에 재료를 넣어 보세요! 첫 번째 요리는 바로 완성되고 구구와 꼬렛이 차례대로 합류합니다.'},
   ],
 } as const
